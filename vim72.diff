@@ -1,0 +1,82 @@
+diff -r 97788c96b656 eval.c
+--- a/eval.c	Tue Nov 09 21:39:12 2010 -0800
++++ b/eval.c	Tue Nov 09 22:07:54 2010 -0800
+@@ -348,6 +348,7 @@
+     {VV_NAME("mouse_col",	 VAR_NUMBER), 0},
+     {VV_NAME("operator",	 VAR_STRING), VV_RO},
+     {VV_NAME("searchforward",	 VAR_NUMBER), 0},
++    {VV_NAME("foldhighlight",	 VAR_NUMBER), 0},
+ };
+ 
+ /* shorthand */
+diff -r 97788c96b656 screen.c
+--- a/screen.c	Tue Nov 09 21:39:12 2010 -0800
++++ b/screen.c	Tue Nov 09 22:07:54 2010 -0800
+@@ -2170,8 +2170,15 @@
+ 				 ScreenAttrs[off + (p) + ri] = v
+ #endif
+ 
++    /*
++     * 4. Compose the folded-line string with 'foldtext', if set.
++     */
++    text = get_foldtext(wp, lnum, lnume, foldinfo, buf);
++
++    txtcol = col;	/* remember where text starts */
++
+     /* Set all attributes of the 'number' column and the text */
+-    RL_MEMSET(col, hl_attr(HLF_FL), W_WIDTH(wp) - col);
++    //RL_MEMSET(col, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)), W_WIDTH(wp) - col);
+ 
+ #ifdef FEAT_SIGNS
+     /* If signs are being displayed, add two spaces. */
+@@ -2186,10 +2193,10 @@
+ 	    if (wp->w_p_rl)
+ 		/* the line number isn't reversed */
+ 		copy_text_attr(off + W_WIDTH(wp) - len - col,
+-					(char_u *)"  ", len, hl_attr(HLF_FL));
++					(char_u *)"  ", len, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    else
+ # endif
+-		copy_text_attr(off + col, (char_u *)"  ", len, hl_attr(HLF_FL));
++		copy_text_attr(off + col, (char_u *)"  ", len, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    col += len;
+ 	}
+     }
+@@ -2212,22 +2219,15 @@
+ 	    if (wp->w_p_rl)
+ 		/* the line number isn't reversed */
+ 		copy_text_attr(off + W_WIDTH(wp) - len - col, buf, len,
+-							     hl_attr(HLF_FL));
++							     hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    else
+ #endif
+-		copy_text_attr(off + col, buf, len, hl_attr(HLF_FL));
++		copy_text_attr(off + col, buf, len, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    col += len;
+ 	}
+     }
+ 
+     /*
+-     * 4. Compose the folded-line string with 'foldtext', if set.
+-     */
+-    text = get_foldtext(wp, lnum, lnume, foldinfo, buf);
+-
+-    txtcol = col;	/* remember where text starts */
+-
+-    /*
+      * 5. move the text to current_ScreenLine.  Fill up with "fill_fold".
+      *    Right-left text is put in columns 0 - number-col, normal text is put
+      *    in columns number-col - window-width.
+diff -r 97788c96b656 vim.h
+--- a/vim.h	Tue Nov 09 21:39:12 2010 -0800
++++ b/vim.h	Tue Nov 09 22:07:54 2010 -0800
+@@ -1728,7 +1728,8 @@
+ #define VV_MOUSE_COL	51
+ #define VV_OP		52
+ #define VV_SEARCHFORWARD 53
+-#define VV_LEN		54	/* number of v: vars */
++#define VV_FOLDHIGHLIGHT 54
++#define VV_LEN		55  	/* number of v: vars */
+ 
+ #ifdef FEAT_CLIPBOARD
+ 
