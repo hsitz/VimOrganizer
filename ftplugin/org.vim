@@ -4259,29 +4259,11 @@ amenu &Org.Expand\ Level\ &4\ w/oText :call ExpandWithoutText(4)<cr>
 amenu &Org.Expand\ Level\ &5\ w/oText :call ExpandWithoutText(5)<cr>
 amenu &Org.Expand\ Level\ &6\ w/oText :call ExpandWithoutText(6)<cr>
 amenu &Org.-Sep1- :
-"amenu &Org.&Help.&Index :he vo<cr>
-"amenu &Org.&Help.&,,\ Commands :he vo-command<cr>
-"amenu &Org.&Help.&Checkboxes :he vo-checkbox<cr>
-"amenu &Org.&Help.&Hoisting :he vo-hoisting<cr>
-"amenu &Help.-Sep1- :
-"" Help menu additions
-"amenu &Help.&Vim\ Outliner.&Index :he vo<cr>
-"amenu &Help.&Vim\ Outliner.&,,\ Commands :he vo-command<cr>
-"amenu &Help.&Vim\ Outliner.&Checkboxes :he vo-checkbox<cr>
-"amenu &Help.&Vim\ Outliner.&Hoisting :he vo-hoisting<cr>
 
 command! PreLoadTags :silent  call <SID>GlobalConvertTags()
 command! PreWriteTags :silent call <SID>GlobalUnconvertTags()
 command! PostWriteTags :silent call <SID>UndoUnconvertTags()
 
-
-" Auto-commands {{{1
-"if !exists("autocommand_vo_loaded")
-"   let autocommand_vo_loaded = 1
-"   au BufNewFile,BufRead *.otl                     setf vo_org
-"   au CursorHold *.otl                             syn sync fromstart
-"   set updatetime=500
-"endif
 
 " below is autocmd to change tw for lines that have comments on them
 " I think this should go in vimrc so i runs for each buffer load
@@ -4291,9 +4273,4 @@ set fo=qtcwn
 " Added an indication of current syntax as per Dillon Jones' request
 let b:current_syntax = "org"
 
-"function Orgload()
-"   unlet g:vo_org_loaded
-"   source $VIM\vimfiles\ftplugin\vo_org.vim
-"   set fdm=expr
-"endfunction
 " vim600: set tabstop=4 shiftwidth=4 expandtab:
