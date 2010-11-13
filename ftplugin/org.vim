@@ -26,6 +26,7 @@ let g:todoitems = ['TODO','STARTED','DONE']
 let g:sparse_lines_after = 10
 let g:capture_file=''
 let g:log_todos=0
+let b:effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
 let g:timegrid=[8,17,1]
 let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\)'
 let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\)'
@@ -104,7 +105,7 @@ let g:weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
 let g:months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
 let g:monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 "let g:agenda_files=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
-"let g:agenda_files=['newtest3.org']
+let g:agenda_files=[]
 let s:AgendaBufferName = "__Agenda__"
 
 if !exists('g:org_loaded')
@@ -117,9 +118,18 @@ function! GetBufferTags()
     call setpos('.',save_cursor)
     return sort(keys(b:tagdict))
 endfunction
-
+inoremap <F5> <C-R>=Effort()<CR>
+noremap <F5> A<C-R>=Effort()<CR>
+function! Effort()
+    if getline(line('.'))=~':Effort:'
+        call setline(line('.'), substitute(getline(line('.')),'ort:\zs.*','',''))
+        normal A  
+        call complete(col('.'),b:effort)
+    endif
+    return ''
+endfunction
 function! AddTagsToDict(line)
-    call add(g:donelines,line('.'))
+    "call add(g:donelines,line('.'))
     let taglist = GetTagList(a:line)
     if !empty(taglist)
         for item in taglist
@@ -236,19 +246,17 @@ endfunction
 
 function! UnconvertTags(line)
     if IsTagLine(a:line+1)
-        undojoin | normal J
+        normal J
     endif
 endfunction
 function! <SID>GlobalUnconvertTags()
-    let save_cursor = getpos(".")
-    " move to end and insert space to create undo
-    normal GA 
-    let g:unconverted=0
-    g/^\*\+\s/call UnconvertTags(line("."))
-    call setpos(".",save_cursor)
+    "let g:save_cursor = getpos(".")
+    "g/^\*\+\s/call UnconvertTags(line("."))
 endfunction
 function! <SID>UndoUnconvertTags()
-    undo
+    "normal u
+    "call setpos(".",g:save_cursor)
+    
 endfunction
 
 function! ConvertTags(line)
@@ -740,7 +748,7 @@ function! ShowMore(headingline)
     let l:maxi = MaxVisIndent(a:headingline)
     let l:offset = l:maxi - Ind(a:headingline)
     if l:offset >= 0 
-        call ShowSubs(l:offset + 0,0)
+        call ShowSubs(l:offset + 1,0)
         if l:maxi == MaxVisIndent(a:headingline)
             "call SingleHeadingText('expand')
         endif
@@ -1145,7 +1153,7 @@ endfunction
 
 function! LoremIpsum()
     let lines = ["Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.", "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?","At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat."]
-    return lines[Random(3)-1]
+    return split(lines[Random(3)-1],'\%70c\S*\zs \ze')
 endfunction
 
 function! Random(range)
@@ -3061,6 +3069,7 @@ function! GotoOpenClock()
     "    call LocateFile(markfind[2])
     "endif:
     "silent execute markfind[1]
+    let found = 0
     for file in g:agenda_files
         call LocateFile(file)
         let found = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
@@ -3718,7 +3727,7 @@ function! DoAllTextFold(line)
                 \ && (NextVisibleHead(a:line) != 0)
                 \ && (MyFoldLevel(a:line) =~ '>')) 
                 \ || (foldclosedend(a:line) < 0)  
-                \ || ((OrgSubtreeLastLine() == line('$')) && (foldclosedend(a:line)!=line('$')))
+                \ || ((NextVisibleHead(a:line)==0) && (OrgSubtreeLastLine() == line('$')) && (foldclosedend(a:line)!=line('$')))
         call DoSingleFold(a:line)
     endwhile
 endfunction
@@ -3992,13 +4001,13 @@ endfunction
 
 function! CaptureBuffer()
     let w:prevbuf=bufnr("%")
-    edit _Capture_
+    sp _Capture_
     normal ggVGd
     normal i** 
     silent exec "normal o<".Timestamp().">"
-    normal k$a
     call s:AgendaBufSetup()
     command! -buffer W :call ProcessCapture()
+    normal gg$a
     
 endfunction
 function! ProcessCapture()
@@ -4012,7 +4021,7 @@ function! ProcessCapture()
     silent write
     redo
     call LocateFile('_Capture_')
-    execute "b".w:prevbuf
+    execute "bd"
 endfunction
 
 function! s:AgendaBufSetup()
@@ -4273,4 +4282,4 @@ set fo=qtcwn
 " Added an indication of current syntax as per Dillon Jones' request
 let b:current_syntax = "org"
 
-" vim600: set tabstop=4 shiftwidth=4 expandtab:
+" vim600: set tabstop=4 shiftwidth=4 expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^func'?0\:1:
