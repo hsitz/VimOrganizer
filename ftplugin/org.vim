@@ -607,8 +607,11 @@ function! FoldStatus(line)
     return l:status
 endfunction 
 
-function! NewHead(type)
+function! NewHead(type,...)
     " adds new heading or text level depending on type
+    if a:0 == 1
+        normal 
+    endif
     execute OrgGetHead()
     let l:org_line = line(".")
     let l:linebegin = matchlist(getline(line(".")),'^\(\**\s*\)')[1]
@@ -625,6 +628,7 @@ function! NewHead(type)
         startinsert!
 
     endif
+    return ''
 endfunction
 
 function! IsText(line)
@@ -2899,7 +2903,8 @@ function! BaseDate(...)
             execute 's/[<]\zs\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}/'.date.'/'
         else
             let @"= ' <' . date . '> '
-            normal p
+            normal A  
+            normal $p
         endif
     endif
     if bufnr('Calendar') > -1
@@ -3389,7 +3394,7 @@ function! <SID>CalendarChoice(day, month, year, week, dir)
     call RunAgenda(g:agenda_startdate, g:agenda_days,g:search_spec)
 endfunction
 function! <SID>CalendarInsertDate(day, month, year, week, dir)
-    execute g:calbuffer.'wincmd w'
+    execute bufwinnr(g:calbuffer).'wincmd w'
     let date = a:year.'-' . Pre0(a:month).'-'.Pre0(a:day)
     let day = calutil#dayname(date)
     let dateval = '<'.date.' '.day.'>'
@@ -3663,7 +3668,7 @@ function! OrgAgendaToBuf()
     wincmd x
     "let new_buf=bufnr("%")
     execute g:showndx
-    setlocal cursorline
+    "setlocal cursorline
     set foldlevel=1
     normal! zv
     normal! z.
@@ -4224,8 +4229,12 @@ map  <localleader>wl           :wincmd l<CR>
 map  <localleader>wh           :wincmd h<CR>
 map  <localleader>wk           :wincmd k<CR>
 
-nmap <silent> <buffer>   <c-CR>               :call NewHead('levelup')<CR>
-nmap <silent> <buffer>   <s-CR>               :call NewHead('leveldown')<CR>
+imap <silent> <buffer>   <s-c-CR>               <c-r>=NewHead('levelup',1)<CR>
+imap <silent> <buffer>   <c-CR>               <c-r>=NewHead('leveldown',1)<CR>
+imap <silent> <buffer>   <s-CR>               <c-r>=NewHead('same',1)<CR>
+nmap <silent> <buffer>   <s-c-CR>               :call NewHead('levelup')<CR>
+nmap <silent> <buffer>   <c-CR>               :call NewHead('leveldown')<CR>
+nmap <silent> <buffer>   <s-CR>               :call NewHead('same')<CR>
 nmap <silent> <buffer>   <CR>               :call NewHead('same')<CR>
 map <silent> <buffer>   <c-left>               :call ShowLess(line("."))<CR>
 map <silent> <buffer>   <c-right>            :call ShowMore(line("."))<CR>
