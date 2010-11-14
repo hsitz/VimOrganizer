@@ -1,0 +1,13 @@
+The vim72.diff file is patch to enable level-dependent fold 
+highlighting in Vim7.2.446.  This patch isn't absolutely necessary,
+but without it the folded headlines will all be the same color.
+You can see what it looks like with different colors in one of 
+the videos, linked below.  The patch is currently an ugly hack, but
+it's very simple and should be able to be made into something that
+can be incorporated into the Vim core by someone (unlike me) who 
+knows how to program in C.
+
+The project isn't quite ready for primetime, but there are some 
+videos illustrating it at http://vimeo.com/user5149406/videos.
+I am making rapid progress. . . .
+ 
