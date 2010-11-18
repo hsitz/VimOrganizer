@@ -113,6 +113,7 @@ if !exists('g:org_loaded')
 function! TodoSetup(todolist)
     "set up list and patterns for use throughout
     let b:todoitems=[]
+    let b:fulltodos=a:todolist
     let b:todocycle=[]
     let b:todoMatch=''
     let b:todoNotDoneMatch=''
@@ -366,46 +367,71 @@ function! OrgToggleTodo(line,...)
         endif
     endif
 endfunction
+function! NewTodo(curtodo)
+    let curtodo = a:curtodo
+    " check whether word is in todoitems and make appropriate
+    " substitution
+    let j = -1
+    let newi = -1
+    let i = index(b:fulltodos,curtodo)
+    if i == -1 
+        let i = 0
+        while i < len(b:fulltodos)
+            if type(b:fulltodos[i])==type([])
+                let j = index(b:fulltodos[i],curtodo)
+                if j > -1
+                    break
+                endif
+            endif
+            let i += 1
+        endwhile
+    endif
+
+    if i == len(b:fulltodos)-1
+        let newtodo = ''
+    else
+        if (i == len(b:fulltodos))
+            " not found, newtodo is index 0
+            let newi = 0
+        elseif (i >= 0) 
+            let newi = i+1
+        endif
+
+        if type(b:fulltodos[newi]) == type([])
+            let newtodo = b:fulltodos[newi][0].' '
+        else
+            let newtodo = b:fulltodos[newi].' '
+        endif
+    endif
+    return newtodo
+endfunction
 
 function! ReplaceTodo(todoword,...)
     let save_cursor = getpos('.')
+    let todoword = a:todoword
     if a:0 == 1
         let newtodo = a:1
     else
-        let newtodo = ''
+        let newtodo = NewTodo(todoword)
     endif
-    " check whether word is in todoitems and make appropriate
-    " substitution
-    let myindex = index(g:todoitems,a:todoword)
-    "let prefix = line(".") . ',' . line(".")
-    let todoword = a:todoword
-    if (myindex >= 0) && (a:0 == 0)
-        if myindex != len(g:todoitems) - 1
-            let newtodo = g:todoitems[myindex+1]
+    if (index(b:todoitems,todoword) >= 0) 
+        if newtodo > ''
+            let newline = substitute(getline(line(".")),
+                        \ '\* ' . a:todoword.' ',
+                        \ '\* ' . newtodo,'g')
+        else
+            let newline = substitute(getline(line(".")),
+                        \ '\* ' . a:todoword.' ',
+                        \ '\* ' . '','g')
         endif
-    elseif a:0 == 0
-        let todoword = ''
-        let newtodo = g:todoitems[0]
-    endif
-    if newtodo != ''
-        let newtodo .= ' '
-    endif
-    if myindex >= 0
-        "if myindex == len(g:todoitems) - 1
-        "    let newline = substitute(getline(line(".")),
-        "                \ '\* ' . g:todoitems[myindex] ,
-        "                \ '\* ' ,'g')
-        "else
-        let newline = substitute(getline(line(".")),
-                    \ '\* ' . g:todoitems[myindex].' ',
-                    \ '\* ' . newtodo,'g')
-        "endif
     else
         let newline = substitute(getline(line(".")),
                     \ '\zs\* \ze\S\+', 
                     \ '\* ' . newtodo ,'g')
     endif
+
     call setline(line("."),newline)
+
     if exists("*Org_after_todo_state_change_hook") && (bufnr("%") != bufnr('Agenda'))
         let Hook = function("Org_after_todo_state_change_hook")
         call Hook(line('.'),todoword,newtodo)
