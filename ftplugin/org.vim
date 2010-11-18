@@ -22,7 +22,7 @@ let s:headline = ''
 let b:levelstars = 1
 let g:ColumnHead = 'Lines'
 "let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
-"let g:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
+"let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
 let g:sparse_lines_after = 10
 let g:capture_file=''
 let g:log_todos=0
@@ -349,7 +349,7 @@ function! OrgToggleTodo(line,...)
         if a:1 == 'x'
             let newtodo = ''
         else
-            for item in g:todoitems
+            for item in b:todoitems
                 if item[0] ==? a:1
                     let newtodo = item
                 endif
@@ -398,9 +398,9 @@ function! NewTodo(curtodo)
         endif
 
         if type(b:fulltodos[newi]) == type([])
-            let newtodo = b:fulltodos[newi][0].' '
+            let newtodo = b:fulltodos[newi][0]
         else
-            let newtodo = b:fulltodos[newi].' '
+            let newtodo = b:fulltodos[newi]
         endif
     endif
     return newtodo
@@ -413,6 +413,9 @@ function! ReplaceTodo(todoword,...)
         let newtodo = a:1
     else
         let newtodo = NewTodo(todoword)
+    endif
+    if newtodo > ''
+        let newtodo .= ' '
     endif
     if (index(b:todoitems,todoword) >= 0) 
         if newtodo > ''
@@ -1309,8 +1312,8 @@ function! SetRandomDate(...)
     endif
 endfunction
 function! SetRandomTodo()
-    let newtodo = g:todoitems[Random(3)-1]
-    if index(g:todoitems,matchstr(getline(line('.')),'^\*\+ \zs\S*\ze ')) >= 0
+    let newtodo = b:todoitems[Random(3)-1]
+    if index(b:todoitems,matchstr(getline(line('.')),'^\*\+ \zs\S*\ze ')) >= 0
         call setline(line('.'),matchstr(getline(line('.')),'^\*\+ ') . newtodo . 
                     \    ' '. matchstr(getline(line('.')),'^\*\+ \S* \zs.*')) 
     else
@@ -1784,13 +1787,15 @@ function! RunSearch(search_spec,...)
         " make agenda buf have its own todoitems, need
         " to get rid of g:... so each agenda_file can have
         " its own todoitems defined. . . "
-        let todos = g:todoitems
+        let todos = b:todoitems
         let todoNotDoneMatch = b:todoNotDoneMatch
         let todoMatch = b:todoMatch
+        let fulltodos = b:fulltodos
         :AAgenda
         let b:todoitems = todos
         let b:todoNotDoneMatch = todoNotDoneMatch
         let b:todoMatch = todoMatch
+        let b:fulltodos = fulltodos
         %d
         set nowrap
         map <buffer> <silent> <tab> :call AgendaGetText()<CR>
@@ -1959,8 +1964,15 @@ function! RunAgenda(date,count,...)
     else
         call MakeAgenda(a:date,a:count)
     endif
-    echo 
+    let todos = b:todoitems
+    let todoNotDoneMatch = b:todoNotDoneMatch
+    let todoMatch = b:todoMatch
+    let fulltodos = b:fulltodos
     :AAgenda
+    let b:todoitems = todos
+    let b:todoNotDoneMatch = todoNotDoneMatch
+    let b:todoMatch = todoMatch
+    let b:fulltodos = fulltodos
     silent exe '%d'
     set nowrap
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
@@ -4219,7 +4231,7 @@ function! s:AgendaBufHighlight()
 endfunction
 function! CurTodo(line)
     let result = matchstr(getline(a:line),'.*\* \zs\S\+\ze ')`
-    if index(g:todoitems,curtodo) == -1
+    if index(b:todoitems,curtodo) == -1
         let result = ''
     endif
     return result
