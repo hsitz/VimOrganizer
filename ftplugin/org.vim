@@ -1573,13 +1573,13 @@ function! OrgIfExpr()
         if index(b:todoitems,item[1:]) >= 0
             let item = '(thisline ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
             let b:my_if_list[i] = item
-        elseif item[1:] == 'NOTDONETODO'
+        elseif item[1:] == 'UNFINISHED_TODOS'
             let item = '(thisline ' . op . " '" . b:todoNotDoneMatch . "')"
             let b:my_if_list[i] = item
-        elseif item[1:] == 'DONETODO'
+        elseif item[1:] == 'FINISHED_TODOS'
             let item = '(thisline ' . op . " '" . b:todoDoneMatch . "')"
             let b:my_if_list[i] = item
-        elseif item[1:] == 'ANYTODO'
+        elseif item[1:] == 'ALL_TODOS'
             let item = '(thisline ' . op . " '" . b:todoMatch . "')"
             let b:my_if_list[i] = item
         else
@@ -1754,8 +1754,14 @@ endfunc
 function! RunSearch(search_spec,...)
     let sparse_search = 0
     if a:0 > 0
-        let sparse_search = a:1
+        if a:1 == 1
+            let sparse_search = a:1
+        else
+            let search_type=a:1
+        endif
     endif
+    let g:adict={}
+    let g:agenda_date_dict={}
     call MakeResults(a:search_spec,sparse_search)
 
     if sparse_search
@@ -1789,11 +1795,13 @@ function! RunSearch(search_spec,...)
         " its own todoitems defined. . . "
         let todos = b:todoitems
         let todoNotDoneMatch = b:todoNotDoneMatch
+        let todoDoneMatch = b:todoDoneMatch
         let todoMatch = b:todoMatch
         let fulltodos = b:fulltodos
         :AAgenda
         let b:todoitems = todos
         let b:todoNotDoneMatch = todoNotDoneMatch
+        let b:todoDoneMatch = todoDoneMatch
         let b:todoMatch = todoMatch
         let b:fulltodos = fulltodos
         %d
@@ -1814,6 +1822,17 @@ function! RunSearch(search_spec,...)
         let i = 0
         call ADictPlaceSigns()
         call setline(1, ["Headlines matching search spec: ".g:search_spec,''])
+        if exists("search_type") && (search_type=='agenda_todo')
+            let msg = "Press num to redo search: "
+            let numstr= ''
+            let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:todoitems
+            for item in tlist
+                let num = index(tlist,item)
+                let numstr .= '('.num.')'.item.'  '
+                execute "nmap <buffer> ".num."  :call RunSearch('+".tlist[num]."','agenda_todo')<CR>"
+            endfor
+            call append(1,split(msg.numstr,'\%72c\S*\zs '))
+        endif
         for key in sort(keys(g:adict))
             call setline(line("$")+1, g:adict[key].l . repeat(' ',6-len(g:adict[key].l)) . 
                         \ Pad(g:adict[key].file,13)  . 
@@ -1898,7 +1917,7 @@ function! DateDictToScreen()
         else
             if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
                 silent execute line("$")-gap+2 . ',$d'
-                call setline(line("$"), '  ****** ' .gap. ' days skipped ******')
+                call setline(line("$"), ['','  [. . . ' .gap. ' empty days omitted ]',''])
             endif
             let gap = 0
             call setline(line('$')+ 1,g:agenda_date_dict[key].marker)
@@ -1910,7 +1929,7 @@ function! DateDictToScreen()
     endfor
     if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
         silent execute line("$")-gap+2 . ',$d'
-        call setline(line("$"), '  ****** ' .gap. ' days skipped ******')
+        call setline(line("$"), ['','  [. . . ' .gap. ' empty days omitted ]',''])
     endif
 endfunction
 function! PlaceTimeGrid(marker)
@@ -1966,11 +1985,13 @@ function! RunAgenda(date,count,...)
     endif
     let todos = b:todoitems
     let todoNotDoneMatch = b:todoNotDoneMatch
+    let todoDoneMatch = b:todoDoneMatch
     let todoMatch = b:todoMatch
     let fulltodos = b:fulltodos
     :AAgenda
     let b:todoitems = todos
     let b:todoNotDoneMatch = todoNotDoneMatch
+    let b:todoDoneMatch = todoDoneMatch
     let b:todoMatch = todoMatch
     let b:fulltodos = fulltodos
     silent exe '%d'
@@ -2286,15 +2307,27 @@ function! CheckMinMax()
         let b:MinMaxDate[1] = date
     endif
 endfunction        
-function! TimeLine(...)
+function! Timeline(...)
     if a:0 > 0
         let spec = a:1
     else
         let spec = ''
     endif
+    if bufname("%") == '__Agenda__'
+        "go back up to main org buffer
+        wincmd k
+    endif
+    let prev_spec = g:search_spec
+    let prev_files = g:agenda_files
+    exec "let g:agenda_files=['".expand("%")."']"
     call BufMinMaxDate()
-    let num_days = calutil#jul(b:MinMaxDate[1]) - calutil#jul(b:MinMaxDate[0])
-    call RunAgenda(b:MinMaxDate[0], num_days,spec)
+    let num_days = 1 + calutil#jul(b:MinMaxDate[1]) - calutil#jul(b:MinMaxDate[0])
+    try
+        call RunAgenda(b:MinMaxDate[0], num_days,spec)
+    finally
+        let g:search_spec = prev_spec
+        let g:agenda_files = prev_files
+    endtry
 endfunction
 
 function! Pre0(s)
@@ -2544,14 +2577,14 @@ function! AgendaPutText(...)
             let daytextpat = '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d'
             while (getline(line(".")) !~ '^\d\+\s\+') && (line(".") != line("$"))
                         \ && (getline(line(".")) !~ daytextpat)
-                        \ && (getline(line(".")) !~ '\d days skipped \*')
+                        \ && (getline(line(".")) !~ '\d empty days omitted')
                 normal j
             endwhile
             let lastline = line(".")
             if (lastline < line("$"))  ||
                         \ ( (getline(line(".")) =~ '^\d\+\s\+')
                         \ || (getline(line(".")) =~ daytextpat) 
-                        \ || (getline(line(".")) =~ '\d days skipped \*') )
+                        \ || (getline(line(".")) =~ '\d empty days omitted') )
                 let lastline = line(".") - 1
             endif
             "execute firstline . ', ' . lastline . 'd'
@@ -2612,7 +2645,7 @@ function! AgendaGetText(...)
     if thisline =~ '^\d\+\s\+'
         if (getline(line(".") + 1) =~ '^\d\+\s\+') || (line(".") == line("$")) ||
                     \ (getline(line(".") + 1 ) =~ '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d')
-                    \ || (getline(line(".") + 1 ) =~ '\d days skipped \*')
+                    \ || (getline(line(".") + 1 ) =~ '\d empty days omitted')
             let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
             let lineno = matchstr(thisline,'^\d\+\ze\s\+')
             let starttab = tabpagenr() 
@@ -2656,14 +2689,14 @@ function! AgendaGetText(...)
             let daytextpat = '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d'
             while (getline(line(".")) !~ '^\d\+\s\+') && (line(".") != line("$"))
                         \ && (getline(line(".")) !~ daytextpat)
-                        \ && (getline(line(".")) !~ '\d days skipped \*')
+                        \ && (getline(line(".")) !~ '\d empty days omitted')
                 normal j
             endwhile
             let lastline = line(".")
             if (lastline < line("$"))  ||
                         \ ( (getline(line(".")) =~ '^\d\+\s\+')
                         \ || (getline(line(".")) =~ daytextpat) 
-                        \ || (getline(line(".")) =~ '\d days skipped \*')) 
+                        \ || (getline(line(".")) =~ '\d empty days omitted')) 
                 let lastline = line(".") - 1
             endif
             call setpos(".",save_cursor)
@@ -4187,6 +4220,45 @@ function! Emacs2PDF()
     silent !"c:program files (x86)\emacs\emacs\bin\emacs.exe" -batch --visit=newtest3.org --funcall org-export-as-pdf
     "silent !c:\sumatra.exe newtest3.org
 endfunction
+function! Today()
+    return strftime("%Y-%m-%d")
+endfunction
+function! AgendaDashboard()
+	echo " Press key for an agenda command:"
+	echo " --------------------------------"
+	echo " a   Agenda for current week or day"
+	echo " t   List of all TODO entries"
+	echo " m   Match a TAGS/PROP/TODO query"
+	echo " L   Timeline for current buffer"
+	echo " s   Search for keywords"
+	echo " "
+	echo " f   Sparse tree of: " . g:search_spec
+	echo " "
+    let key = nr2char(getchar())
+
+    if key == 't'
+        redraw
+        silent execute "call RunSearch('+ALL_TODOS','agenda_todo')"
+    elseif key == 'a'
+        redraw
+        silent execute "call RunAgenda(Today(),7)"
+    elseif key == 'L'
+        redraw
+        silent execute "call Timeline()"
+    elseif key == 'm'
+        redraw
+        let mysearch = input("Enter search string: ")
+        silent execute "call RunSearch(mysearch)"
+    elseif key == 'f'
+        redraw
+        let mysearch = input("Enter search string: ",g:search_spec)
+        if bufname("%")=='__Agenda__'
+            :bd
+        endif
+        silent execute "call RunSearch(mysearch,1)"
+    endif
+endfunction
+
 function! s:AgendaBufHighlight()
     hi Overdue guifg=red
     hi Upcoming guifg=yellow
@@ -4346,6 +4418,7 @@ map <silent> <buffer> <localleader>td :call OrgToggleTodo(line('.'),'d')<cr>
 map <silent> <buffer> <localleader>tc :call OrgToggleTodo(line('.'),'c')<cr>
 map <silent> <buffer> <localleader>tn :call OrgToggleTodo(line('.'),'n')<cr>
 map <silent> <buffer> <localleader>tx :call OrgToggleTodo(line('.'),'x')<cr>
+map <silent> <localleader>ag :call AgendaDashboard()<cr>
 "map <localleader>ar :startofbasedateedit 
 "map <localleader>ad :start_DEADLINE_edit 
 "map <localleader>ac :start_CLOSED_edit 
