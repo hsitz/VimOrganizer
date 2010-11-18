@@ -21,15 +21,15 @@ let s:remstring = '^\s*:'
 let s:headline = ''
 let b:levelstars = 1
 let g:ColumnHead = 'Lines'
-let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
-let g:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
+"let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
+"let g:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
 let g:sparse_lines_after = 10
 let g:capture_file=''
 let g:log_todos=0
 let b:effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
 let g:timegrid=[8,17,1]
-let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\|CANCELED\|NEXT\)'
-let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\|NEXT\)'
+"let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\|CANCELED\|NEXT\)'
+"let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\|NEXT\)'
 let b:tagMatch = '\(:\S*:\)\s*$'
 let b:mytags = ['buy','home','work','URGENT']
 let b:foldhi = ''
@@ -110,6 +110,50 @@ let s:AgendaBufferName = "__Agenda__"
 
 if !exists('g:org_loaded')
 
+function! TodoSetup(todolist)
+    "set up list and patterns for use throughout
+    let b:todoitems=[]
+    let b:todocycle=[]
+    let b:todoMatch=''
+    let b:todoNotDoneMatch=''
+    let b:todoDoneMatch=''
+    let i = 0
+    while i < len(a:todolist) 
+        if type(a:todolist[i]) == type('abc')
+            call add(b:todoitems,a:todolist[i])
+            call add(b:todocycle,a:todolist[i])
+            " add to patterns
+            let newtodo = b:todoitems[len(b:todoitems)-1]
+            let b:todoMatch .= newtodo . '\|'
+            if i < len(a:todolist) - 1
+                let b:todoNotDoneMatch .= newtodo . '\|'
+            else
+                let b:todoDoneMatch .= newtodo . '\|'
+            endif
+            else
+            let j = 0
+            while j < len(a:todolist[i])
+                call add(b:todoitems,a:todolist[i][j])
+                if j == 0
+                    call add(b:todocycle,a:todolist[i][0])
+                endif
+                " add to patterns
+                let b:todoMatch .= a:todolist[i][j] . '\|'
+                if i < len(a:todolist) - 1
+                    let b:todoNotDoneMatch .= a:todolist[i][j] . '\|'
+                else
+                    let b:todoDoneMatch .= a:todolist[i][j] . '\|'
+                endif
+                let j += 1
+            endwhile
+        endif
+        let i += 1
+    endwhile
+    let b:todoMatch = '^\*\+\s*\('.b:todoMatch[:-2] . ')'
+    let b:todoDoneMatch = '^\*\+\s*\('.b:todoDoneMatch[:-2] . ')'
+    let b:todoNotDoneMatch = '^\*\+\s*\('.b:todoNotDoneMatch[:-2] . ')'
+
+endfunction
 function! CurfileAgenda()
     exec "let g:agenda_files=['".expand("%")."']"
 endfunction
@@ -1502,6 +1546,9 @@ function! OrgIfExpr()
             let b:my_if_list[i] = item
         elseif item[1:] == 'NOTDONETODO'
             let item = '(thisline ' . op . " '" . b:todoNotDoneMatch . "')"
+            let b:my_if_list[i] = item
+        elseif item[1:] == 'DONETODO'
+            let item = '(thisline ' . op . " '" . b:todoDoneMatch . "')"
             let b:my_if_list[i] = item
         elseif item[1:] == 'ANYTODO'
             let item = '(thisline ' . op . " '" . b:todoMatch . "')"
