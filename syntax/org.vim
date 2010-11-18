@@ -20,12 +20,11 @@ syntax match Dates +<\d\d\d\d-\d\d-\d\d.\{-1,}>+
 hi Dates guifg=magenta
 syntax match stars +\*\+\*+me=e-1 contained
 hi stars guifg=#444444
+syntax match NEXT '\* \zsNEXT' containedin=OL1,OL2,OL3,OL4,OL5,OL6
+syntax match CANCELED '\* \zsCANCELED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match TODO '\* \zsTODO' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match STARTED '\* \zsSTARTED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match DONE '\* \zsDONE' containedin=OL1,OL2,OL3,OL4,OL5,OL6
-hi TODO guifg=red guibg=NONE
-hi STARTED guifg=yellow
-hi DONE guifg=green
 "syntax match source '^#+\(begin\|end\)_src.*$' contained
 "hi source gui=underline
 syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars

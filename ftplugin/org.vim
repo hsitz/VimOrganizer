@@ -21,15 +21,15 @@ let s:remstring = '^\s*:'
 let s:headline = ''
 let b:levelstars = 1
 let g:ColumnHead = 'Lines'
-let b:todoitems = ['TODO','STARTED','DONE']
-let g:todoitems = ['TODO','STARTED','DONE']
+let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
+let g:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
 let g:sparse_lines_after = 10
 let g:capture_file=''
 let g:log_todos=0
 let b:effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
 let g:timegrid=[8,17,1]
-let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\)'
-let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\)'
+let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\|CANCELED\|NEXT\)'
+let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\|NEXT\)'
 let b:tagMatch = '\(:\S*:\)\s*$'
 let b:mytags = ['buy','home','work','URGENT']
 let b:foldhi = ''
@@ -110,6 +110,10 @@ let s:AgendaBufferName = "__Agenda__"
 
 if !exists('g:org_loaded')
 
+function! CurfileAgenda()
+    exec "let g:agenda_files=['".expand("%")."']"
+endfunction
+
 function! GetBufferTags()
     let save_cursor = getpos(".") 
     let b:tagdict = {}
@@ -141,6 +145,7 @@ function! AddTagsToDict(line)
         endfor
     endif
 endfunction
+
 function! GetTagList(line)
     let text = getline(a:line+1)
     if (text !~ b:drawerMatch) && (text !~ b:dateMatch) && (text =~ s:remstring)
@@ -294,48 +299,82 @@ function! FCTest(line)
     endif
 endfunction
 
-function! OrgToggleTodo(line)
-
+function! OrgToggleTodo(line,...)
+    if a:0 == 1
+        if a:1 == 'x'
+            let newtodo = ''
+        else
+            for item in g:todoitems
+                if item[0] ==? a:1
+                    let newtodo = item
+                endif
+            endfor
+        endif
+    endif
     let linetext = getline(a:line)
     if (linetext =~ g:headMatch) 
         " get first word in line and its index in todoitems
         let tword = matchstr(linetext,'\*\+\s\+\zs\S\+\ze')
-        call ReplaceTodo(tword)
+        if a:0 == 1
+            call ReplaceTodo(tword,newtodo)
+        else
+            call ReplaceTodo(tword)
+        endif
     endif
 endfunction
-function! ReplaceTodo(todoword)
+
+function! ReplaceTodo(todoword,...)
+    let save_cursor = getpos('.')
+    if a:0 == 1
+        let newtodo = a:1
+    else
+        let newtodo = ''
+    endif
     " check whether word is in todoitems and make appropriate
     " substitution
     let myindex = index(g:todoitems,a:todoword)
-    let prefix = line(".") . ',' . line(".")
+    "let prefix = line(".") . ',' . line(".")
     let todoword = a:todoword
-    if myindex >= 0
-        if myindex == len(g:todoitems) - 1
-            let newtodo = ''
-            let newline = substitute(getline(line(".")),
-                        \ '\* ' . g:todoitems[myindex] . ' ',
-                        \ '\* ' ,'g')
-        else
+    if (myindex >= 0) && (a:0 == 0)
+        if myindex != len(g:todoitems) - 1
             let newtodo = g:todoitems[myindex+1]
-            let newline = substitute(getline(line(".")),
-                        \ '\* ' . g:todoitems[myindex],
-                        \ '\* ' . newtodo,'g')
         endif
-    else
+    elseif a:0 == 0
         let todoword = ''
         let newtodo = g:todoitems[0]
+    endif
+    if newtodo != ''
+        let newtodo .= ' '
+    endif
+    if myindex >= 0
+        "if myindex == len(g:todoitems) - 1
+        "    let newline = substitute(getline(line(".")),
+        "                \ '\* ' . g:todoitems[myindex] ,
+        "                \ '\* ' ,'g')
+        "else
+        let newline = substitute(getline(line(".")),
+                    \ '\* ' . g:todoitems[myindex].' ',
+                    \ '\* ' . newtodo,'g')
+        "endif
+    else
         let newline = substitute(getline(line(".")),
                     \ '\zs\* \ze\S\+', 
-                    \ '\* ' . newtodo . ' ','g')
+                    \ '\* ' . newtodo ,'g')
     endif
     call setline(line("."),newline)
-    if g:log_todos && (bufnr("%") != bufnr('Agenda'))
-        call ConfirmDrawer("LOGBOOK")
-        let str = ": - State: " . Pad(newtodo,10) . "   from: " . Pad(a:todoword,10) .
-                    \ '    [' . Timestamp() . ']'
-        call append(line("."), repeat(' ',len(matchstr(getline(line(".")),'^\s*'))) . str)
-        execute OrgGetHead()
+    if exists("*Org_after_todo_state_change_hook") && (bufnr("%") != bufnr('Agenda'))
+        let Hook = function("Org_after_todo_state_change_hook")
+        call Hook(line('.'),todoword,newtodo)
     endif
+
+    "if g:log_todos && (bufnr("%") != bufnr('Agenda'))
+     "   call ConfirmDrawer("LOGBOOK")
+     "   let str = ": - State: " . Pad(newtodo,10) . "   from: " . Pad(a:todoword,10) .
+     "               \ '    [' . Timestamp() . ']'
+     "   call append(line("."), repeat(' ',len(matchstr(getline(line(".")),'^\s*'))) . str)
+     "   execute OrgGetHead()
+    "endif
+    call setpos('.',save_cursor)
 endfunction
 
 function! Timestamp()
@@ -1562,6 +1601,7 @@ function! MakeResults(search_spec,...)
     let curfile = expand("%:t")
     let g:search_spec = a:search_spec
     let g:adict = {}
+    let g:datedict = {}
     let ifexpr = OrgIfExpr()
 
     if sparse_search 
@@ -1612,6 +1652,7 @@ function! MakeAgenda(date,count,...)
     endif
     "let myfiles=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
     let g:adict = {}
+    let g:datedict = {}
     call MakeCalendar(g:agenda_startdate,g:agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
@@ -1667,14 +1708,23 @@ function! RunSearch(search_spec,...)
         endfor
         execute 1
     else
+        " make agenda buf have its own todoitems, need
+        " to get rid of g:... so each agenda_file can have
+        " its own todoitems defined. . . "
+        let todos = g:todoitems
+        let todoNotDoneMatch = b:todoNotDoneMatch
+        let todoMatch = b:todoMatch
         :AAgenda
+        let b:todoitems = todos
+        let b:todoNotDoneMatch = todoNotDoneMatch
+        let b:todoMatch = todoMatch
         %d
         set nowrap
-        map <buffer> <silent> <tab> :call AgendaGetText('adict')<CR>
-        map <buffer> <silent> <s-CR> :call AgendaGetText('adict',1)<CR>
+        map <buffer> <silent> <tab> :call AgendaGetText()<CR>
+        map <buffer> <silent> <s-CR> :call AgendaGetText(1)<CR>
         map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
         map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-        nmap <silent> <buffer> r :call RunSearch(g:search_spec)<CR>
+        nmap <silent> <buffer> r :call RunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
         nmap <silent> <buffer> <s-up> :call DateInc(1)<CR>
         nmap <silent> <buffer> <s-down> :call DateInc(-1)<CR>
         call matchadd( 'OL1', '\s\+\*\{1}.*$' )
@@ -1685,6 +1735,7 @@ function! RunSearch(search_spec,...)
         wincmd J
         let i = 0
         call ADictPlaceSigns()
+        call setline(1, ["Headlines matching search spec: ".g:search_spec,''])
         for key in sort(keys(g:adict))
             call setline(line("$")+1, g:adict[key].l . repeat(' ',6-len(g:adict[key].l)) . 
                         \ Pad(g:adict[key].file,13)  . 
@@ -1693,7 +1744,6 @@ function! RunSearch(search_spec,...)
             let i += 1
         endfor
     endif
-
 endfunction
 
 function! TestTime()
@@ -1849,8 +1899,8 @@ function! RunAgenda(date,count,...)
     map <silent> <buffer> vm :call RunAgenda(g:agenda_startdate, 30,g:search_spec)<CR>
     map <silent> <buffer> f :call AgendaMove('forward')<cr>
     map <silent> <buffer> b :call AgendaMove('backward')<cr>
-    map <silent> <buffer> <tab> :call AgendaGetText('datedict')<CR>
-    map <silent> <buffer> <s-CR> :call AgendaGetText('datedict',1)<CR>
+    map <silent> <buffer> <tab> :call AgendaGetText()<CR>
+    map <silent> <buffer> <s-CR> :call AgendaGetText(1)<CR>
     nmap <silent> <buffer> r :call RunAgenda(g:agenda_startdate, g:agenda_days,g:search_spec)<CR>
     nmap <silent> <buffer> <s-up> :call DateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call DateInc(-1)<CR>
@@ -2369,7 +2419,7 @@ function! MakeCalendar(date, daycount)
 
 endfunction
 
-function! AgendaPutText(type,...)
+function! AgendaPutText(...)
     let save_cursor = getpos(".")
     let thisline = getline(line("."))
     if thisline =~ '^\d\+\s\+'
@@ -2383,9 +2433,9 @@ function! AgendaPutText(type,...)
                 execute "tab drop " . file . '.org'
             endif
             "let confirmhead = g:agenda_head_lookup[dateline]
-            if a:type == 'datedict'
+            if g:agenda_date_dict != {}
                 let confirmhead = g:agenda_head_lookup[lineno]
-            else
+            elseif g:adict != {}
                 let confirmhead = lineno
             endif
             let newhead = matchstr(GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.confirmhead)
@@ -2460,11 +2510,14 @@ function! SaveHeadline(file, headline, lines)
     execute bufwinnr('Agenda').'wincmd w'
 
 endfunction
-function! AgendaGetText(type,...)
+function! AgendaGetText(...)
     "type: 'datedict' for date agenda, 'adict' for regular search
     let cycle_todo = 0
-    if a:0 == 1 
+    if a:0 >= 1 
         let cycle_todo = 1
+        if a:0 == 2
+            let newtodo = a:2
+        endif
     endif
     " called by <TAB> map to toggle view of heading's body text in agenda
     " view
@@ -2485,15 +2538,19 @@ function! AgendaGetText(type,...)
             endif
             let save_cursor2 = getpos(".")
             "let confirmhead = OrgGetHead_l(headline)
-            if a:type == 'datedict'
+            if g:agenda_date_dict != {}
                 let confirmhead = g:agenda_head_lookup[lineno]
-            else
+            elseif g:adict != {}
                 let confirmhead = lineno
             endif
             let newhead = matchstr(GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.confirmhead)
             execute newhead
             if cycle_todo
-                call ReplaceTodo(curTodo)
+                if a:0 >= 2
+                    call ReplaceTodo(curTodo,newtodo)
+                else
+                    call ReplaceTodo(curTodo)
+                endif
             else
                 let lastline = OrgNextHead_l(newhead) - 1
                 if lastline > newhead
@@ -2525,7 +2582,7 @@ function! AgendaGetText(type,...)
                 let lastline = line(".") - 1
             endif
             call setpos(".",save_cursor)
-            call AgendaPutText(a:type)
+            call AgendaPutText()
             silent execute firstline . ', ' . lastline . 'd'
         endif
     else
@@ -2533,7 +2590,11 @@ function! AgendaGetText(type,...)
     endif
     call setpos(".",save_cursor)
     if cycle_todo
-        call ReplaceTodo(curTodo)
+        if a:0 >= 2
+            call ReplaceTodo(curTodo, newtodo)
+        else
+            call ReplaceTodo(curTodo)
+        endif
         echo "Todo cycled."
     endif
 
@@ -3326,12 +3387,13 @@ function! MouseDate()
             let found = 'tag'
         endif
     endif
-   echo  
     call setpos(".",save_cursor)
     if found == 'date'
         call RunAgenda(date,7)
+        call feedkeys("")
     elseif found == 'tag'
         call RunSearch('+'.@x)
+        call feedkeys("")
     else
         echo 'Nothing found to search for.'
     endif
@@ -4046,9 +4108,6 @@ function! s:AgendaBufHighlight()
     hi DateType guifg=#dd66bb
 "    hi Todos guifg=pink
     hi Dayline guifg=#44aa44 gui=underline
-hi TODO guifg=red guibg=NONE
-hi STARTED guifg=yellow
-hi DONE guifg=green
     hi Weekendline guifg=#55ee55 gui=underline
    " let todoMatchInAgenda = '\s*\*\+\s*\zs\(TODO\|DONE\|STARTED\)\ze'
     let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
@@ -4058,6 +4117,7 @@ hi DONE guifg=green
     call matchadd( 'OL3', '\*\{3} .*$' )
     call matchadd( 'OL4', '\*\{4} .*$' )
     call matchadd( 'OL5', '\*\{5} .*$' )
+    
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
 "    call matchadd( 'Todos', todoMatchInAgenda )
@@ -4065,12 +4125,31 @@ hi DONE guifg=green
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
    " call matchadd( 'Todos', '^\s*:\zs.*\ze:')
-call matchadd('TODO', '^.*\* \zsTODO')
-call matchadd('STARTED', '^.*\* \zsSTARTED')
-call matchadd('DONE', '^.*\* \zsDONE')
+    call matchadd('TODO', '^.*\* \zsTODO')
+    call matchadd('STARTED', '^.*\* \zsSTARTED')
+    call matchadd('DONE', '^.*\* \zsDONE')
+    call matchadd('NEXT', '^.*\* \zsNEXT')
+    call matchadd('CANCELED', '^.*\* \zsCANCELED')
 "syntax match TODO '^.*\* \zsTODO' containedin=OL1,OL2,OL3,OL4
 "syntax match STARTED '^.*\* \zsSTARTED'
 "syntax match DONE '^.*\* \zsDONE'
+    hi TODO guifg=red guibg=NONE
+    hi STARTED guifg=yellow
+    hi DONE guifg=green
+    hi CANCELED guifg=red
+    map <silent> <buffer> <localleader>tt :call AgendaGetText(1,'TODO')<cr>
+    map <silent> <buffer> <localleader>ts :call AgendaGetText(1,'STARTED')<cr>
+    map <silent> <buffer> <localleader>td :call AgendaGetText(1,'DONE')<cr>
+    map <silent> <buffer> <localleader>tc :call AgendaGetText(1,'CANCELED')<cr>
+    map <silent> <buffer> <localleader>tn :call AgendaGetText(1,'NEXT')<cr>
+    map <silent> <buffer> <localleader>tx :call AgendaGetText(1,'')<cr>
+endfunction
+function! CurTodo(line)
+    let result = matchstr(getline(a:line),'.*\* \zs\S\+\ze ')`
+    if index(g:todoitems,curtodo) == -1
+        let result = ''
+    endif
+    return result
 endfunction
 
 "autocmd CursorHold * call Timer()
@@ -4176,6 +4255,12 @@ map <silent> <localleader>a* :call RunAgenda(strftime("%Y-%m-%d"),7,'')<cr>
 map <silent> <localleader>aa :call RunAgenda(strftime("%Y-%m-%d"),7,'+ANYTODO')<cr>
 map <silent> <localleader>at :call RunAgenda(strftime("%Y-%m-%d"),7,'+NOTDONETODO')<cr>
 map <silent> <localleader>ad :call RunAgenda(strftime("%Y-%m-%d"),7,'+DONE')<cr>
+map <silent> <buffer> <localleader>tt :call OrgToggleTodo(line('.'),'t')<cr>
+map <silent> <buffer> <localleader>ts :call OrgToggleTodo(line('.'),'s')<cr>
+map <silent> <buffer> <localleader>td :call OrgToggleTodo(line('.'),'d')<cr>
+map <silent> <buffer> <localleader>tc :call OrgToggleTodo(line('.'),'c')<cr>
+map <silent> <buffer> <localleader>tn :call OrgToggleTodo(line('.'),'n')<cr>
+map <silent> <buffer> <localleader>tx :call OrgToggleTodo(line('.'),'x')<cr>
 "map <localleader>ar :startofbasedateedit 
 "map <localleader>ad :start_DEADLINE_edit 
 "map <localleader>ac :start_CLOSED_edit 
