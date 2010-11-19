@@ -1,0 +1,42 @@
+* VimOrganizer CheatSheet
+** Outline Navigation
+   TAB                  toggle of levels
+   Shift-TAB            global toggle of levels
+   ,1                   show level one
+   ,2                   show level 2
+   ...
+   ,8                   show level 4
+   ,9                   show level 9
+** Basic Outline Editing
+   Enter                add another headline of same level
+   Shift+Enter          add another headline of lower-level
+   Ctrl+Enter           add another headline of higher-level
+   o                    add body text on current level
+   O                    add body text on previous level above
+   :=G                  re-formats and indents whole document
+                        if run from first line of document
+** Time Stamps
+   ,dd                  enter deadline date
+   ,ds                  enter scheduled date
+   ,dr                  enter regular date
+** Tags
+   toggle tag view      :call ToggleColumnView()
+   add tag              ,et
+   view tag in agenda   double-click tag
+** Sparse Tree Search
+   search               :call SparseTreeRun('DEADLINE.*2011-03')
+** Videos (on Vimeo)
+   [Org-mode clone for Vim[http://viimeo.com/16543959]]
+   [Sparse Tree Search in Vim clone of Org-mode[http://vimeo.com/16646716]]
+   [Overview of Tags in Org-mode clone for Vim[http://vimeo.com/16650450]]
+   [Basic Outline Editing in Vim org-clone[http://vimeo.com/16796666]]
+** Links
+   [Vim org mode clone 
+   announcement[http://permalink.gmane.org/gmane.emacs.orgmode/33226]]
+   [Vim Organizer Source[https://github.com/hsitz/VimOrganizer]]
+   [Vim Organizer Announcement[]]
+   [Emacs org-mode home[http://orgmode.org]]
+** Hints
+   [PyScratch Demo[http://vimeo.com/16871727]]
+   :set filetype     to see if filetype is org
+ 
