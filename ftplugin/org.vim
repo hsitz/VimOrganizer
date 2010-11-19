@@ -2855,6 +2855,252 @@ function! BodyTextOperation(startline,endline, operation)
     call cursor(l:oldcursor,0)
 endfunction
 
+let g:calendar_sign = 'OrgCalSign'
+function! OrgCalSign(day, month, year)
+  if a:year .'-'.Pre0(a:month).'-'.Pre0(a:day) == g:org_cal_date
+	  return 1
+  else
+	  return 0
+  endif
+endfunction
+
+function! DateEdit2(type)
+    "let text = getcmdline()
+    "if text =~ 'start'
+        let text = a:type
+        let b:basetime=''
+        let str = ''
+        let filestr = ''
+        if bufname("%")==('__Agenda__')
+            let lineno = matchstr(getline(line('.')),'^\d\+')
+            let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+            let str = ','.lineno.',"'.file.'"'
+            let filestr = ',"'.file.'"'
+        endif
+        if text =~ 'DEADLINE'
+            execute "let b:mdate = GetProp('DEADLINE'".str .")[1:-2]"
+        elseif text =~ 'SCHEDULED'
+            execute "let b:mdate = GetProp('SCHEDULED'".str .")[1:-2]"
+            "let b:mdate = GetProp('SCHEDULED')[1:-2]
+        elseif text =~ 'CLOSED'
+            execute "let b:mdate = GetProp('CLOSED'".str .")[1:-2]"
+            "let b:mdate = GetProp('CLOSED')[1:-2]
+        else
+            execute "let b:mdate = '<'.GetProperties('ud',0".filestr.")".'>',
+            "matchstr(getline(line(".")),'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
+        endif
+        let b:mdate = matchstr(b:mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
+        if b:mdate > ''
+            let b:basedate = b:mdate[0:9]
+            let b:baseday = b:mdate[11:13]
+            if len(b:mdate) > 14
+                let b:basetime = b:mdate[15:19]
+            else
+                let b:basetime = ''
+            endif
+        else
+            let b:mdate=strftime("%Y-%m-%d %a")
+        endif
+
+        let basedate = b:basedate[0:9]
+        let basetime = b:basetime
+        let newdate = b:basedate[0:9]
+        let newtime = b:basetime
+        hi Cursor guibg=black
+        let cue = ''
+        while 1
+            echohl LineNr | echon 'Date+time ['.basedate . ' '.basetime.']: ' 
+            echohl None | echon cue.'_   =>' | echohl WildMenu | echon newdate.' '.newtime
+            let nchar = getchar()
+            let newchar = nr2char(nchar)
+            let curdif = calutil#jul(newdate[1:10])-calutil#jul(basedate[0:9])
+            if (nchar == "\<BS>") && (len(cue)>0)
+                let cue = cue[:-2]
+            elseif nchar == "\<s-right>"
+                let cue = ((curdif+1>=0)?'+':'').(curdif+1).'d'
+            elseif nchar == "\<s-left>"
+                let cue = ((curdif-1>=0)?'+':'').(curdif-1).'d'
+            elseif nchar == "\<s-down>"
+                let cue = ((curdif+7>=0)?'+':'').(curdif+7).'d'
+            elseif nchar == "\<s-up>"
+                let cue = ((curdif-7>=0)?'+':'').(curdif-7).'d'
+            elseif nchar == "\<c-down>"
+                let cue = ((curdif+30>=0)?'+':'').(curdif+30).'d'
+            elseif nchar == "\<c-up>"
+                let cue = ((curdif-30>=0)?'+':'').(curdif-30).'d'
+            elseif newchar == "\<cr>"
+                break
+            elseif newchar == "\<Esc>"
+                hi Cursor guibg=gray
+                redraw
+                return
+            else
+                let cue .= newchar
+            endif
+            let newdate = GetNewDate(cue,basedate)
+            if g:use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
+                let g:org_cal_date = newdate[1:10]
+                call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
+            endif
+            redraw
+            "echo ""
+        endwhile
+        hi Cursor guibg=gray
+endfunction
+
+function! GetNewDate(cue,basedate)
+        if match(a:cue,':') >= 0
+            let cue = matchstr(a:cue,'^\S\+\ze \S\+:')
+            let timecue = matchstr(a:cue,'\S\+:\S\+')
+        else
+            let cue = a:cue
+            let timecue = ''
+        endif
+        let basedate = a:basedate
+        let newdate = a:basedate
+        if cue =~ '^\(+\|++\|-\|--\)$'
+            let cue = cue . '1d'
+        elseif cue =~ '^\(+\|++\|-\|--\)\d\+$'
+            let cue = cue .'d'
+        endif
+        if cue == '.'
+            let newdate = strftime('%Y-%m-%d')
+        elseif cue == ''
+            let newdate = a:basedate
+        elseif (cue =~ '^\d\+$') && (str2nr(cue) <= 31)
+            " day of month string
+            if str2nr(cue) > str2nr(basedate[8:9])
+                let newdate = calutil#cal(calutil#jul(basedate[0:7].Pre0(cue)))
+            else 
+                let newmonth = Pre0(basedate[5:6]+1)
+                let newdate = calutil#cal(calutil#jul(basedate[0:4].newmonth.'-'.Pre0(cue)))
+            endif
+        elseif cue =~ '^\d\+[-/]\d\+$'
+            " month/day string
+            let month = matchstr(cue,'^\d\+')
+            let day = matchstr(cue,'\d\+$')
+            let year = basedate[0:3]
+            if basedate[0:4] . Pre0(month) . '-' . Pre0(day) < basedate
+                let year = year + 1
+            endif
+            let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
+        elseif cue =~ '\d\+/\d\+/\d\+'
+            " m/d/y string
+            let month = matchstr(cue,'^\d\+\ze/.*/')
+            let day = matchstr(cue,'/\zs\d\+\ze/')
+            let year = matchstr(cue,'/\zs\d\+\ze$')
+            if len(year) < 3
+                let year +=2000
+            endif
+            let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
+        elseif cue =~ '\d\+-\d\+-\d\+'
+            " y-m-d string
+            let year = matchstr(cue,'^\d\+\ze-.*-')
+            if year < 100
+                let year +=2000
+            endif
+            let month = matchstr(cue,'-\zs\d\+\ze-')
+            let day = matchstr(cue,'-\zs\d\+\ze$')
+            let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
+
+            "       elseif cue =~ g:monthstring
+            "           let mycount = matchstr(cue,'^\d\+')
+            "           let mymonth = 
+            "           let newday = index(g:weekdays,cue)
+            "           let oldday = calutil#dow(basedate)
+            "           if newday > oldday
+            "               let amt=newday-oldday
+            "           elseif newday < oldday
+            "               let amt =7-oldday+newday
+            "           else
+            "               let amt = 7
+            "           endif
+            "           let newdate=calutil#cal(calutil#jul(basedate)+amt)
+        elseif cue =~ g:weekdaystring
+            " wed, 3tue, 5fri, i.e., dow string
+            let mycount = matchstr(cue,'^\d\+')
+            let myday = matchstr(cue,g:weekdaystring) 
+            let newday = index(g:weekdays,myday)
+            let oldday = calutil#dow(matchstr(basedate,'\d\d\d\d-\d\d-\d\d'))
+            if newday > oldday
+                let amt=newday-oldday
+            elseif newday < oldday
+                let amt =7-oldday+newday
+            else
+                let amt = 7
+            endif
+            let amt = amt + (mycount*7)
+            let newdate=calutil#cal(calutil#jul(basedate)+amt)
+        elseif cue =~ '\c\([-+]\|[-+][-+]\)\d\+[ dwmy]'
+            " plus minus count of dwmy
+            let mlist =  matchlist(cue,'\c\([-+]\|[-+][-+]\)\(\d\+\)\([ wdmy]\)')
+            let op = mlist[1]
+            let mycount = mlist[2]
+            let type = mlist[3]
+            if len(op) == 1
+                let mydate = strftime('%Y-%m-%d')
+            else
+                let mydate = basedate
+            endif
+            let op = op[0]
+            let year = mydate[0:3]
+            let month = mydate[5:6]
+            let day = mydate[8:9]
+            if type == 'y'
+                let type = 'm'
+                let mycount = mycount * 12
+            elseif type == 'w'
+                let type='d'
+                let mycount = mycount * 7
+            endif
+            if type == 'm'
+                if (op == '+')
+                    let yplus = mycount / 12
+                    let mplus = mycount % 12
+                    let year +=   yplus
+                    let month += mplus
+                    if month > 12
+                        let month = month - 12
+                        let year = year + 1
+                    endif
+                elseif ((mycount % 12) >= month) && (op == '-')
+                    let yminus = mycount/12
+                    let year = year - yminus - 1
+                    let month = (month + 12 - (mycount % 12))   
+                else " '-' with month greater
+                    let month = month - (mycount % 12)
+                    let year = year - (mycount / 12)
+                endif
+                " correct for bad dates
+                while calutil#cal(calutil#jul(year.'-'.Pre0(month).'-'.Pre0(day)))[5:6] != month
+                    let day = day - 1
+                endwhile
+            elseif (type == 'd') || (type==' ')
+                let newjul = calutil#jul(mydate)
+                if op == '+'
+                    let newjul = newjul + mycount
+                else
+                    let newjul = newjul - mycount
+                endif
+                "execute 'let newjul = newjul ' . op . mycount
+                let mydate = calutil#cal(newjul)
+                let year = mydate[0:3]
+                let month = mydate[5:6]
+                let day = mydate[8:9]
+            endif
+
+            let newdate = year . '-' . Pre0(month) . '-' . Pre0(day)
+        else
+            return " ?? can't interpret your spec"
+        endif
+        if timecue =~ '\d\d:\d\d'
+            let mytime = ' '.timecue
+        else
+            let mytime = ''
+        endif
+        let mydow = calutil#dayname(newdate)
+        return '<'.newdate.' '.mydow.mytime.'>'
+endfunction
 
 function! s:DateEdit()
     let text = getcmdline()
@@ -4447,7 +4693,7 @@ nmap <silent> <buffer> <tab> :call Cycle()<cr>
 nmap <silent> <buffer> <s-tab> :call GlobalCycle()<cr>
 nmap <silent> <buffer> <localleader>ci :call ClockIn(line("."))<cr>
 nmap <silent> <buffer> <localleader>co :call ClockOut()<cr>
-cnoremap <space> <C-\>e(<SID>DateEdit())<CR>
+"cnoremap <space> <C-\>e(<SID>DateEdit())<CR>
 "cnoremap <       <C-\>e(<SID>CalendarLeft()<CR>
 map <silent> <localleader>dr :call ShowBottomCal('regular')<cr>
 map <silent> <localleader>dd :call ShowBottomCal('DEADLINE')<cr>
