@@ -1,0 +1,89 @@
+diff --recursive -du src/eval.c ../vim73organizer/src/eval.c
+--- src/eval.c	Mon Aug  9 21:12:14 2010
++++ ../vim73organizer/src/eval.c	Tue Nov 16 20:57:04 2010
+@@ -362,6 +362,7 @@
+     {VV_NAME("operator",	 VAR_STRING), VV_RO},
+     {VV_NAME("searchforward",	 VAR_NUMBER), 0},
+     {VV_NAME("oldfiles",	 VAR_LIST), 0},
++    {VV_NAME("foldhighlight",	 VAR_NUMBER), 0},
+ };
+ 
+ /* shorthand */
+diff --recursive -du src/screen.c ../vim73organizer/src/screen.c
+--- src/screen.c	Fri Aug 13 14:21:27 2010
++++ ../vim73organizer/src/screen.c	Tue Nov 16 21:01:32 2010
+@@ -2271,10 +2271,17 @@
+ # define RL_MEMSET(p, v, l)   for (ri = 0; ri < l; ++ri) \
+ 				 ScreenAttrs[off + (p) + ri] = v
+ #endif
+-
+-    /* Set all attributes of the 'number' or 'relativenumber' column and the
+-     * text */
+-    RL_MEMSET(col, hl_attr(HLF_FL), W_WIDTH(wp) - col);
++    /*
++     * 4. Compose the folded-line string with 'foldtext', if set.
++     */
++    text = get_foldtext(wp, lnum, lnume, foldinfo, buf);
++ 
++    txtcol = col;	/* remember where text starts */
++  
++    /* Set all attributes of the 'number' column and the text */
++    //RL_MEMSET(col, hl_attr(HLF_FL), W_WIDTH(wp) - col);
++    RL_MEMSET(col, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)), W_WIDTH(wp) - col);
++ 
+ 
+ #ifdef FEAT_SIGNS
+     /* If signs are being displayed, add two spaces. */
+@@ -2289,10 +2296,11 @@
+ 	    if (wp->w_p_rl)
+ 		/* the line number isn't reversed */
+ 		copy_text_attr(off + W_WIDTH(wp) - len - col,
+-					(char_u *)"  ", len, hl_attr(HLF_FL));
++					(char_u *)"  ", len, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
++	    
+ 	    else
+ # endif
+-		copy_text_attr(off + col, (char_u *)"  ", len, hl_attr(HLF_FL));
++		copy_text_attr(off + col, (char_u *)"  ", len, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    col += len;
+ 	}
+     }
+@@ -2324,10 +2332,10 @@
+ 	    if (wp->w_p_rl)
+ 		/* the line number isn't reversed */
+ 		copy_text_attr(off + W_WIDTH(wp) - len - col, buf, len,
+-							     hl_attr(HLF_FL));
++							     hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    else
+ #endif
+-		copy_text_attr(off + col, buf, len, hl_attr(HLF_FL));
++		copy_text_attr(off + col, buf, len, hl_attr(get_vim_var_nr(VV_FOLDHIGHLIGHT)));
+ 	    col += len;
+ 	}
+     }
+@@ -2335,9 +2343,9 @@
+     /*
+      * 4. Compose the folded-line string with 'foldtext', if set.
+      */
+-    text = get_foldtext(wp, lnum, lnume, foldinfo, buf);
+-
+-    txtcol = col;	/* remember where text starts */
++    //text = get_foldtext(wp, lnum, lnume, foldinfo, buf);
++// moved up above to heappen earlier h.s.
++    // txtcol = col;	/* remember where text starts */
+ 
+     /*
+      * 5. move the text to current_ScreenLine.  Fill up with "fill_fold".
+diff --recursive -du src/vim.h ../vim73organizer/src/vim.h
+--- src/vim.h	Thu Jul 29 19:46:39 2010
++++ ../vim73organizer/src/vim.h	Tue Nov 16 20:57:16 2010
+@@ -1842,7 +1842,8 @@
+ #define VV_OP		52
+ #define VV_SEARCHFORWARD 53
+ #define VV_OLDFILES	54
+-#define VV_LEN		55	/* number of v: vars */
++#define VV_FOLDHIGHLIGHT  55
++#define VV_LEN		56	/* number of v: vars */
+ 
+ #ifdef FEAT_CLIPBOARD
+ 
