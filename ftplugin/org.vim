@@ -1148,7 +1148,14 @@ function! GetPlacedSignsString(buffer)
     return placedstr
 
 endfunction
-function! GetProperties(hl,withtextinfo)
+function! GetProperties(hl,withtextinfo,...)
+    let save_cursor = getpos(".")
+    if a:0 >=1
+        let curtab = tabpagenr()
+        let curwin = winnr()
+    " optional args are: a:1 - lineno, a:2 - file
+        call LocateFile(a:1)
+    endif
     let hl = OrgGetHead_l(a:hl)
     let datesdone = 0
     let result1 = {}
@@ -1190,6 +1197,11 @@ function! GetProperties(hl,withtextinfo)
         let result['tbegin'] = hl + 1
         let result['tend'] = OrgNextHead_l(hl) - 1
     endif
+    if a:0 >= 1
+        execute "tabnext ".curtab
+        execute curwin . "wincmd w"
+    endif
+    call setpos(".",save_cursor)
     return result
 endfunction
 
@@ -2848,14 +2860,25 @@ function! s:DateEdit()
     let text = getcmdline()
     if text =~ 'start'
         let b:basetime=''
+        let str = ''
+        let filestr = ''
+        if bufname("%")==('__Agenda__')
+            let lineno = matchstr(getline(line('.')),'^\d\+')
+            let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+            let str = ','.lineno.',"'.file.'"'
+            let filestr = ',"'.file.'"'
+        endif
         if text =~ 'DEADLINE'
-            let b:mdate = GetProp('DEADLINE')[1:-2]
+            execute "let b:mdate = GetProp('DEADLINE'".str .")[1:-2]"
         elseif text =~ 'SCHEDULED'
-            let b:mdate = GetProp('SCHEDULED')[1:-2]
+            execute "let b:mdate = GetProp('SCHEDULED'".str .")[1:-2]"
+            "let b:mdate = GetProp('SCHEDULED')[1:-2]
         elseif text =~ 'CLOSED'
-            let b:mdate = GetProp('CLOSED')[1:-2]
+            execute "let b:mdate = GetProp('CLOSED'".str .")[1:-2]"
+            "let b:mdate = GetProp('CLOSED')[1:-2]
         else
-            let b:mdate = matchstr(getline(line(".")),'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
+            execute "let b:mdate = '<'.GetProperties('ud',0".filestr.")".'>',
+            "matchstr(getline(line(".")),'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
         endif
         let b:mdate = matchstr(b:mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
         if b:mdate > ''
@@ -3346,7 +3369,13 @@ function! AddTime(time1, time2)
 endfunction
 function! GetProp(key,...)
     let save_cursor = getpos(".")
-    if a:0 == 1
+    if a:0 >=2
+        let curtab = tabpagenr()
+        let curwin = winnr()
+    " optional args are: a:1 - lineno, a:2 - file
+        call LocateFile(a:2)
+    endif
+    if (a:0 >= 1) && (a:1 > 0)
         execute a:1 
     endif
     execute OrgGetHead() + 1
@@ -3363,6 +3392,10 @@ function! GetProp(key,...)
         endif
         execute line(".") + 1
     endwhile
+    if a:0 >= 2
+        execute "tabnext ".curtab
+        execute curwin . "wincmd w"
+    endif
     call setpos(".",save_cursor)
     return myval
 
@@ -3392,11 +3425,18 @@ function! SetDateProp(type,newdate,...)
     return myval
 endfunction
 function! SetProp(key, val,...)
+    let save_cursor = getpos(".")
+    if a:0 >=2
+        let curtab = tabpagenr()
+        let curwin = winnr()
+        " optional args are: a:1 - lineno, a:2 - file
+        call LocateFile(a:2)
+    endif
+    if (a:0 >= 1) && (a:1 > 0)
+        execute a:1 
+    endif
     let key = a:key
     let val = a:val
-    if a:0 == 1
-        execute a:1
-    endif
     execute OrgGetHead() 
     if key !~ 'DEADLINE\|SCHEDULED\|CLOSED'
         call ConfirmDrawer("PROPERTIES")
@@ -3432,6 +3472,11 @@ function! SetProp(key, val,...)
         endif
     endif
 
+    if a:0 >=2
+        execute "tabnext ".curtab
+        execute curwin . "wincmd w"
+    endif
+    call setpos(".",save_cursor)
 endfunction
 
 function! LocateFile(filename)
