@@ -12,12 +12,14 @@ let b:textMatch = '\(^\s*.*\|^\t*:\|^\t* \|^\t*;\|^\t*|\|^\t*>\)'
 let b:dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:headMatch = '^\*\+\s'
 let g:headMatch = '^\*\+\s'
+let g:tag_group_arrange = 0
 let g:first_sparse=0
 let b:headMatchLevel = '^\(\*\)\{level}\s'
 let b:propMatch = '^\s*:\s*\(PROPERTIES\)'
 let b:propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
 let b:drawerMatch = '^\s*:\s*\(PROPERTIES\|LOGBOOK\)'
 let s:remstring = '^\s*:'
+let g:use_calendar = 1
 let s:headline = ''
 let b:levelstars = 1
 let g:ColumnHead = 'Lines'
@@ -105,7 +107,7 @@ let g:weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
 let g:months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
 let g:monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 "let g:agenda_files=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
-let g:agenda_files=[]
+"let g:agenda_files=[]
 let s:AgendaBufferName = "__Agenda__"
 
 if !exists('g:org_loaded')
@@ -158,6 +160,159 @@ endfunction
 function! CurfileAgenda()
     exec "let g:agenda_files=['".expand("%")."']"
 endfunction
+
+function! TagSetup(tagspec)
+       let b:tags = split(tr(a:tagspec,'{}','  '),'\s\+') 
+       let b:tagdict={}
+       let b:tagchars=''
+       let b:tags_order = []
+       for item in b:tags
+            if item =~ '('
+                   let char = matchstr(item,'(\zs.\ze)')
+                  let tag = matchstr(item,'.*\ze(')
+            else
+                 let char = ''
+                    let tag = item
+            endif
+            let b:tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
+            call add(b:tags_order,item)
+            if char != ' '
+                let b:tagchars .= char
+            endif
+        endfor
+
+       let templist = a:tagspec
+       let i = 1
+        while templist =~ '{.\{}}'
+                let strikeout = matchstr(templist,'{.\{-}}')
+                let exclusive = matchstr(templist,'{\zs.\{-}\ze}')
+                let templist = substitute(templist,strikeout,'','')
+                let xlist = split(exclusive,'\s\+')
+                for item in xlist
+                    let b:tagdict[item].exgroup = i
+                    for x in xlist
+                            if x != item
+                                   let b:tagdict[item].exclude .= b:tagdict[x].char
+                            endif
+                    endfor
+                endfor
+                let i += 1
+        endwhile
+endfunction
+
+function! TagsEdit(...)
+        let filestr = ''
+        let line_file_str = ''
+        let lineno=line('.')
+        if bufname("%")==('__Agenda__')
+            let lineno = matchstr(getline(line('.')),'^\d\+')
+            let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+            let line_file_str = ','.lineno.',"'.file.'"'
+            let filestr = ',"'.file.'"'
+            let b:tagdict = getbufvar(file,'tagdict')
+            let b:tags_order = getbufvar(file,'tags_order')
+        endif
+	
+        execute "let heading_tags = get(GetProperties(lineno,0".filestr."),'tags','')"
+	
+	let new_heading_tags = TagMenu(heading_tags)
+	if new_heading_tags != heading_tags
+            silent execute "call SetProp('tags'".",'".new_heading_tags."'".line_file_str .")"
+	endif
+endfunction
+
+function! TagMenu(heading_tags)
+	let heading_tags = a:heading_tags
+	let tagstring = ''
+    let tagchars = ''
+	for item in b:tags_order
+        let tagchars .= b:tagdict[item].char
+		if match(heading_tags,':'.b:tagdict[item].tag .':') >= 0
+			let tagstring .= b:tagdict[item].char
+		endif
+	endfor
+
+        hi Cursor guibg=black
+        let cue = ''
+	set nomore
+    while 1
+        echo repeat('-',winwidth(0)-1)
+        echohl Title | echo 'Choose tags:   ' | echohl None | echon '( <enter> to accept, <esc> to cancel )'
+        echo '------------'
+        let oldgroup = 0
+		for item in b:tags_order
+            let newgroup = b:tagdict[item].exgroup
+            let select = ' '
+            if match(tagstring,b:tagdict[item].char) >= 0
+                let select = 'X'
+                echohl Question
+            else
+                echohl None
+            endif
+            if (g:tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 )
+                echo repeat(' ',3) . '[' | echohl Question | echon select | echohl None | echon '] ' 
+                echohl None | echon b:tagdict[item].tag | echohl Title | echon '('.b:tagdict[item].char.')' | echohl None
+                let nextindent = repeat(' ',12-len(b:tagdict[item].tag))
+            else    
+                "echon repeat(' ',3) . 
+                echon nextindent
+                echon '[' | echohl Question | echon select | echohl None | echon '] ' 
+                echohl None | echon b:tagdict[item].tag | echohl Title | echon '('.b:tagdict[item].char.')' | echohl None
+                let nextindent = repeat(' ',12-len(b:tagdict[item].tag))
+                "echon repeat(' ', 12-len(b:tagdict[item]))
+            endif
+            let oldgroup = b:tagdict[item].exgroup
+		endfor
+		echo ""
+            "echohl LineNr | echon 'Date+time ['.basedate . ' '.basetime.']: ' 
+            "echohl None | echon cue.'_   =>' | echohl WildMenu | echon ' '.newdate.' '.newtime
+            let nchar = getchar()
+            let newchar = nr2char(nchar)
+            if (nchar == "\<BS>") && (len(cue)>0)
+                let cue = cue[:-2]
+            elseif nchar == "\<s-c-up>"
+                let cue = ((curdif-365>=0) ?'+':'').(curdif-365).'d'
+            elseif newchar == "\<cr>"
+                break
+            elseif newchar == "\<Esc>"
+                hi Cursor guibg=gray
+                redraw
+                return a:heading_tags
+            elseif (match(tagchars,newchar) >= 0) 
+                if (match(tagstring,newchar)==-1) 
+                    let tagstring .= newchar
+                    " check for mutually exclusve tags
+                    for item in keys(b:tagdict)
+                        if b:tagdict[item].char == newchar
+                            let exclude_str = b:tagdict[item].exclude
+                            let tagstring = tr(tagstring,exclude_str,repeat(' ',len(exclude_str)))
+                            break
+                        endif
+                    endfor
+                else
+                    let tagstring = tr(tagstring,newchar,' ')
+                endif
+            endif
+            call substitute(tagstring,' ','','')
+            echon repeat(' ',72)
+            redraw
+    endwhile
+
+    hi Cursor guibg=gray
+    redraw
+    echo 
+	set more
+
+	let heading_tags = ''
+	for item in keys(b:tagdict)
+		if match(tagstring, b:tagdict[item].char) >= 0
+			let heading_tags .= b:tagdict[item].tag . ':'
+		endif
+	endfor
+	if heading_tags > '' | let heading_tags = ':' . heading_tags | endif
+	return heading_tags
+endfunction
+
 
 function! GetBufferTags()
     let save_cursor = getpos(".") 
@@ -1883,6 +2038,7 @@ function! ADictPlaceSigns()
                         \ . headline . " name=piet buffer=" . buf  
         catch 
             echo "ERROR: headline " . headline . ' and buf ' . buf . ' and dateline ' . dateline
+            echo key .', '. matchstr(key,'^.*\ze_\d\+$')
         finally
         endtry
     endfor
@@ -1902,6 +2058,8 @@ function! DateDictPlaceSigns()
                                 \ . headline . " name=piet buffer=" . buf  
                 catch 
                     echo "ERROR: headline " . headline . ' and buf ' . buf . ' and dateline ' . dateline
+
+                    echo (matchstr(item,'^\d\+\s\+\zs\S\+') . '.org')
                 finally
                 endtry
             endfor
@@ -2897,6 +3055,8 @@ function! DateEdit(type)
             endif
         else
             let b:mdate=strftime("%Y-%m-%d %a")
+            let b:basedate=Today()
+            let b:basetime = ''
         endif
 
         let basedate = b:basedate[0:9]
@@ -2904,6 +3064,10 @@ function! DateEdit(type)
         let newdate = '<'.b:mdate[0:13].'>'
         let newtime = b:basetime
         hi Cursor guibg=black
+        let g:org_cal_date = newdate[1:10]
+        call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
+        redraw
+        let g:calendar_action='<SNR>'.s:SID().'_CalendarInsertDate'
         let cue = ''
         while 1
             echohl LineNr | echon 'Date+time ['.basedate . ' '.basetime.']: ' 
@@ -2912,7 +3076,6 @@ function! DateEdit(type)
             let newchar = nr2char(nchar)
             if newdate !~ 'interpret'
                 let curdif = calutil#jul(newdate[1:10])-calutil#jul(Today())
-                "call confirm ("newdate: ".newdate[1:10]."\nbasedate: ".basedate[0:9]."\ncurdif: ".curdif)
             endif
             if (nchar == "\<BS>") && (len(cue)>0)
                 let cue = cue[:-2]
@@ -2938,6 +3101,20 @@ function! DateEdit(type)
                 hi Cursor guibg=gray
                 redraw
                 return
+            elseif (nchar == "\<LeftMouse>") && (v:mouse_win > 0)
+                exe v:mouse_win . "wincmd w"
+                exe v:mouse_lnum
+                exe "normal " . v:mouse_col."|"
+                normal 
+                if newtime > ''
+                    let timespec = newtime
+                else
+                    let timespec = matchstr(newdate,'\S\+:.*>')
+                endif
+                let newdate = '<'.g:cal_list[0].'-'.Pre0(g:cal_list[1]).'-'.Pre0(g:cal_list[2]) . ' '
+                let newdate .= calutil#dayname( g:cal_list[0].'-'.g:cal_list[1].'-'.g:cal_list[2])
+                let newdate .=  timespec > '' ? ' ' . timespec : ''.'>'
+                break
             else
                 let cue .= newchar
             endif
@@ -2960,11 +3137,10 @@ function! DateEdit(type)
         else
             silent execute "call SetProp('ud'".",'".newdate."'".str .")"
         endif
-        "echon repeat(' ',72)
         redraw
         echo 
-        "call feedkeys("\<CR>")
 endfunction
+
 
 function! GetNewDate(cue,basedate)
         if match(a:cue,':') >= 0
@@ -3430,10 +3606,10 @@ function! SetDateProp(type,newdate,...)
 endfunction
 function! SetProp(key, val,...)
     let save_cursor = getpos(".")
+    " optional args are: a:1 - lineno, a:2 - file
     if a:0 >=2
         let curtab = tabpagenr()
         let curwin = winnr()
-        " optional args are: a:1 - lineno, a:2 - file
         call LocateFile(a:2)
     endif
     if (a:0 >= 1) && (a:1 > 0)
@@ -3442,7 +3618,34 @@ function! SetProp(key, val,...)
     let key = a:key
     let val = a:val
     execute OrgGetHead() 
-    if key !~ 'DEADLINE\|SCHEDULED\|CLOSED\|ud'
+    if key =~ 'DEADLINE\|SCHEDULED\|CLOSED\|ud'
+        " it's one of the four date props
+        " find existing date line if there is one
+        if key=='ud' 
+            let key = ''
+            let foundline = Range_Search('^\s*:\s*<\d\d\d\d-\d\d-\d\d','n',OrgNextHead(),line("."))
+        else
+            let foundline = Range_Search('^\s*\(:\)\{}'.key.'\s*:','n',OrgNextHead(),line("."))
+        endif
+        if foundline > 0
+            exec foundline
+            exec 's/:\s*<\d\d\d\d.*$/'.':'.a:val
+        else
+            let line_ind = len(matchstr(getline(line(".")),'^\**'))+1 + g:org_indent_from_head
+            if IsTagLine(line('.')+1)
+                normal j
+            endif
+            call append(line("."),Pad(' ',line_ind)
+                        \ .':'.key.(key==''?'':':').a:val)
+        endif
+    elseif key == 'tags'
+        if IsTagLine(line('.') + 1)
+            call setline(line('.') + 1, a:val)
+        else
+            call append(line('.'), a:val)
+        endif
+    else
+        " it's a regular key/val pair in properties drawer
         call ConfirmDrawer("PROPERTIES")
         while (getline(line(".")) !~ '^\s*:\s*' . key) && 
                     \ (getline(line(".")) =~ s:remstring)
@@ -3459,21 +3662,6 @@ function! SetProp(key, val,...)
             let newline = curindent . ':' . key . ': ' . val
             call append(line("."),newline)
         endif
-    else
-        if key=='ud' | let key='' | endif
-        " find existing date line if there is one
-        let foundline = Range_Search('^\s*\(:\)\{}'.key.'\s*:','n',OrgNextHead(),line("."))
-        if foundline > 0
-            exec foundline
-            exec 's/:\s*<\d\d\d\d.*$/'.':'.a:val
-        else
-            let line_ind = len(matchstr(getline(line(".")),'^\**'))+1 + g:org_indent_from_head
-            if IsTagLine(line('.')+1)
-                normal j
-            endif
-            call append(line("."),Pad(' ',line_ind)
-                        \ .':'.key.':'.a:val)
-        endif
     endif
 
     "if exists("*Org_property_changed_functions") && (bufnr("%") != bufnr('Agenda'))
@@ -3481,6 +3669,7 @@ function! SetProp(key, val,...)
     "    silent execute "call Hook(line('.'),a:key, a:val)"
     "endif
     if a:0 >=2
+        "back to tab/window where setprop call was made
         execute "tabnext ".curtab
         execute curwin . "wincmd w"
     endif
@@ -3545,7 +3734,7 @@ function! MouseDate()
     if len(@x) < 7 
         normal! vi["xy
     endif
-    if (len(@x)>=10) && (len(@x)<20)
+    if (len(@x)>=10) && (len(@x)<40)
         let date = matchstr(@x,'\d\d\d\d-\d\d-\d\d')
     endif
     if date > ''
@@ -3627,18 +3816,8 @@ function! <SID>CalendarChoice(day, month, year, week, dir)
     call RunAgenda(g:agenda_startdate, g:agenda_days,g:search_spec)
 endfunction
 function! <SID>CalendarInsertDate(day, month, year, week, dir)
-    execute bufwinnr(g:calbuffer).'wincmd w'
-    let date = a:year.'-' . Pre0(a:month).'-'.Pre0(a:day)
-    let day = calutil#dayname(date)
-    let dateval = '<'.date.' '.day.'>'
-    if @d =~ 'DEADLINE\|SCHEDULED\|CLOSED'
-        call SetProp(@d,dateval)
-    else
-        let @d = '<'.date.' '.day.'>'
-        normal "dp
-    endif
-    execute "bd".bufnr('__Calendar')
-    normal 0
+    let g:cal_list=[a:year,a:month,a:day] 
+    "call confirm('got here')
 endfunction
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
@@ -4262,6 +4441,39 @@ function! ProcessCapture()
     execute "bd"
 endfunction
 
+function! EditAgendaFiles()
+    tabnew
+    call s:AgendaBufSetup()
+    command! W :call SaveAgendaFiles()
+    let msg = "These are your current agenda files:"
+    let msg2 = "Org files in your 'g:agenda_dirs' are below."
+    call setline(1,[msg])
+    call append(1, repeat('-',winwidth(0)-5))
+    call append("$",g:agenda_files + ['',''])
+    let line = repeat('-',winwidth(0)-5)
+    call append("$",[line] + [msg2,"To add files to 'g:agenda_files' copy or move them ","to between the preceding lines and press :W to save (or :q to cancel):","",""])
+    for item in g:agenda_dirs
+        call append("$",split(globpath(item,"**/*.org"),"\n"))
+    endfor
+endfunction
+function! SaveAgendaFiles()
+    " yank files into @a
+   normal gg/^--jV/^--?^\S"ay 
+   let @a = substitute(@a,' ','\\ ','g')
+   if g:agenda_files[0][1] != '-'
+        let g:agenda_files = split(@a,"\n")
+        let i = 0
+        "while i < len(g:agenda_files)
+        "    let g:agenda_files[i] = substitute(g:agenda_files[i],' ','\\ ')
+        "    let i += 1
+        "endwhile
+    else
+        let g:agenda_files=[]
+    endif
+    quit
+    delcommand W
+endfunction
+
 function! s:AgendaBufSetup()
     setlocal buftype=nofile
     setlocal bufhidden=hide
@@ -4353,6 +4565,7 @@ function! s:AgendaBufHighlight()
     map <silent> <buffer> <localleader>tc :call AgendaGetText(1,'CANCELED')<cr>
     map <silent> <buffer> <localleader>tn :call AgendaGetText(1,'NEXT')<cr>
     map <silent> <buffer> <localleader>tx :call AgendaGetText(1,'')<cr>
+    nmap <silent> <buffer> <localleader>te :call TagsEdit()<cr>
 endfunction
 function! CurTodo(line)
     let result = matchstr(getline(a:line),'.*\* \zs\S\+\ze ')`
@@ -4492,7 +4705,8 @@ map <localleader>b  :call ShowBottomCal()<cr>
 "imap <buffer> <localleader>t ~<esc>x:call InsertTime(0)<cr>a
 "nmap <buffer> <localleader>T ^:call InsertTime(1)<cr>a <esc>
 "nmap <silent> <buffer> <localleader>t :call AddTag(line("."))<cr>
-nmap <silent> <buffer> <localleader>et :call TagInput(line("."))<cr>
+"nmap <silent> <buffer> <localleader>et :call TagInput(line("."))<cr>
+nmap <silent> <buffer> <localleader>te :call TagsEdit()<cr>
 
 " clear search matching
 nmap <silent> <buffer> <localleader>cs :let @/=''<cr>
@@ -4586,4 +4800,4 @@ set fo=qtcwn
 " Added an indication of current syntax as per Dillon Jones' request
 let b:current_syntax = "org"
 
-" vim600: set tabstop=4 shiftwidth=4 expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^func'?0\:1:
+" vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^func'?0\:1:
