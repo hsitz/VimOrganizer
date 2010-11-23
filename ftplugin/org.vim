@@ -15,6 +15,7 @@ let g:headMatch = '^\*\+\s'
 let g:org_cal_date = '2000-01-01'
 let g:tag_group_arrange = 0
 let g:first_sparse=0
+let g:org_clocks_in_agenda = 0
 let b:headMatchLevel = '^\(\*\)\{level}\s'
 let b:propMatch = '^\s*:\s*\(PROPERTIES\)'
 let b:propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
@@ -2264,15 +2265,13 @@ function! GetDateHeads(date1,count,...)
     let date1 = a:date1
     let date2 = calutil#Jul2Cal(calutil#Cal2Jul(split(date1,'-')[0],split(date1,'-')[1],split(date1,'-')[2]) + a:count)
     execute 1
-    while search('<\d\d\d\d-\d\d-\d\d','W') > 0
+    while search('[^-][[<]\d\d\d\d-\d\d-\d\d','W') > 0
         let repeatlist = []
         let line = getline(line("."))
-        "let datematch = matchlist(line,'<\(\d\d\d\d-\d\d-\d\d\)')[1]
-        let datematch = matchstr(line,'<\zs\d\d\d\d-\d\d-\d\d\ze')
-        "if (g:search_spec == '') || (CheckIfExpr(line("."),ifexpr))
-        let repeatmatch = matchstr(line, '<\zs\d\d\d\d-\d\d-\d\d.*+\d\+\S\+.*>\ze')
+        let datematch = matchstr(line,'[[<]\d\d\d\d-\d\d-\d\d\ze')
+        let repeatmatch = matchstr(line, '<\d\d\d\d-\d\d-\d\d.*+\d\+\S\+.*>\ze')
         if repeatmatch != ''
-            let repeatlist = RepeatMatch(repeatmatch,date1,date2)
+            let repeatlist = RepeatMatch(repeatmatch[1:],date1,date2)
             for dateitem in repeatlist
                 if a:0 == 1
                     call ProcessDateMatch(dateitem,date1,date2,a:1)
@@ -2281,10 +2280,12 @@ function! GetDateHeads(date1,count,...)
                 endif
             endfor
         else
-            if a:0 == 1
-                call ProcessDateMatch(datematch,date1,date2,a:1)
-            else
-                call ProcessDateMatch(datematch,date1,date2)
+            if (datematch[0]!='[') || g:org_clocks_in_agenda
+                if a:0 == 1
+                    call ProcessDateMatch(datematch[1:],date1,date2,a:1)
+                else
+                    call ProcessDateMatch(datematch[1:],date1,date2)
+                endif
             endif
         endif
         "endif
@@ -2311,13 +2312,18 @@ function! ProcessDateMatch(datematch,date1,date2,...)
         call SetHeadInfo()
         if empty(mlist)
             " it's a regular date, first check for time parts
-            let tmatch = matchstr(line,'\d\d:\d\d\ze>')
+            let tmatch = matchstr(line,'\d\d:\d\d\ze[]>]')
             if tmatch > ''
-                let tmatch2 = matchstr(line,'--<.*\zs\d\d:\d\d\ze>')
+                let tmatch2 = matchstr(line,'--<.\{-}\zs\d\d:\d\d\ze>')
                 if tmatch2 > ''
                     let tmatch .= '-' . tmatch2
                 else
-                    let tmatch .= '......'
+                    if match(line,':\s*CLOCK\s*:') >= 0
+                        let tmatch .= '-'.matchstr(line,'--\[.\{-}\zs\d\d:\d\d\ze\]')
+                        let s:headtext = s:headtext[0:6] . 'Clocked: ('.matchstr(line,'->\s*\zs.*$') .') '.s:headtext[7:]
+                    else
+                        let tmatch .= '......'
+                    endif
                 endif
             endif
             call add(g:agenda_date_dict[datematch].l,  line(".") . repeat(' ',6-len(line("."))) . filename . Pad(tmatch,11) . s:headtext)
