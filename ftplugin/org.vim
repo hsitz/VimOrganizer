@@ -1494,12 +1494,14 @@ endfunction
 
 function! UpdateHeadlineSums()
     call MakeOrgDict()
-    let tempdict = {}
-    g/\*\+ /let tempdict[line('.')] = b:org_dict.SumTime(line('.'),'ClockSum')
-    let items = sort(keys(tempdict))
+    let g:tempdict = {}
+    g/\*\+ /let g:tempdict[line('.')] = b:org_dict.SumTime(line('.'),'ItemClockTime')
+    let items = sort(keys(g:tempdict))
     let i = len(items) - 1
     while i >= 0
-        call SetProp('TreeTime',tempdict[items[i]],items[i])
+        if g:tempdict[items[i]] > 0
+            call SetProp('TreeClockTime',g:tempdict[items[i]],items[i])
+        endif
         let i = i-1
     endwhile
 endfunction
@@ -1509,7 +1511,7 @@ function! MakeOrgDict()
 	function! b:org_dict.SumTime(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop)
-        " now some nifty recursion down the subtree
+        " now recursion down the subtree of children in c
         for item in self[a:ndx].c
             let result = AddTime(result,b:org_dict.SumTime(item,prop))
         endfor
@@ -1518,7 +1520,7 @@ function! MakeOrgDict()
 	function! b:org_dict.Sum(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop)
-        " now some nifty recursion down the subtree
+        " now recursion down the subtree of children in c
         for item in self[a:ndx].c
             let result += b:org_dict.Sum(item,prop)
         endfor
@@ -3574,7 +3576,7 @@ endfunction
 function! UpdateClockSums()
     let save_cursor = getpos(".")
     call UpdateAllClocks()
-    g/^\s*:CLOCK:/call SetProp('ClockSum', SumClockLines(line(".")))
+    g/^\s*:CLOCK:/call SetProp('ItemClockTime', SumClockLines(line(".")))
     call setpos(".",save_cursor)
 endfunction
 
