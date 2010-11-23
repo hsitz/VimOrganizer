@@ -93,13 +93,11 @@ setlocal iskeyword=@,39,45,48-57,_,129-255
 let b:basedate = strftime("%Y-%m-%d %a")
 let b:sparse_list = []
 let g:datelist = []
-let g:agenda_date_dict = {}
 let g:agenda_head_lookup = {}
-let g:search_spec = '+TODO+URGENT'
+let g:search_spec = ''
 let b:fold_list = []
 let b:suppress_indent=0
 let b:suppress_list_indent=0
-let g:adict = {}
 let g:search_type = 'regular'
 let g:org_deadline_warning_days = 3
 let g:weekdays = ['mon','tue','wed','thu','fri','sat','sun']
@@ -1815,13 +1813,24 @@ function! OrgIfExprResults(ifexpr,...)
             " next line is to fix for text area search
             " now that we can reference tbegin and tend
             let myifexpr = substitute(a:ifexpr,'tbegin,tend',get(lineprops,'tbegin') .','. get(lineprops,'tend'),"")
+            let g:filedict={}
+            let i = 1
+            for item in g:agenda_files
+                if match(item,'/') >= 0
+                    execute "let g:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".PrePad(i,3,'0')."'"
+                else
+                    execute "let g:filedict['".matchstr(item,'.*\ze.org')."']='".PrePad(i,3,'0')."'"
+                endif
+                let i +=1
+            endfor
 
             "********  eval() is what does it all ***************
             if eval(myifexpr)
                 if sparse_search
                     let keyval = headline
                 else
-                    let keyval = lineprops.file . "_" . PrePad(headline,5,'0')
+                    let keyval = g:filedict[lineprops.file] . "_" . PrePad(headline,5,'0')
+                    "let keyval = lineprops.file . "_" . PrePad(headline,5,'0')
                 endif
 
                 let g:adict[keyval]=lineprops
@@ -1841,7 +1850,8 @@ function! MakeResults(search_spec,...)
         let sparse_search = a:1
     endif
     let save_cursor = getpos(".")
-    let curfile = expand("%:t")
+    let curfile = substitute(expand("%"),' ','\\ ','g')
+
     let g:search_spec = a:search_spec
     let g:adict = {}
     let g:datedict = {}
@@ -1852,10 +1862,17 @@ function! MakeResults(search_spec,...)
         call OrgIfExprResults(ifexpr,sparse_search)
     else
         for file in g:agenda_files
-            execute "tab drop " . file
+            let g:mycommand = 'tab drop '. file
+            let mycommand = 'tab drop '. file
+            "execute 'tab drop ' . file
+            execute mycommand
             call OrgIfExprResults(ifexpr,sparse_search)
         endfor
-        execute "tab drop " . curfile
+        call LocateFile(curfile)
+        "jlet g:mycommand2 = 'tab drop '.curfile
+        "let mycommand = 'tab drop '.curfile
+        "execute "tab drop " . curfile
+        "execute mycommand
     endif
     call setpos(".",save_cursor)
 endfunction
@@ -1899,7 +1916,6 @@ function! MakeAgenda(date,count,...)
     call MakeCalendar(g:agenda_startdate,g:agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
-        "execute "tab drop " . file
         call LocateFile(file)
         let t:agenda_date=a:date
         if a:0 == 2
@@ -1909,7 +1925,6 @@ function! MakeAgenda(date,count,...)
         endif
     endfor
     unlet g:in_agenda_search
-    "execute "tab drop " . curfile
     call LocateFile(curfile)
     call setpos(".",save_cursor)
 endfunction
@@ -1965,6 +1980,9 @@ function! RunSearch(search_spec,...)
         let todoDoneMatch = b:todoDoneMatch
         let todoMatch = b:todoMatch
         let fulltodos = b:fulltodos
+        if bufnr('__Agenda__') >= 0
+            bdelete __Agenda__
+        endif
         :AAgenda
         let b:todoitems = todos
         let b:todoNotDoneMatch = todoNotDoneMatch
@@ -1984,7 +2002,7 @@ function! RunSearch(search_spec,...)
         call matchadd( 'OL2', '\s\+\*\{2}.*$') 
         call matchadd( 'OL3', '\s\+\*\{3}.*$' )
         call matchadd( 'OL4', '\s\+\*\{4}.*$' )
-
+call s:AgendaBufHighlight()
         wincmd J
         let i = 0
         call ADictPlaceSigns()
@@ -2008,6 +2026,7 @@ function! RunSearch(search_spec,...)
             let i += 1
         endfor
     endif
+
 endfunction
 
 function! TestTime()
@@ -2031,13 +2050,15 @@ function! ADictPlaceSigns()
     let myl=[]
     call DeleteSigns()  " signs placed in GetDateHeads
     for key in keys(g:adict)
-        let headline = matchstr(key, '_\zs\d\+$')
-        let buf = bufnr(matchstr(key,'^.*\ze_\d\+$').'.org')
+        "let headline = matchstr(key, '_\zs\d\+$')
+        let headline = g:adict[key].l
+        let buf = bufnr(g:adict[key].file .'.org')
+        "let buf = bufnr(matchstr(key,'^.*\ze_\d\+$').'.org')
         try
             silent execute "sign place " . headline . " line=" 
                         \ . headline . " name=piet buffer=" . buf  
         catch 
-            echo "ERROR: headline " . headline . ' and buf ' . buf . ' and dateline ' . dateline
+            echo "ERROR: headline " . headline . ' and buf ' .buf 
             echo key .', '. matchstr(key,'^.*\ze_\d\+$')
         finally
         endtry
@@ -2158,6 +2179,9 @@ function! RunAgenda(date,count,...)
     let todoDoneMatch = b:todoDoneMatch
     let todoMatch = b:todoMatch
     let fulltodos = b:fulltodos
+    if bufnr('__Agenda__') >= 0
+        bdelete __Agenda__
+    endif
     :AAgenda
     let b:todoitems = todos
     let b:todoNotDoneMatch = todoNotDoneMatch
@@ -2489,7 +2513,7 @@ function! Timeline(...)
     endif
     let prev_spec = g:search_spec
     let prev_files = g:agenda_files
-    exec "let g:agenda_files=['".expand("%")."']"
+    exec "let g:agenda_files=['".substitute(expand("%"),' ','\\ ','g')."']"
     call BufMinMaxDate()
     let num_days = 1 + calutil#jul(b:MinMaxDate[1]) - calutil#jul(b:MinMaxDate[0])
     try
@@ -2715,12 +2739,12 @@ function! AgendaPutText(...)
             let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
             let lineno = matchstr(thisline,'^\d\+\ze\s\+')
             let starttab = tabpagenr() 
-            if bufwinnr(file) > -1
-                execute bufwinnr(file).'wincmd w'
-            else
-                execute "tab drop " . file . '.org'
-            endif
-            "let confirmhead = g:agenda_head_lookup[dateline]
+            "if bufwinnr(file) > -1
+            "    execute bufwinnr(file).'wincmd w'
+            "else
+            "    execute "tab drop " . file . '.org'
+            "endif
+            call LocateFile(file.'.org')
             if g:agenda_date_dict != {}
                 let confirmhead = g:agenda_head_lookup[lineno]
             elseif g:adict != {}
@@ -2779,11 +2803,12 @@ function! SaveHeadline(file, headline, lines)
     let headline = a:headline
     let lines=a:lines
     let starttab = tabpagenr() 
-    if bufwinnr(file) > -1
-        execute bufwinnr(file).'wincmd w'
-    else
-        execute "tab drop " . file . '.org'
-    endif
+    "if bufwinnr(file) > -1
+    "    execute bufwinnr(file).'wincmd w'
+    "else
+    "    execute "tab drop " . file . '.org'
+    "endif
+    call LocateFile(file.'.org')
     "let confirmhead = OrgGetHead_l(newhead)
     let newhead = matchstr(GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.headline)
     execute newhead
@@ -2819,11 +2844,12 @@ function! AgendaGetText(...)
             let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
             let lineno = matchstr(thisline,'^\d\+\ze\s\+')
             let starttab = tabpagenr() 
-            if bufwinnr(file) > -1
-                execute bufwinnr(file).'wincmd w'
-            else
-                execute "tab drop " . file . '.org'
-            endif
+            "if bufwinnr(file) > -1
+            "    execute bufwinnr(file).'wincmd w'
+            "else
+            "    execute "tab drop " . file . '.org'
+            "endif
+            call LocateFile(file.'.org')
             let save_cursor2 = getpos(".")
             "let confirmhead = OrgGetHead_l(headline)
             if g:agenda_date_dict != {}
@@ -3099,22 +3125,28 @@ function! DateEdit(type)
                 break
             elseif newchar == "\<Esc>"
                 hi Cursor guibg=gray
+                if bufwinnr('__Calendar') > 0
+                    bdelete Calendar
+                endif
                 redraw
                 return
             elseif (nchar == "\<LeftMouse>") && (v:mouse_win > 0)
+                let g:cal_list=[]
                 exe v:mouse_win . "wincmd w"
                 exe v:mouse_lnum
                 exe "normal " . v:mouse_col."|"
                 normal 
-                if newtime > ''
-                    let timespec = newtime
-                else
-                    let timespec = matchstr(newdate,'\S\+:.*>')
+                if g:cal_list != []
+                    if newtime > ''
+                        let timespec = newtime
+                    else
+                        let timespec = matchstr(newdate,'\S\+:.*>')
+                    endif
+                    let newdate = '<'.g:cal_list[0].'-'.Pre0(g:cal_list[1]).'-'.Pre0(g:cal_list[2]) . ' '
+                    let newdate .= calutil#dayname( g:cal_list[0].'-'.g:cal_list[1].'-'.g:cal_list[2])
+                    let newdate .=  timespec > '' ? ' ' . timespec : ''.'>'
+                    break
                 endif
-                let newdate = '<'.g:cal_list[0].'-'.Pre0(g:cal_list[1]).'-'.Pre0(g:cal_list[2]) . ' '
-                let newdate .= calutil#dayname( g:cal_list[0].'-'.g:cal_list[1].'-'.g:cal_list[2])
-                let newdate .=  timespec > '' ? ' ' . timespec : ''.'>'
-                break
             else
                 let cue .= newchar
             endif
@@ -3436,14 +3468,26 @@ function! GetClock()
 endfunction 
 function! ClockIn(...)
     let save_cursor=getpos(".")
-    if a:0 > 1
-        execute a:1
+    let filestr = ''
+    let lineno=line('.')
+    if bufname("%")==('__Agenda__')
+        let lineno = matchstr(getline(line('.')),'^\d\+')
+        let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+        let str = ','.lineno.',"'.file.'"'
+        let filestr = ',"'.file.'"'
+        call SetProp('CLOCKIN','',lineno,file)
+    else
+   
+        if a:0 > 1
+            execute a:1
+        endif
+        execute OrgGetHead()
+        if IsTagLine(line(".")+1)
+            normal j
+        endif
+        exe 'normal o:CLOCK: ' . GetClock()
     endif
-    execute OrgGetHead()
-    if IsTagLine(line(".")+1)
-        normal j
-    endif
-    exe 'normal o:CLOCK: ' . GetClock()
+
 
     call setpos(".",save_cursor)
 endfunction
@@ -3644,6 +3688,10 @@ function! SetProp(key, val,...)
         else
             call append(line('.'), a:val)
         endif
+    elseif key == 'CLOCKIN'
+        call ClockIn()
+    elseif key == 'CLOCKOUT'
+        call ClockOut(a:val)
     else
         " it's a regular key/val pair in properties drawer
         call ConfirmDrawer("PROPERTIES")
@@ -3678,13 +3726,30 @@ endfunction
 
 function! LocateFile(filename)
     let myvar = ''
-    tabdo let myvar = bufwinnr(a:filename) > 0 ? tabpagenr() . ' ' . bufwinnr(a:filename) : myvar
-    if myvar > ''
-        silent execute split(myvar)[0] . "tabn"
-        silent execute split(myvar)[1] . "wincmd w"
+    " set filename
+    let filename = a:filename
+    " but change to be full name if appropriate
+    for item in g:agenda_files
+        if (item =~ a:filename) || (item == a:filename)
+            let filename = item
+            break
+        endif
+    endfor
+    "if bufnr(filename) > -1
+    "    " file is open, so move to its tab and window
+    "    tabdo let myvar = bufwinnr(a:filename) > 0 ? tabpagenr() . ' ' . bufwinnr(a:filename) : myvar
+    "    if myvar > ''
+    "        silent execute split(myvar)[0] . "tabn"
+    "        silent execute split(myvar)[1] . "wincmd w"
+    "    endif
+    "else
+    "    "open the file in new tab
+    if bufwinnr(filename) >= 0
+        silent execute bufwinnr(filename)."wincmd w"
     else
-        execute 'tab drop ' . a:filename
+        execute 'tab drop ' . filename
     endif
+    "endif
     " below is alternate method:
     " ==========================
     " remember current value of switchbuf
@@ -3816,7 +3881,10 @@ function! <SID>CalendarChoice(day, month, year, week, dir)
     call RunAgenda(g:agenda_startdate, g:agenda_days,g:search_spec)
 endfunction
 function! <SID>CalendarInsertDate(day, month, year, week, dir)
-    let g:cal_list=[a:year,a:month,a:day] 
+    if (a:year > 0) && (a:month>0) && (a:day>0)
+        let g:cal_list=[a:year,a:month,a:day] 
+    endif
+    
     "call confirm('got here')
 endfunction
 function! s:SID()
@@ -4067,7 +4135,6 @@ function! OrgAgendaToBuf()
     let ag_height = winheight(0)
     let cur_buf = bufnr("%")  " should be Agenda
     close!
-    "execute "tab drop " . g:tofile . '.org'
     call LocateFile(g:tofile . '.org')
     if &fdm != 'expr'
         set fdm=expr
@@ -4075,7 +4142,6 @@ function! OrgAgendaToBuf()
     split
     "wincmd J
     execute "b"cur_buf
-    "execute "tab drop " . g:tofile . '.org'
     "call LocateFile(g:tofile . '.org')
     wincmd x
     "let new_buf=bufnr("%")
@@ -4462,11 +4528,6 @@ function! SaveAgendaFiles()
    let @a = substitute(@a,' ','\\ ','g')
    if g:agenda_files[0][1] != '-'
         let g:agenda_files = split(@a,"\n")
-        let i = 0
-        "while i < len(g:agenda_files)
-        "    let g:agenda_files[i] = substitute(g:agenda_files[i],' ','\\ ')
-        "    let i += 1
-        "endwhile
     else
         let g:agenda_files=[]
     endif
@@ -4489,38 +4550,43 @@ function! Today()
     return strftime("%Y-%m-%d")
 endfunction
 function! AgendaDashboard()
-	echo " Press key for an agenda command:"
-	echo " --------------------------------"
-	echo " a   Agenda for current week or day"
-	echo " t   List of all TODO entries"
-	echo " m   Match a TAGS/PROP/TODO query"
-	echo " L   Timeline for current buffer"
-	echo " s   Search for keywords"
-	echo " "
-	echo " f   Sparse tree of: " . g:search_spec
-	echo " "
-    let key = nr2char(getchar())
+    if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') = -1)
+        call LocateFile('__Agenda__')
+    else
+            
+        echo " Press key for an agenda command:"
+        echo " --------------------------------"
+        echo " a   Agenda for current week or day"
+        echo " t   List of all TODO entries"
+        echo " m   Match a TAGS/PROP/TODO query"
+        echo " L   Timeline for current buffer"
+        echo " s   Search for keywords"
+        echo " "
+        echo " f   Sparse tree of: " . g:search_spec
+        echo " "
+        let key = nr2char(getchar())
 
-    if key == 't'
-        redraw
-        silent execute "call RunSearch('+ALL_TODOS','agenda_todo')"
-    elseif key == 'a'
-        redraw
-        silent execute "call RunAgenda(Today(),7)"
-    elseif key == 'L'
-        redraw
-        silent execute "call Timeline()"
-    elseif key == 'm'
-        redraw
-        let mysearch = input("Enter search string: ")
-        silent execute "call RunSearch(mysearch)"
-    elseif key == 'f'
-        redraw
-        let mysearch = input("Enter search string: ",g:search_spec)
-        if bufname("%")=='__Agenda__'
-            :bd
+        if key == 't'
+            redraw
+            silent execute "call RunSearch('+ALL_TODOS','agenda_todo')"
+        elseif key == 'a'
+            redraw
+            silent execute "call RunAgenda(Today(),7)"
+        elseif key == 'L'
+            redraw
+            silent execute "call Timeline()"
+        elseif key == 'm'
+            redraw
+            let mysearch = input("Enter search string: ")
+            silent execute "call RunSearch(mysearch)"
+        elseif key == 'f'
+            redraw
+            let mysearch = input("Enter search string: ",g:search_spec)
+            if bufname("%")=='__Agenda__'
+                :bd
+            endif
+            silent execute "call RunSearch(mysearch,1)"
         endif
-        silent execute "call RunSearch(mysearch,1)"
     endif
 endfunction
 
