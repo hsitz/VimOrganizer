@@ -12,6 +12,7 @@ let b:textMatch = '\(^\s*.*\|^\t*:\|^\t* \|^\t*;\|^\t*|\|^\t*>\)'
 let b:dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:headMatch = '^\*\+\s'
 let g:headMatch = '^\*\+\s'
+let g:org_cal_date = '2000-01-01'
 let g:tag_group_arrange = 0
 let g:first_sparse=0
 let b:headMatchLevel = '^\(\*\)\{level}\s'
@@ -23,6 +24,7 @@ let g:use_calendar = 1
 let s:headline = ''
 let b:levelstars = 1
 let g:ColumnHead = 'Lines'
+let g:gray_agenda = 0
 "let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
 "let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
 let g:sparse_lines_after = 10
@@ -86,14 +88,15 @@ setlocal foldmethod=manual
 "setlocal foldmethod=expr
 setlocal foldexpr=MyFoldLevel(v:lnum)
 setlocal indentexpr=
+setlocal iskeyword+=<
 setlocal nocindent
 setlocal iskeyword=@,39,45,48-57,_,129-255
 
-
+let g:org_show_balloon_tips=1
 let b:basedate = strftime("%Y-%m-%d %a")
 let b:sparse_list = []
 let g:datelist = []
-let g:agenda_head_lookup = {}
+"let g:agenda_head_lookup = {}
 let g:search_spec = ''
 let b:fold_list = []
 let b:suppress_indent=0
@@ -1906,7 +1909,10 @@ function! MakeAgenda(date,count,...)
     elseif (a:count>=28) && (a:count<=31)
         let g:agenda_startdate = a:date[0:7].'01'
         let g:agenda_days = DaysInMonth(a:date)
-    else 
+    elseif (a:count > 360) 
+        let g:agenda_startdate = a:date[0:3].'-01-01'
+        let g:agenda_days = a:count
+    else
         let g:agenda_startdate = a:date
         let g:agenda_days=a:count
     endif
@@ -1934,6 +1940,11 @@ function! NumCompare(i1, i2)
 endfunc
 
 function! RunSearch(search_spec,...)
+        "set mouseshape-=n:busy,v:busy,i:busy
+
+    try
+
+    let g:agenda_head_lookup={}
     let sparse_search = 0
     if a:0 > 0
         if a:1 == 1
@@ -2027,6 +2038,9 @@ call s:AgendaBufHighlight()
         endfor
     endif
 
+    finally
+        "set mouseshape-=n:busy,v:busy,i:busy
+    endtry
 endfunction
 
 function! TestTime()
@@ -2158,6 +2172,9 @@ function! PlaceTimeGrid(marker)
     endif
 endfunction
 function! RunAgenda(date,count,...)
+    try
+
+    let g:agenda_head_lookup={}
     let win = bufwinnr('Calendar')
     if win >= 0 
         execute win . 'wincmd w'
@@ -2197,6 +2214,7 @@ function! RunAgenda(date,count,...)
     map <silent> <buffer> vd :call RunAgenda(g:agenda_startdate, 1,g:search_spec)<CR>
     map <silent> <buffer> vw :call RunAgenda(g:agenda_startdate, 7,g:search_spec)<CR>
     map <silent> <buffer> vm :call RunAgenda(g:agenda_startdate, 30,g:search_spec)<CR>
+    map <silent> <buffer> vy :call RunAgenda(g:agenda_startdate, 365,g:search_spec)<CR>
     map <silent> <buffer> f :call AgendaMove('forward')<cr>
     map <silent> <buffer> b :call AgendaMove('backward')<cr>
     map <silent> <buffer> <tab> :call AgendaGetText()<CR>
@@ -2223,6 +2241,11 @@ function! RunAgenda(date,count,...)
     wincmd j
     execute 1
     execute 'resize ' . curheight   
+
+    finally
+        "set mouseshape-=n:busy,v:busy,i:busy
+    endtry
+
 endfunction
 function! Resize()
     let cur = winheight(0)
@@ -2279,6 +2302,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     let line = getline(line("."))
     let date1 = a:date1
     let date2 = a:date2
+    let s:headline=0
     if (datematch >= date1) && (datematch < date2)
                 \ && ((g:search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
         let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\|CLOSED\)')
@@ -2375,7 +2399,9 @@ function! ProcessDateMatch(datematch,date1,date2,...)
         "past match to avoid double treatment
         normal $
     endif
-    let g:agenda_head_lookup[line(".")]=s:headline
+    if s:headline > 0
+        let g:agenda_head_lookup[line(".")]=s:headline
+    endif
 endfunction
 
 function! SetHeadInfo()
@@ -4508,6 +4534,9 @@ function! ProcessCapture()
 endfunction
 
 function! EditAgendaFiles()
+    if !exists("g:agenda_files") || (g:agenda_files==[])
+        call CurfileAgenda()
+    endif
     tabnew
     call s:AgendaBufSetup()
     command! W :call SaveAgendaFiles()
@@ -4516,6 +4545,8 @@ function! EditAgendaFiles()
     call setline(1,[msg])
     call append(1, repeat('-',winwidth(0)-5))
     call append("$",g:agenda_files + ['',''])
+    " change '\ ' to plain ' ' for current text in buffer
+    silent! execute '%s/\\ / /g'
     let line = repeat('-',winwidth(0)-5)
     call append("$",[line] + [msg2,"To add files to 'g:agenda_files' copy or move them ","to between the preceding lines and press :W to save (or :q to cancel):","",""])
     for item in g:agenda_dirs
@@ -4531,7 +4562,7 @@ function! SaveAgendaFiles()
     else
         let g:agenda_files=[]
     endif
-    quit
+    :bw
     delcommand W
 endfunction
 
@@ -4550,10 +4581,18 @@ function! Today()
     return strftime("%Y-%m-%d")
 endfunction
 function! AgendaDashboard()
-    if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') = -1)
+    if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
+        " move agenda to cur tab if it exists and is on a different tab
+        let curtab = tabpagenr()
         call LocateFile('__Agenda__')
+        wincmd c
+        execute "tabnext ".curtab
+        split
+        winc j
+        buffer __Agenda__
     else
-            
+        " show dashboard if there is no agenda buffer or it's 
+        " already on this tab page
         echo " Press key for an agenda command:"
         echo " --------------------------------"
         echo " a   Agenda for current week or day"
@@ -4565,7 +4604,10 @@ function! AgendaDashboard()
         echo " f   Sparse tree of: " . g:search_spec
         echo " "
         let key = nr2char(getchar())
-
+        if !exists("g:agenda_files") || (g:agenda_files==[])
+            call confirm("No agenda files defined.  Will add current file to agenda files.")
+            call CurfileAgenda()
+        endif
         if key == 't'
             redraw
             silent execute "call RunSearch('+ALL_TODOS','agenda_todo')"
@@ -4597,14 +4639,17 @@ function! s:AgendaBufHighlight()
 "    hi Todos guifg=pink
     hi Dayline guifg=#44aa44 gui=underline
     hi Weekendline guifg=#55ee55 gui=underline
+    syntax match Scheduled '\(Scheduled:\|\dX:\)\zs.*$'
+    syntax match Deadline '\(Deadline:\|\d d.:\)\zs.*$'
    " let todoMatchInAgenda = '\s*\*\+\s*\zs\(TODO\|DONE\|STARTED\)\ze'
+   call AgendaHighlight()
     let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
     let wkendtextpat = '^S\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
-    call matchadd( 'OL1', '\*\{1} .*$' )
-    call matchadd( 'OL2', '\*\{2} .*$') 
-    call matchadd( 'OL3', '\*\{3} .*$' )
-    call matchadd( 'OL4', '\*\{4} .*$' )
-    call matchadd( 'OL5', '\*\{5} .*$' )
+    call matchadd( 'AOL1', '\*\{1} .*$' )
+    call matchadd( 'AOL2', '\*\{2} .*$') 
+    call matchadd( 'AOL3', '\*\{3} .*$' )
+    call matchadd( 'AOL4', '\*\{4} .*$' )
+    call matchadd( 'AOL5', '\*\{5} .*$' )
     
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
@@ -4632,7 +4677,30 @@ function! s:AgendaBufHighlight()
     map <silent> <buffer> <localleader>tn :call AgendaGetText(1,'NEXT')<cr>
     map <silent> <buffer> <localleader>tx :call AgendaGetText(1,'')<cr>
     nmap <silent> <buffer> <localleader>te :call TagsEdit()<cr>
+    nmap <silent> <buffer> q  :quit<cr>
+    nmap <silent> <buffer> <c-tab>  :wincmd k<cr>
 endfunction
+function! AgendaHighlight()
+    if g:gray_agenda
+        hi link AOL1 NONE 
+        hi link AOL2 NONE
+        hi link AOL3 NONE
+        hi link AOL4 NONE
+        hi link AOL5 NONE
+        hi Deadline guifg=lightred
+        hi Scheduled guifg=lightyellow
+        
+    else
+        hi link AOL1 OL1
+        hi link AOL2 OL2
+        hi link AOL3 OL3
+        hi link AOL4 OL4
+        hi link AOL5 OL5
+        hi Deadline guifg=NONE
+        hi Scheduled guifg=NONE
+    endif
+endfunction
+
 function! CurTodo(line)
     let result = matchstr(getline(a:line),'.*\* \zs\S\+\ze ')`
     if index(b:todoitems,curtodo) == -1
@@ -4740,9 +4808,9 @@ map <silent> <localleader>dd :call DateEdit('DEADLINE')<cr>
 map <silent> <localleader>dc :call DateEdit('CLOSED')<cr>
 map <silent> <localleader>ds :call DateEdit('SCHEDULED')<cr>
 map <silent> <localleader>a* :call RunAgenda(strftime("%Y-%m-%d"),7,'')<cr>
-map <silent> <localleader>aa :call RunAgenda(strftime("%Y-%m-%d"),7,'+ANYTODO')<cr>
-map <silent> <localleader>at :call RunAgenda(strftime("%Y-%m-%d"),7,'+NOTDONETODO')<cr>
-map <silent> <localleader>ad :call RunAgenda(strftime("%Y-%m-%d"),7,'+DONE')<cr>
+map <silent> <localleader>aa :call RunAgenda(strftime("%Y-%m-%d"),7,'+ALL_TODOS')<cr>
+map <silent> <localleader>at :call RunAgenda(strftime("%Y-%m-%d"),7,'+UNFINISHED_TODOS')<cr>
+map <silent> <localleader>ad :call RunAgenda(strftime("%Y-%m-%d"),7,'+FINISHED_TODOS')<cr>
 map <silent> <buffer> <localleader>tt :call OrgToggleTodo(line('.'),'t')<cr>
 map <silent> <buffer> <localleader>ts :call OrgToggleTodo(line('.'),'s')<cr>
 map <silent> <buffer> <localleader>td :call OrgToggleTodo(line('.'),'d')<cr>
