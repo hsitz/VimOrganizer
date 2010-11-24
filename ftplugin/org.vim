@@ -459,12 +459,13 @@ function! UnconvertTags(line)
     endif
 endfunction
 function! <SID>GlobalUnconvertTags()
-    "let g:save_cursor = getpos(".")
-    "g/^\*\+\s/call UnconvertTags(line("."))
+    let g:save_cursor = getpos(".")
+    g/^\*\+\s/call UnconvertTags(line("."))
 endfunction
 function! <SID>UndoUnconvertTags()
+    undo
     "normal u
-    "call setpos(".",g:save_cursor)
+    call setpos(".",g:save_cursor)
     
 endfunction
 
@@ -3132,6 +3133,9 @@ function! DateEdit(type)
         hi Cursor guibg=black
         let g:org_cal_date = newdate[1:10]
         call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
+        " highlight chosen dates in calendar
+        hi Ag_Date guifg=red
+        call matchadd('Ag_Date','+\s\{0,1}\d\+')
         redraw
         let g:calendar_action='<SNR>'.s:SID().'_CalendarInsertDate'
         let cue = ''
@@ -3209,6 +3213,9 @@ function! DateEdit(type)
         else
             silent execute "call SetProp('ud'".",'".newdate."'".str .")"
         endif
+        let @/=''
+        set nohlsearch
+        set hlsearch
         redraw
         echo 
 endfunction
@@ -3615,8 +3622,21 @@ function! SumClockLines(line)
     return (totalminutes/60) . ':' . Pre0(totalminutes % 60)
 
 endfunction
-
+function! UpdateBlock()
+   ?^#+BEGIN:
+    let block_type = matchstr(getline(line('.')),'\S\+\s\+\zs\S\+')
+   if matchstr(getline(line('.')+1),'^#+END') == ''
+        normal jV/^#+END/-1dk
+    endif
+    if block_type == 'clocktable'
+        let block_type='ClockTable'
+    endif
+    let mycommand = block_type.'()'
+    execute "call append(line('.'),".mycommand.")"
+endfunction
 function! ClockTable()
+    let save_cursor = getpos(".")
+
     call UpdateClockSums()
     call UpdateHeadlineSums()
     let g:ctable_dict = {}
@@ -3634,7 +3654,7 @@ function! ClockTable()
     endfor
     let result = ['Clock summary at ['.Timestamp().']','',
                 \ '|Lev| Heading               |  ClockTime',
-                \ '|---+-----------------------+----------------' ,
+                \ '|---+-----------------------+-------+--------' ,
                 \ '|   |               *TOTAL* | '.total ]
     for item in sort(keys(g:ctable_dict),'NumCompare')
         let level = len(matchstr(g:ctable_dict[item].text,'^\*\+')) 
@@ -3647,7 +3667,9 @@ function! ClockTable()
         endif
         call add(result, str)
     endfor
+    call setpos(".",save_cursor)
     return result
+
 endfunction
 
 function! NumCompare(i1,i2)
@@ -4890,14 +4912,8 @@ inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
 inoremap <expr> <Up>       pumvisible() ? "\<C-p>" : "\<Up>"
 inoremap <expr> <PageDown> pumvisible() ? "\<PageDown>\<C-p>\<C-n>" : "\<PageDown>"
 inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
-"map <localleader>a :CalendarH<CR>|:let g:calendar_action='<SNR>'.s:SID().'_CalendarInsertDate'<CR> | :startofbasedateedit 
 map <localleader>b  :call ShowBottomCal()<cr> 
-" insert the time
-"nmap <buffer> <localleader>t $:call InsertSpaceTime()<cr>
-"imap <buffer> <localleader>t ~<esc>x:call InsertTime(0)<cr>a
-"nmap <buffer> <localleader>T ^:call InsertTime(1)<cr>a <esc>
-"nmap <silent> <buffer> <localleader>t :call AddTag(line("."))<cr>
-"nmap <silent> <buffer> <localleader>et :call TagInput(line("."))<cr>
+
 nmap <silent> <buffer> <localleader>et :call TagsEdit()<cr>
 
 " clear search matching
