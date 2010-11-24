@@ -7,58 +7,31 @@ set guioptions-=L
 
 " below is match string that will match all body text lines
 "           t1      t1'      t2     t7   t3-4    t5-6 
-let g:templist = []
 let b:textMatch = '\(^\s*.*\|^\t*:\|^\t* \|^\t*;\|^\t*|\|^\t*>\)'
 let b:dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:headMatch = '^\*\+\s'
-let g:headMatch = '^\*\+\s'
-let g:org_cal_date = '2000-01-01'
-let g:tag_group_arrange = 0
-let g:first_sparse=0
-let g:org_clocks_in_agenda = 0
 let b:headMatchLevel = '^\(\*\)\{level}\s'
 let b:propMatch = '^\s*:\s*\(PROPERTIES\)'
 let b:propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
 let b:drawerMatch = '^\s*:\s*\(PROPERTIES\|LOGBOOK\)'
-let s:remstring = '^\s*:'
-let g:use_calendar = 1
-let s:headline = ''
 let b:levelstars = 1
-let g:ColumnHead = 'Lines'
-let g:gray_agenda = 0
 "let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
 "let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
-let g:sparse_lines_after = 10
-let g:capture_file=''
-let g:log_todos=0
 let b:effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
-let g:timegrid=[8,17,1]
 "let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\|CANCELED\|NEXT\)'
 "let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\|NEXT\)'
 let b:tagMatch = '\(:\S*:\)\s*$'
 let b:mytags = ['buy','home','work','URGENT']
 let b:foldhi = ''
-let g:colview_list = []
-let s:firsttext = ''
 
-let g:item_len=100
 let w:sparse_on = 0
 let b:columnview = 0
 let b:clock_to_logbook = 1
 let b:messages = []
 let b:global_cycle_levels_to_show=4
 let b:src_fold=0
-let g:folds = 1
 let b:foldhilines = []
 let b:cycle_with_text=1
-let g:show_fold_lines = 1
-let g:colview_list=['tags',30]
-let g:show_fold_dots = 0
-let g:org_show_matches_folded=1
-let g:org_indent_from_head = 0
-let g:org_agenda_skip_gap = 2
-let g:agenda_days=7
-let g:org_agenda_minforskip = 8
 let b:foldcolors=['Normal','SparseSkip','Folded','WarningMsg','WildMenu','DiffAdd','DiffChange','Normal','Normal','Normal','Normal']
 let b:foldcolors_orig=['Normal','SparseSkip','Folded','WarningMsg','WildMenu','DiffAdd','DiffChange','Normal','Normal','Normal','Normal']
 " list to hold columns to be added to fold text
@@ -89,30 +62,59 @@ setlocal foldmethod=manual
 "setlocal foldmethod=expr
 setlocal foldexpr=MyFoldLevel(v:lnum)
 setlocal indentexpr=
-setlocal iskeyword+=<
+"setlocal iskeyword+=<
 setlocal nocindent
 setlocal iskeyword=@,39,45,48-57,_,129-255
 
-let g:org_show_balloon_tips=1
 let b:basedate = strftime("%Y-%m-%d %a")
 let b:sparse_list = []
-let g:datelist = []
-"let g:agenda_head_lookup = {}
-let g:search_spec = ''
 let b:fold_list = []
 let b:suppress_indent=0
 let b:suppress_list_indent=0
+
+if !exists('g:org_loaded')
+
+let g:templist = []
+let g:headMatch = '^\*\+\s'
+let g:org_cal_date = '2000-01-01'
+let g:tag_group_arrange = 0
+let g:first_sparse=0
+let g:org_clocks_in_agenda = 0
+let s:remstring = '^\s*:'
+"let s:remstring = '^\s*\(:\|DEADLINE:\|SCHEDULED:\|CLOSED:\|<\d\d\d\d-\)'
+let g:use_calendar = 1
+let s:headline = ''
+let g:ColumnHead = 'Lines'
+let g:gray_agenda = 0
+let g:sparse_lines_after = 10
+let g:capture_file=''
+let g:log_todos=0
+let g:timegrid=[8,17,1]
+let g:colview_list = []
+let s:firsttext = ''
+
+let g:item_len=100
+let w:sparse_on = 0
+let g:folds = 1
+let g:show_fold_lines = 1
+let g:colview_list=['tags',30]
+let g:show_fold_dots = 0
+let g:org_show_matches_folded=1
+let g:org_indent_from_head = 0
+let g:org_agenda_skip_gap = 2
+let g:agenda_days=7
+let g:org_agenda_minforskip = 8
+
+let g:org_show_balloon_tips=1
+let g:datelist = []
+let g:search_spec = ''
 let g:search_type = 'regular'
 let g:org_deadline_warning_days = 3
 let g:weekdays = ['mon','tue','wed','thu','fri','sat','sun']
 let g:weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
 let g:months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
 let g:monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
-"let g:agenda_files=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
-"let g:agenda_files=[]
 let s:AgendaBufferName = "__Agenda__"
-
-if !exists('g:org_loaded')
 
 function! TodoSetup(todolist)
     "set up list and patterns for use throughout
@@ -1501,7 +1503,7 @@ function! UpdateHeadlineSums()
     let i = len(items) - 1
     while i >= 0
         if g:tempdict[items[i]] > 0
-            call SetProp('TreeClockTime',g:tempdict[items[i]],items[i])
+            call SetProp('TotalClockTime',g:tempdict[items[i]],items[i])
         endif
         let i = i-1
     endwhile
@@ -1511,7 +1513,7 @@ function! MakeOrgDict()
     let b:org_dict = {}
 	function! b:org_dict.SumTime(ndx,property) dict
         let prop = a:property
-        let result = get(self[a:ndx].props , prop)
+        let result = get(self[a:ndx].props , prop,'00:00')
         " now recursion down the subtree of children in c
         for item in self[a:ndx].c
             let result = AddTime(result,b:org_dict.SumTime(item,prop))
@@ -1958,6 +1960,10 @@ function! RunSearch(search_spec,...)
     endif
     let g:adict={}
     let g:agenda_date_dict={}
+    if !exists("g:agenda_files") || (g:agenda_files==[])
+        call confirm("No agenda files defined.  Will add current file to agenda files.")
+        call CurfileAgenda()
+    endif
     call MakeResults(a:search_spec,sparse_search)
 
     if sparse_search
@@ -3610,6 +3616,46 @@ function! SumClockLines(line)
 
 endfunction
 
+function! ClockTable()
+    call UpdateClockSums()
+    call UpdateHeadlineSums()
+    let g:ctable_dict = {}
+    let mycommand = "let g:ctable_dict[line('.')] = "
+                \ . "{'text':GetProperties(line('.'),0)['htext']"
+                \ . " , 'time':GetProperties(line('.'),0)['TotalClockTime']}"
+    g/:TotalClockTime/execute mycommand
+    let total='00:00'
+    for item in keys(g:ctable_dict)
+        "let test = g:ctable_dict[item].text
+        if g:ctable_dict[item].text[0:1]=='* '
+        "if test[0:1]=='* '
+            let total = AddTime(total,g:ctable_dict[item].time)
+        endif
+    endfor
+    let result = ['Clock summary at ['.Timestamp().']','',
+                \ '|Lev| Heading               |  ClockTime',
+                \ '|---+-----------------------+----------------' ,
+                \ '|   |               *TOTAL* | '.total ]
+    for item in sort(keys(g:ctable_dict),'NumCompare')
+        let level = len(matchstr(g:ctable_dict[item].text,'^\*\+')) 
+        let str = '| '.level.' | ' 
+                    \ . Pad(matchstr(g:ctable_dict[item].text,'^\*\+ \zs.*')[:20],21) . ' | '
+                    \ . repeat('      | ',level-1)
+                    \ . PrePad(g:ctable_dict[item].time,5) . ' |'
+        if g:ctable_dict[item].text[0:1]=='* '
+            call add(result, '|---+-----------------------+-------+-------+' )
+        endif
+        call add(result, str)
+    endfor
+    return result
+endfunction
+
+function! NumCompare(i1,i2)
+    let i1 = str2nr(a:i1)
+    let i2 = str2nr(a:i2)
+    return i1 == i2 ? 0 : i1>i2 ? 1 : -1
+endfunction
+
 function! ClockTime(line)
     let ctext = getline(a:line)
     let start = matchstr(ctext,'CLOCK:\s*\[\zs\S\+\s\S\+\s\S\+\ze\]')
@@ -3621,9 +3667,13 @@ function! ClockTime(line)
     return string(totalmin/60) . ':' . Pre0(totalmin % 60)
 endfunction
 function! AddTime(time1, time2)
-    let hours = str2nr(matchstr(a:time1,'^.*\ze:')) + str2nr(matchstr(a:time2,'^.*\ze:'))
-    let minutes = (60*hours) + a:time1[-2:] + a:time2[-2:]
-    return (minutes/60) . ':' . (minutes % 60)
+    let time1 = a:time1
+    let time2 = a:time2
+    if match(time1,':') == -1 | let time1 = '00:00' | endif
+    if match(time2,':') == -1 | let time2 = '00:00' | endif
+    let hours = str2nr(matchstr(time1,'^.*\ze:')) + str2nr(matchstr(time2,'^.*\ze:'))
+    let minutes = (60*hours) + time1[-2:] + time2[-2:]
+    return (minutes/60) . ':' . Pre0(minutes % 60)
 endfunction
 function! GetProp(key,...)
     let save_cursor = getpos(".")
@@ -4671,9 +4721,7 @@ function! s:AgendaBufHighlight()
     call matchadd('DONE', '^.*\* \zsDONE')
     call matchadd('NEXT', '^.*\* \zsNEXT')
     call matchadd('CANCELED', '^.*\* \zsCANCELED')
-"syntax match TODO '^.*\* \zsTODO' containedin=OL1,OL2,OL3,OL4
-"syntax match STARTED '^.*\* \zsSTARTED'
-"syntax match DONE '^.*\* \zsDONE'
+
     hi TODO guifg=red guibg=NONE
     hi STARTED guifg=yellow
     hi DONE guifg=green
@@ -4684,7 +4732,7 @@ function! s:AgendaBufHighlight()
     map <silent> <buffer> <localleader>tc :call AgendaGetText(1,'CANCELED')<cr>
     map <silent> <buffer> <localleader>tn :call AgendaGetText(1,'NEXT')<cr>
     map <silent> <buffer> <localleader>tx :call AgendaGetText(1,'')<cr>
-    nmap <silent> <buffer> <localleader>te :call TagsEdit()<cr>
+    nmap <silent> <buffer> <localleader>et :call TagsEdit()<cr>
     nmap <silent> <buffer> q  :quit<cr>
     nmap <silent> <buffer> <c-tab>  :wincmd k<cr>
 endfunction
@@ -4796,7 +4844,9 @@ let g:org_loaded=1
 "*********************************************************************
 "*********************************************************************
 "*********************************************************************
-
+" below is default todo setup, anything different can be done
+" in vimrc (or in future using a config line in the org file itself)
+call TodoSetup(['TODO','DONE'])
 " Key Mappings
 " insert the date
 nmap <buffer> <localleader>d $:call InsertSpaceDate()<cr>
@@ -4848,7 +4898,7 @@ map <localleader>b  :call ShowBottomCal()<cr>
 "nmap <buffer> <localleader>T ^:call InsertTime(1)<cr>a <esc>
 "nmap <silent> <buffer> <localleader>t :call AddTag(line("."))<cr>
 "nmap <silent> <buffer> <localleader>et :call TagInput(line("."))<cr>
-nmap <silent> <buffer> <localleader>te :call TagsEdit()<cr>
+nmap <silent> <buffer> <localleader>et :call TagsEdit()<cr>
 
 " clear search matching
 nmap <silent> <buffer> <localleader>cs :let @/=''<cr>
