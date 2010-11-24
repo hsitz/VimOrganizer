@@ -460,6 +460,7 @@ function! UnconvertTags(line)
 endfunction
 function! <SID>GlobalUnconvertTags()
     let g:save_cursor = getpos(".")
+    normal A 
     g/^\*\+\s/call UnconvertTags(line("."))
 endfunction
 function! <SID>UndoUnconvertTags()

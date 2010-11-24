@@ -1,30 +1,103 @@
 * VimOrganizer CheatSheet
 ** Outline Navigation
-   TAB                  toggle of levels
-   Shift-TAB            global toggle of levels
+   TAB                  cycle visibilty of single headline/subtree
+   Shift-TAB            cycle visibility of entire outline
    ,1                   show level one
    ,2                   show level 2
    ...
    ,8                   show level 4
    ,9                   show level 9
 ** Basic Outline Editing
-   Enter                add another headline of same level
-   Shift+Enter          add another headline of lower-level
-   Ctrl+Enter           add another headline of higher-level
-   o                    add body text on current level
-   O                    add body text on previous level above
-   :=G                  re-formats and indents whole document
-                        if run from first line of document
+*** Adding new headlines
+   Enter, shift+Enter   add another headline of same level
+                        <enter> works only in normal mode
+                        dd 
+   Ctrl+Enter           add another headline of lower-level
+   Ctrl+Shift+Enter     add another headline of higher-level
+*** Useful Vim commands
+   o                    insert text on next line
+   O                    insert y text on previous level above 
+   gg=G                 normal mode command to reformat line
+                        indents in entire document
 ** Time Stamps
-   ,dd                  enter deadline date
-   ,ds                  enter scheduled date
-   ,dr                  enter regular date
+   The following commands may be issued anywhere within a headline and will 
+   enter or edit the corresponding date for the headline.  One date of 
+   each type may be defined per headline (i.e, 'deadline', 'scheduled', 
+   'closed', and 'regular'.  You can enter more dates anywhere you want, but 
+   this editing mechanism is currently restricted to dealing with only these
+   "primary" dates.
+   ,dd                  enter deadline date for headline
+   ,ds                  enter scheduled date for headline
+   ,dc                  enter scheduled date for headline
+   ,dr                  enter regular date for headline
+   <F9>                 enter timestamp into text
+** Agenda Dashboard
+   Type ,ag to bring up the Agenda Dashboard, which allows you to launch 
+   some searches. 
+** Set Agenda Files
+   Agenda files are held in a list:  g:agenda_files.  You can enter values for 
+   g:agenda_files in your vimrc, e.g., 
+   :let g:agenda_files = ['myfile.org','c:/path/myfile.org']
+   
+   There is a bare-bones agenda-editing mechanism that works like this:
+   (1) Put your .org working directories in list g:agenda_dirs.  Mine is in my
+   vimrc and looks like this:
+
+let g:agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop"]
+   
+   (2) Then to edit your agenda files issue this command 
+   
+        :call EditAgendaFiles()
+   
+   This will open a new tab and show your current agenda files along with a list
+   of all org files in your agenda dirs.  Simply copy or move files from the 
+   agenda dirs list to the top and when done press :W.  Order of agenda files is
+   sometimes important, e.g., it is used when ordering some agenda results.
+   
 ** Tags
+   Tags for a file are defined using the SetupTags(<tag-setup-string>) function.  There is an 
+   example in the project's vimrc file.  General structure of the 
+   tag-setup-string is: (1) tags followed by the single-key access in parens, 
+   (2) brackets (i.e., {} ) around sets of tags that are mutually exclusive.  
+   For now you must place the single-key-access parens with character after the 
+   tag, no letter is automatically assigned.  The tags set up by SetupTags() are 
+   used in the menu accessed by ,et .
+
    toggle tag view      :call ToggleColumnView()
-   add tag              ,et
-   view tag in agenda   double-click tag
+   edit tags              ,et
+   view tag in agenda   double-click tag, 
+   view entries having both tag1 and tag2:  
+            call RunSearch('+tag1+tag2')
+   view entries having tag1  but not tag2:  
+            call RunSearch('+tag1-tag2')
+   view entries having tag1 or tag2:  
+            call RunSearch('+\(tag1\|tag2\)')
+   view entries having tag1 that are also TODO:  
+            call RunSearch('+TODO+tag1')
+   view entries having tag1 that are also DONE
+            call RunSearch('+DONE+tag1')
+   view entries having tag1 that have any todo
+            call RunSearch('+ALL_TODOS+tag1')
+
 ** Sparse Tree Search
-   search               :call SparseTreeRun('DEADLINE.*2011-03')
+   sparse trees can be generated in two ways right now:
+
+   Method 1:
+   :call SparseTreeRun(<regex patter string>)
+   For example:
+   sparse tree of deadlines in March 2011   :call SparseTreeRun('DEADLINE.*2011-03')
+
+    Method 2:
+    :call RunSearch(<search spec>,1)
+    This uses same type of search spec as illustrated in previous section for 
+    Tags, but feeds second argument of 1 to RunSearch() to indicate results 
+    should be in form of sparse_tree. E.g.:
+    
+   sparse tree of headlines with tag1   :call SparseTreeRun('+tag1',1)
+   
+   To clear a sparse tree generated by either method you can:
+   (1) :call ClearSparseTree()
+   or (2) issue an agenda command or another RunSearch() command
 ** Videos (on Vimeo)
    [Org-mode clone for Vim[http://viimeo.com/16543959]]
    [Sparse Tree Search in Vim clone of Org-mode[http://vimeo.com/16646716]]
@@ -39,4 +112,8 @@
 ** Hints
    [PyScratch Demo[http://vimeo.com/16871727]]
    :set filetype     to see if filetype is org
+ 
+ 
+* 
+ 
  
