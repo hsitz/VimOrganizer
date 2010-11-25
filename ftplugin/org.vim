@@ -458,16 +458,14 @@ function! UnconvertTags(line)
         normal J
     endif
 endfunction
-function! <SID>GlobalUnconvertTags()
+function! <SID>GlobalUnconvertTags(state)
     let g:save_cursor = getpos(".")
     normal A 
     g/^\*\+\s/call UnconvertTags(line("."))
 endfunction
 function! <SID>UndoUnconvertTags()
     undo
-    "normal u
     call setpos(".",g:save_cursor)
-    
 endfunction
 
 function! ConvertTags(line)
@@ -2194,6 +2192,10 @@ function! RunAgenda(date,count,...)
         execute 'bd' . bufnr('Calendar')
 
     endif   
+    if !exists("g:agenda_files") || (g:agenda_files==[])
+        call confirm("No agenda files defined.  Will add current file to agenda files.")
+        call CurfileAgenda()
+    endif
     " a:1 is search_spec, a:2 is "today" for search
     if a:0 == 1
         call MakeAgenda(a:date,a:count,a:1)
@@ -3102,6 +3104,10 @@ function! DateEdit(type)
             let str = ','.lineno.',"'.file.'"'
             let filestr = ',"'.file.'"'
         endif
+        if matchstr(getline(line('.')),'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
+           call confirm("Date has a repeater.  Please edit by hand.")
+           return
+       endif
         if text =~ 'DEADLINE'
             execute "let b:mdate = GetProp('DEADLINE'".str .")[1:-2]"
         elseif text =~ 'SCHEDULED'
@@ -3921,7 +3927,7 @@ function! MouseDate()
     endif
     call setpos(".",save_cursor)
     if found == 'date'
-        call RunAgenda(date,7)
+        call RunAgenda(date,1)
         call feedkeys("")
     elseif found == 'tag'
         call RunSearch('+'.@x)
@@ -4433,15 +4439,15 @@ function! MyFoldLevel(line)
         if l:text =~ b:drawerMatch
             let b:lev = '>' . string(b:prevlev + 4)
         elseif l:text =~ s:remstring
-"            if (getline(a:line - 1) =~ b:headMatch) && (l:nexttext =~ s:remstring)
-"                let b:lev =  string(b:prevlev + 5)
-"                "let b:lev = '>' . string(b:prevlev + 5)
-"            elseif (l:nexttext !~ s:remstring) || 
-"                        \ (l:nexttext =~ b:drawerMatch) 
-"                let b:lev = '<' . string(b:prevlev + 4)
-"                "let s:firsttext = '>'
-            if (getline(a:line - 1) =~ b:headMatch) 
-                let b:lev = '>' . string(b:prevlev + 4)
+            if (getline(a:line - 1) =~ b:headMatch) && (l:nexttext =~ s:remstring)
+                let b:lev =  string(b:prevlev + 5)
+            elseif (l:nexttext !~ s:remstring) || 
+                        \ (l:nexttext =~ b:drawerMatch) 
+                let b:lev = '<' . string(b:prevlev + 4)
+            " reverting back to use the if and elseif blocks above
+            " (11-24-2009)
+            "if (getline(a:line - 1) =~ b:headMatch) 
+            "    let b:lev = '>' . string(b:prevlev + 4)
             else
                 let b:lev = b:prevlev + 4
             endif
@@ -4685,10 +4691,6 @@ function! AgendaDashboard()
         echo " f   Sparse tree of: " . g:search_spec
         echo " "
         let key = nr2char(getchar())
-        if !exists("g:agenda_files") || (g:agenda_files==[])
-            call confirm("No agenda files defined.  Will add current file to agenda files.")
-            call CurfileAgenda()
-        endif
         if key == 't'
             redraw
             silent execute "call RunSearch('+ALL_TODOS','agenda_todo')"
@@ -4997,7 +4999,7 @@ amenu &Org.Expand\ Level\ &6\ w/oText :call ExpandWithoutText(6)<cr>
 amenu &Org.-Sep1- :
 
 command! PreLoadTags :silent  call <SID>GlobalConvertTags()
-command! PreWriteTags :silent call <SID>GlobalUnconvertTags()
+command! PreWriteTags :silent call <SID>GlobalUnconvertTags(changenr())
 command! PostWriteTags :silent call <SID>UndoUnconvertTags()
 
 

@@ -65,6 +65,9 @@ endfunction
 syntax on
 au! BufRead,BufNewFile *.org            call SetFileType()
 
+au! BufRead *.org 
+au! BufWrite *.org
+au! BufWritePost *.org
 au BufRead *.org :PreLoadTags
 au BufWrite *.org :PreWriteTags
 au BufWritePost *.org :PostWriteTags
