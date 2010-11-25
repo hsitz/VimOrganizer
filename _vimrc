@@ -16,6 +16,12 @@ filetype plugin indent on
 colorscheme org_dark
 set shellslash
 
+au! BufRead *.org 
+au! BufWrite *.org
+au! BufWritePost *.org
+au BufRead *.org :PreLoadTags
+au BufWrite *.org :PreWriteTags
+au BufWritePost *.org :PostWriteTags
 
 " if desired, set main directories where you store .org files here,
 " these will be used to assemble list of agenda files to choose from
@@ -65,12 +71,6 @@ endfunction
 syntax on
 au! BufRead,BufNewFile *.org            call SetFileType()
 
-au! BufRead *.org 
-au! BufWrite *.org
-au! BufWritePost *.org
-au BufRead *.org :PreLoadTags
-au BufWrite *.org :PreWriteTags
-au BufWritePost *.org :PostWriteTags
 
 
 

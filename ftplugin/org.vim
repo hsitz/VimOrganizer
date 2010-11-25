@@ -4871,7 +4871,9 @@ let g:org_loaded=1
 "*********************************************************************
 " below is default todo setup, anything different can be done
 " in vimrc (or in future using a config line in the org file itself)
-call TodoSetup(['TODO','DONE'])
+if !exists('b:todoitems')
+    call TodoSetup(['TODO','DONE'])
+endif
 " Key Mappings
 " insert the date
 nmap <buffer> <localleader>d $:call InsertSpaceDate()<cr>
