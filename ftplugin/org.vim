@@ -2224,7 +2224,7 @@ function! RunAgenda(date,count,...)
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
     "map <silent> <buffer> f :call RunAgenda(calutil#cal(calutil#jul(g:date1)+7),7,g:search_spec)<CR>
     "map <silent> <buffer> b :call RunAgenda(calutil#cal(calutil#jul(g:date1)-7),7,g:search_spec)<CR>
-    map <silent> <buffer> vd :call RunAgenda(g:agenda_startdate, 1,g:search_spec)<CR>
+    map <silent> <buffer> vd :call RunAgenda(g:agenda_startdate, 1,g:search_spec,g:agenda_startdate)<CR>
     map <silent> <buffer> vw :call RunAgenda(g:agenda_startdate, 7,g:search_spec)<CR>
     map <silent> <buffer> vm :call RunAgenda(g:agenda_startdate, 30,g:search_spec)<CR>
     map <silent> <buffer> vy :call RunAgenda(g:agenda_startdate, 365,g:search_spec)<CR>
@@ -2322,9 +2322,9 @@ function! ProcessDateMatch(datematch,date1,date2,...)
         call SetHeadInfo()
         if empty(mlist)
             " it's a regular date, first check for time parts
-            let tmatch = matchstr(line,'\d\d:\d\d\ze[]>]')
+            let tmatch = matchstr(line,' \zs\d\d:\d\d\ze.*[[>]')
             if tmatch > ''
-                let tmatch2 = matchstr(line,'--<.\{-}\zs\d\d:\d\d\ze>')
+                let tmatch2 = matchstr(line,'<.\{-}-\zs\d\d:\d\d\ze.*>')
                 if tmatch2 > ''
                     let tmatch .= '-' . tmatch2
                 else
@@ -2669,6 +2669,8 @@ function! AgendaMove(direction)
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)+1)
         elseif g:agenda_days == 7
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)+7)
+        elseif g:agenda_days >= 360
+            let g:agenda_startdate = string(g:agenda_startdate[0:3]+1).'-01-01'
         else
             if g:agenda_startdate[5:6] == '12'
                 let g:agenda_startdate = string(g:agenda_startdate[0:3] + 1).'-01-01'
@@ -2678,11 +2680,13 @@ function! AgendaMove(direction)
             endif
             let g:agenda_days = DaysInMonth(g:agenda_startdate)
         endif
-    else
+    else            "we're going backward
         if g:agenda_days == 1
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)-1)
         elseif g:agenda_days == 7
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)-7)
+        elseif g:agenda_days >= 360
+            let g:agenda_startdate = string(g:agenda_startdate[0:3]-1).'-01-01'
         else
             if g:agenda_startdate[5:6] == '01'
                 let g:agenda_startdate = string(g:agenda_startdate[0:3] - 1).'-12-01'
@@ -2694,7 +2698,11 @@ function! AgendaMove(direction)
         endif
 
     endif
-    call RunAgenda(g:agenda_startdate,g:agenda_days,g:search_spec)
+    if g:agenda_days==1
+        call RunAgenda(g:agenda_startdate,g:agenda_days,g:search_spec,g:agenda_startdate)
+    else
+        call RunAgenda(g:agenda_startdate,g:agenda_days,g:search_spec)
+    endif
 endfunction
 
 function! TimeGrid(starthour,endhour,inc)
@@ -3095,6 +3103,7 @@ endfunction
 function! DateEdit(type)
         let text = a:type
         let b:basetime=''
+        let from_agenda=0
         let str = ''
         let filestr = ''
         let lineno=line('.')
@@ -3103,11 +3112,12 @@ function! DateEdit(type)
             let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
             let str = ','.lineno.',"'.file.'"'
             let filestr = ',"'.file.'"'
+            let from_agenda=1
         endif
         if matchstr(getline(line('.')),'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
            call confirm("Date has a repeater.  Please edit by hand.")
            return
-       endif
+        endif
         if text =~ 'DEADLINE'
             execute "let b:mdate = GetProp('DEADLINE'".str .")[1:-2]"
         elseif text =~ 'SCHEDULED'
@@ -3211,6 +3221,9 @@ function! DateEdit(type)
         endwhile
         hi Cursor guibg=gray
         bdelete __Calendar
+        if (from_agenda==0) && bufname("%")=='__Agenda__'
+           wincmd k 
+        endif
         if text =~ 'DEADLINE'
             silent execute "call SetProp('DEADLINE'".",'".newdate."'".str .")"
         elseif text =~ 'SCHEDULED'
@@ -3225,6 +3238,7 @@ function! DateEdit(type)
         set hlsearch
         redraw
         echo 
+        redraw
 endfunction
 
 
@@ -3555,14 +3569,19 @@ function! GotoOpenClock()
     "endif:
     "silent execute markfind[1]
     let found = 0
-    for file in g:agenda_files
-        call LocateFile(file)
+    if !exists('g:agenda_files') || (g:agenda_files==[])
+        call confirm("No agenda files defined, will search only this buffer for open clocks.")
         let found = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
-        if found > 0
-            execute found
-            break
-        endif
-    endfor
+    else
+        for file in g:agenda_files
+            call LocateFile(file)
+            let found = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
+            if found > 0
+                execute found
+                break
+            endif
+        endfor
+    endif
     if found == 0
         call confirm("No open clock found.")
     endif
@@ -3927,7 +3946,7 @@ function! MouseDate()
     endif
     call setpos(".",save_cursor)
     if found == 'date'
-        call RunAgenda(date,1)
+        call RunAgenda(date,1,'',date)
         call feedkeys("")
     elseif found == 'tag'
         call RunSearch('+'.@x)
