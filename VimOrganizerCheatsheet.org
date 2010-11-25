@@ -36,13 +36,19 @@
    'closed', and 'regular'.  You can enter more dates anywhere you want, but 
    this editing mechanism is currently restricted to dealing with only these
    "primary" dates.
-*** enter DEADLINE date for headline :,dd
-*** enter SCHEDULED date for headline :,ds
-*** enter CLOSED date for headline :,dc
-*** enter regular date (i.e., no indicator) for headline :,dr
-*** enter timestamp into text :<F9>
+
+ enter DEADLINE date for headline 
+    :,dd
+ enter SCHEDULED date for headline
+    :,ds
+ enter CLOSED date for headline
+    :,dc
+ enter regular date (i.e., no indicator) for headline
+    :,dr
+ enter timestamp into text
+    :<F9>
 ** Agenda Dashboard
-   Type ,ag to bring up the Agenda Dashboard, which allows you to launch  
+   Type ,ag to bring up the Agenda Dashboard, which allows you to launch 
    some searches. 
 ** Set Agenda Files
    Agenda files are held in a list:  g:agenda_files.  You can enter values for 
