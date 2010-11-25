@@ -29,7 +29,7 @@
 
     gg=G                 normal mode command to reformat line
                         indents in entire document
-** Time Stamps
+** Time Stamps/Date-time prompt
    The following commands may be issued anywhere within a headline and will 
    enter or edit the corresponding date for the headline.  One date of 
    each type may be defined per headline (i.e, 'deadline', 'scheduled', 
@@ -37,7 +37,7 @@
    this editing mechanism is currently restricted to dealing with only these
    "primary" dates.
 
- enter DEADLINE date for headline 
+ enter DEADLINE date for headline
     :,dd
  enter SCHEDULED date for headline
     :,ds
@@ -47,6 +47,13 @@
     :,dr
  enter timestamp into text
     :<F9>
+
+    The command-line prompt and calendar that appear when you enter a :d<x> 
+    command operate nearly the same as the date-time prompt in Emacs' 
+    Org-mode.  A few options are not yet implemented (e.g., the 'w'eek 
+    options), but most should work just the same.  For excellent documentation 
+    on Org-mode's date-time prompt see:
+    :http://orgmode.org/manual/The-date_002ftime-prompt.html#The-date_002ftime-prompt 
 ** Agenda Dashboard
    Type ,ag to bring up the Agenda Dashboard, which allows you to launch 
    some searches. 
