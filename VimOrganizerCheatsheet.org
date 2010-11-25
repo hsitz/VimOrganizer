@@ -109,7 +109,7 @@
    sparse trees can be generated in two ways right now:
 
    Method 1:
-   :call SparseTreeRun(<regex patter string>)
+   :call SparseTreeRun(<regex pattern string>) 
    For example:
    sparse tree of deadlines in March 2011   :call SparseTreeRun('DEADLINE.*2011-03')
 
@@ -141,6 +141,6 @@
    :set filetype     to see if filetype is org
  
  
-* 
+*  
  
  

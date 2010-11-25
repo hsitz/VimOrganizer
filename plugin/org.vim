@@ -1,48 +1,29 @@
 " ********************* IMPORTANT ************
-" This vimrc is sample vimrc that works with VimOrganizer.
+" This sets up the global plugin variables and functions
 " 
-" Some of the commands could be deleted (e.g., the first 
-" five below. .  .
-"-------------------"
-set nocompatible
-source $VIMRUNTIME/vimrc_example.vim
-source $VIMRUNTIME/mswin.vim
-behave mswin
-" --------------------
-" most of the rest of the commands are necessary, be careful about changing
-set foldmethod=manual
-filetype off
-filetype plugin indent on
-colorscheme org_dark
-set shellslash
-
 
 " if desired, set main directories where you store .org files here,
 " these will be used to assemble list of agenda files to choose from
-let g:agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop"]
+let g:agenda_dirs=[]
 
 " You can (and should) modify TodoSetup() and TagSetup() calls
-" in SetFileType() below, but be careful about changing anything else
-function! SetFileType()
-        if expand("%:e") == 'org'
-                if &filetype != 'org'
-                        execute "set filetype=org"
-                endif
+" in InitBuffer() below, but be careful about changing anything else
+function! InitBuffer()
+		set filetype=org
 		" The two lines below set up TODOS and tag lists for your
 		" org files, eventually each file will be able to have
 		" these defined with customization lines in the file, but
 		" for now must call a function manually.  You can set 
 		" different org files up differently, if you want.  As
 		" it stands now all org files use same sample setup, below
-                call TodoSetup([['TODO','NEXT'],'STARTED',['DONE','CANCELED']])
+    call TodoSetup([['TODO','NEXT'],'STARTED',['DONE','CANCELLED']])
+
 		call TagSetup('{@home(h) @work(w) @tennisclub(t)} {easy(e) hard(d)} {computer(c) phone(p)}')
-        endif
-        if !exists('g:in_agenda_search') && (&foldmethod!='expr')
-                setlocal foldmethod=expr
-                set foldlevel=1
-        endif
-        syntax on
-        colorscheme org_dark
+
+			if !exists('g:in_agenda_search') && (&foldmethod!='expr')
+							setlocal foldmethod=expr
+							set foldlevel=1
+			endif
 endfunction     
 
 " these are two examples of "hooks" in org-mode, which are customizable
@@ -63,19 +44,10 @@ endfunction
 
 "keep all below 
 syntax on
-au! BufRead,BufNewFile *.org            call SetFileType()
+au! BufRead,BufNewFile *.org            set filetype=org
+au! BufRead,BufNewFile *.org            call InitBuffer()
 
 au BufRead *.org :PreLoadTags
 au BufWrite *.org :PreWriteTags
 au BufWritePost *.org :PostWriteTags
-
-
-
-
-nmap <F9> :execute "normal o<".Timestamp().'>'<cr>
-imap <F9> <c-r>=' <'.Timestamp().'>'<cr>
-map <c-left> :tabprevious<cr>
-map <c-right> :tabnext<cr>
-map <c-up> :wincmd W<cr>
-map <c-down> :wincmd w<cr>
 
