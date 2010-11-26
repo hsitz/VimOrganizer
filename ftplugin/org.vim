@@ -1449,12 +1449,17 @@ function! Random(range)
 endfunction
 
 function! RandomDate()
-    let date = string((2010 + Random(2) - 1)).'-'.Pre0(Random(12)).'-'.Pre0(Random(28))
-    if Random(2)==2
-        return '<'.date. ' ' . calutil#dayname(date).'>'
+    let date = string((2009 + Random(3) - 1)).'-'.Pre0(Random(12)).'-'.Pre0(Random(28))
+    let dstring = ''
+    if Random(3)==3
+        let dstring = date. ' ' . calutil#dayname(date)
     else
-        return '<'.date. ' ' . calutil#dayname(date).' '.Pre0(Random(23)).':'.Pre0((Random(12)-1)*5).'>'
+        let dstring = date. ' ' . calutil#dayname(date).' '.Pre0(Random(23)).':'.Pre0((Random(12)-1)*5)
     endif
+    if Random(6)==6
+        let dstring .= ' +'.Random(4).['d','w','m'][Random(3)-1]
+    endif
+    return '<'.dstring.'>'
     "if a:date_type != ''
     "    call SetProp(a:date_type,date)
     "else

@@ -57,9 +57,9 @@ unlet b:current_syntax
 "syntax include @Vimcode $VIMRUNTIME\syntax\vim.vim
 "syntax region orgVim start='^src-vimscript' end='^end-vimscript' contains=@Vimcode
 "unlet b:current_syntax
-syntax include @Lispcode $VIMRUNTIME\syntax\lisp.vim
+syntax include @Lispcode $VIMRUNTIME/syntax/lisp.vim
 "syntax region orgLisp start='^#+begin-lisp' end='^#+end_src' contains=@Lispcode
-syntax region orgLisp start='^#+begin_src\semacs-lisp' end='^#+end_src$' contains=@Lispcode
+syntax region orgLisp start='^#+begin_src/semacs-lisp' end='^#+end_src$' contains=@Lispcode
 let b:current_syntax = 'combined'
 hi orgLisp gui=bold
 
