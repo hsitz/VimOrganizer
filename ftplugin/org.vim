@@ -74,46 +74,44 @@ let b:suppress_list_indent=0
 
 if !exists('g:org_loaded')
 
-let g:templist = []
-let g:headMatch = '^\*\+\s'
+let g:org_headMatch = '^\*\+\s'
 let g:org_cal_date = '2000-01-01'
-let g:tag_group_arrange = 0
-let g:first_sparse=0
+let g:org_tag_group_arrange = 0
+let g:org_first_sparse=0
 let g:org_clocks_in_agenda = 0
 let s:remstring = '^\s*:'
 "let s:remstring = '^\s*\(:\|DEADLINE:\|SCHEDULED:\|CLOSED:\|<\d\d\d\d-\)'
-let g:use_calendar = 1
+let g:org_use_calendar = 1
 let s:headline = ''
-let g:ColumnHead = 'Lines'
-let g:gray_agenda = 0
-let g:sparse_lines_after = 10
-let g:capture_file=''
-let g:log_todos=0
-let g:timegrid=[8,17,1]
-let g:colview_list = []
+let g:org_ColumnHead = 'Lines'
+let g:org_gray_agenda = 0
+let g:org_sparse_lines_after = 10
+let g:org_capture_file=''
+let g:org_log_todos=0
+let g:org_timegrid=[8,17,1]
+let g:org_colview_list = []
 let s:firsttext = ''
 
-let g:item_len=100
+let g:org_item_len=100
 let w:sparse_on = 0
-let g:folds = 1
-let g:show_fold_lines = 1
-let g:colview_list=['tags',30]
-let g:show_fold_dots = 0
+let g:org_folds = 1
+let g:org_show_fold_lines = 1
+let g:org_colview_list=['tags',30]
+let g:org_show_fold_dots = 0
 let g:org_show_matches_folded=1
 let g:org_indent_from_head = 0
 let g:org_agenda_skip_gap = 2
-let g:agenda_days=7
+let g:org_agenda_days=7
 let g:org_agenda_minforskip = 8
 
 let g:org_show_balloon_tips=1
-let g:datelist = []
-let g:search_spec = ''
-let g:search_type = 'regular'
+let g:org_datelist = []
+let g:org_search_spec = ''
 let g:org_deadline_warning_days = 3
-let g:weekdays = ['mon','tue','wed','thu','fri','sat','sun']
-let g:weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
-let g:months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
-let g:monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
+let g:org_weekdays = ['mon','tue','wed','thu','fri','sat','sun']
+let g:org_weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
+let g:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+let g:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 let s:AgendaBufferName = "__Agenda__"
 
 function! TodoSetup(todolist)
@@ -253,7 +251,7 @@ function! TagMenu(heading_tags)
             else
                 echohl None
             endif
-            if (g:tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 )
+            if (g:org_tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 )
                 echo repeat(' ',3) . '[' | echohl Question | echon select | echohl None | echon '] ' 
                 echohl None | echon b:tagdict[item].tag | echohl Title | echon '('.b:tagdict[item].char.')' | echohl None
                 let nextindent = repeat(' ',12-len(b:tagdict[item].tag))
@@ -516,7 +514,7 @@ function! OrgToggleTodo(line,...)
         endif
     endif
     let linetext = getline(a:line)
-    if (linetext =~ g:headMatch) 
+    if (linetext =~ g:org_headMatch) 
         " get first word in line and its index in todoitems
         let tword = matchstr(linetext,'\*\+\s\+\zs\S\+\ze')
         if a:0 == 1
@@ -599,7 +597,7 @@ function! ReplaceTodo(todoword,...)
         call Hook(line('.'),todoword,newtodo)
     endif
 
-    "if g:log_todos && (bufnr("%") != bufnr('Agenda'))
+    "if g:org_log_todos && (bufnr("%") != bufnr('Agenda'))
      "   call ConfirmDrawer("LOGBOOK")
      "   let str = ": - State: " . Pad(newtodo,10) . "   from: " . Pad(a:todoword,10) .
      "               \ '    [' . Timestamp() . ']'
@@ -1606,11 +1604,11 @@ function! SparseTreeRun(term)
     execute 'g/' . a:term . '/call add(b:sparse_list,line("."))'
     call SparseTreeDoFolds()
     call clearmatches()
-    let g:first_sparse=1
+    let g:org_first_sparse=1
     let b:signstring= GetPlacedSignsString(bufnr("%")) 
     set fdm=expr
     set foldlevel=0
-    let g:first_sparse=0
+    let g:org_first_sparse=0
     execute 'let @/ ="' . a:term .'"'
     execute 'g/' . a:term . '/normal zv'
     set hlsearch
@@ -1620,12 +1618,12 @@ endfunction
 function! SparseTreeDoFolds()
     let i = len(b:sparse_list) - 1
     while i >= 0
-        "if b:sparse_list[i] + g:sparse_lines_after > line("$")
+        "if b:sparse_list[i] + g:org_sparse_lines_after > line("$")
         if b:sparse_list[i] + 10 > line("$")
             call remove(b:sparse_list, i) "insert(b:fold_list,0)
             let i -= 1
             continue
-        "elseif (i>0) && (b:sparse_list[i] < b:sparse_list[i-1] + g:sparse_lines_after)
+        "elseif (i>0) && (b:sparse_list[i] < b:sparse_list[i-1] + g:org_sparse_lines_after)
         elseif (i>0) && (b:sparse_list[i] < b:sparse_list[i-1] + 10)
             call remove(b:sparse_list, i) "insert(b:fold_list,0)
             let i -= 1
@@ -1642,7 +1640,7 @@ function! SparseTreeDoFolds()
 
         let i -= 1
     endwhile        
-    "call map(b:sparse_list,"v:val + g:sparse_lines_after")
+    "call map(b:sparse_list,"v:val + g:org_sparse_lines_after")
     call map(b:sparse_list,"v:val + 10")
     call insert(b:sparse_list, 1)
     call add(b:fold_list, line("$"))
@@ -1703,7 +1701,7 @@ function! OrgIfExpr()
     " two wrapper subst statements around middle 
     " subst are to make dates work properly with substitute/split
     " operation
-    let str = substitute(g:search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
+    let str = substitute(g:org_search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
     let str = substitute(str,'\([+-]\)','~\1','g')
     let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
     let g:str = str
@@ -1865,7 +1863,7 @@ function! MakeResults(search_spec,...)
     let save_cursor = getpos(".")
     let curfile = substitute(expand("%"),' ','\\ ','g')
 
-    let g:search_spec = a:search_spec
+    let g:org_search_spec = a:search_spec
     let g:adict = {}
     let g:datedict = {}
     let ifexpr = OrgIfExpr()
@@ -1907,29 +1905,29 @@ endfunction
 
 function! MakeAgenda(date,count,...)
     if a:0 >= 1
-        let g:search_spec = a:1
+        let g:org_search_spec = a:1
     else
-        let g:search_spec = ''
+        let g:org_search_spec = ''
     endif
     let save_cursor = getpos(".")
     let curfile = expand("%:t")
     if a:count == 7
         let g:agenda_startdate = calutil#cal(calutil#jul(a:date) - calutil#dow(a:date))
-        let g:agenda_days=7
+        let g:org_agenda_days=7
     elseif (a:count>=28) && (a:count<=31)
         let g:agenda_startdate = a:date[0:7].'01'
-        let g:agenda_days = DaysInMonth(a:date)
+        let g:org_agenda_days = DaysInMonth(a:date)
     elseif (a:count > 360) 
         let g:agenda_startdate = a:date[0:3].'-01-01'
-        let g:agenda_days = a:count
+        let g:org_agenda_days = a:count
     else
         let g:agenda_startdate = a:date
-        let g:agenda_days=a:count
+        let g:org_agenda_days=a:count
     endif
     "let myfiles=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
     let g:adict = {}
     let g:datedict = {}
-    call MakeCalendar(g:agenda_startdate,g:agenda_days)
+    call MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
         call LocateFile(file)
@@ -1990,7 +1988,7 @@ function! RunSearch(search_spec,...)
         set foldlevel=0
         for item in b:sparse_list
             if item > 11
-                execute item - g:sparse_lines_after
+                execute item - g:org_sparse_lines_after
                 normal! zv
             endif
             "execute 'call matchadd("MatchGroup","\\%' . line(".") . 'l")'
@@ -2031,7 +2029,7 @@ call s:AgendaBufHighlight()
         wincmd J
         let i = 0
         call ADictPlaceSigns()
-        call setline(1, ["Headlines matching search spec: ".g:search_spec,''])
+        call setline(1, ["Headlines matching search spec: ".g:org_search_spec,''])
         if exists("search_type") && (search_type=='agenda_todo')
             let msg = "Press num to redo search: "
             let numstr= ''
@@ -2120,9 +2118,9 @@ function! DateDictToScreen()
     let message = ["Press <f> or <b> for next or previous period." ,
                 \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
                 \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
-    let search_spec = g:search_spec > '' ? g:search_spec : 'None - include all heads'
+    let search_spec = g:org_search_spec > '' ? g:org_search_spec : 'None - include all heads'
     call add(message,"Agenda view for " . g:agenda_startdate 
-                \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:agenda_days-1)
+                \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
                 \ . ' with SearchSpec=' . search_spec  )
     call add(message,'')
     call setline(1,message)
@@ -2141,7 +2139,7 @@ function! DateDictToScreen()
             let gap = 0
             call setline(line('$')+ 1,g:agenda_date_dict[key].marker)
             call setline(line('$')+ 1,g:agenda_date_dict[key].l)
-            if ((g:agenda_days==1) || (key==strftime("%Y-%m-%d"))) && exists('g:timegrid') && (g:timegrid != [])
+            if ((g:org_agenda_days==1) || (key==strftime("%Y-%m-%d"))) && exists('g:org_timegrid') && (g:org_timegrid != [])
                 call PlaceTimeGrid(g:agenda_date_dict[key].marker)
             endif
         endif
@@ -2152,7 +2150,7 @@ function! DateDictToScreen()
     endif
 endfunction
 function! PlaceTimeGrid(marker)
-    let grid = TimeGrid(g:timegrid[0],g:timegrid[1],g:timegrid[2])
+    let grid = TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
     call search(a:marker)
     exec line('.')+1
     if getline(line('.'))=~'\%20c\d\d:\d\d'
@@ -2227,17 +2225,17 @@ function! RunAgenda(date,count,...)
     set nowrap
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    "map <silent> <buffer> f :call RunAgenda(calutil#cal(calutil#jul(g:date1)+7),7,g:search_spec)<CR>
-    "map <silent> <buffer> b :call RunAgenda(calutil#cal(calutil#jul(g:date1)-7),7,g:search_spec)<CR>
-    map <silent> <buffer> vd :call RunAgenda(g:agenda_startdate, 1,g:search_spec,g:agenda_startdate)<CR>
-    map <silent> <buffer> vw :call RunAgenda(g:agenda_startdate, 7,g:search_spec)<CR>
-    map <silent> <buffer> vm :call RunAgenda(g:agenda_startdate, 30,g:search_spec)<CR>
-    map <silent> <buffer> vy :call RunAgenda(g:agenda_startdate, 365,g:search_spec)<CR>
+    "map <silent> <buffer> f :call RunAgenda(calutil#cal(calutil#jul(g:date1)+7),7,g:org_search_spec)<CR>
+    "map <silent> <buffer> b :call RunAgenda(calutil#cal(calutil#jul(g:date1)-7),7,g:org_search_spec)<CR>
+    map <silent> <buffer> vd :call RunAgenda(g:agenda_startdate, 1,g:org_search_spec,g:agenda_startdate)<CR>
+    map <silent> <buffer> vw :call RunAgenda(g:agenda_startdate, 7,g:org_search_spec)<CR>
+    map <silent> <buffer> vm :call RunAgenda(g:agenda_startdate, 30,g:org_search_spec)<CR>
+    map <silent> <buffer> vy :call RunAgenda(g:agenda_startdate, 365,g:org_search_spec)<CR>
     map <silent> <buffer> f :call AgendaMove('forward')<cr>
     map <silent> <buffer> b :call AgendaMove('backward')<cr>
     map <silent> <buffer> <tab> :call AgendaGetText()<CR>
     map <silent> <buffer> <s-CR> :call AgendaGetText(1)<CR>
-    nmap <silent> <buffer> r :call RunAgenda(g:agenda_startdate, g:agenda_days,g:search_spec)<CR>
+    nmap <silent> <buffer> r :call RunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)<CR>
     nmap <silent> <buffer> <s-up> :call DateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call DateInc(-1)<CR>
 
@@ -2273,7 +2271,7 @@ endfunction
 
 function! GetDateHeads(date1,count,...)
     let save_cursor=getpos(".")
-    if g:search_spec > ''
+    if g:org_search_spec > ''
         let b:agenda_ifexpr = OrgIfExpr()
     endif
     let g:date1 = a:date1
@@ -2322,7 +2320,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     let date2 = a:date2
     let s:headline=0
     if (datematch >= date1) && (datematch < date2)
-                \ && ((g:search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                \ && ((g:org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
         let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\|CLOSED\)')
         call SetHeadInfo()
         if empty(mlist)
@@ -2371,7 +2369,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     " Now test for late and upcoming warnings if 'today' is in range
     if (today >= date1) && (today < date2)
         if (datematch < today) && (match(line,'\(DEADLINE\|SCHEDULED\)')>-1)
-                    \ && ((g:search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                    \ && ((g:org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
             let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\)')
             call SetHeadInfo()
             if !empty(mlist)
@@ -2385,7 +2383,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
             endif
             " also put in warning entry for deadlines when appropriate
         elseif (datematch > today) && (match(line,'DEADLINE')>-1)
-                    \ && ((g:search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                    \ && ((g:org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
             let mlist = matchlist(line,'DEADLINE')
             call SetHeadInfo()
             if !empty(mlist)
@@ -2400,7 +2398,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     endif
     " finally handle things for a range that began before date1
     if (rangedate != '')  && (datematch < date1)
-                \ && ((g:search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                \ && ((g:org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
         let days_in_range = calutil#jul(rangedate) - calutil#jul(datematch) + 1
         if rangedate >= date2
             let last_day_to_add = calutil#jul(date2) - calutil#jul(datematch) 
@@ -2560,7 +2558,7 @@ function! Timeline(...)
         "go back up to main org buffer
         wincmd k
     endif
-    let prev_spec = g:search_spec
+    let prev_spec = g:org_search_spec
     let prev_files = g:agenda_files
     exec "let g:agenda_files=['".substitute(expand("%"),' ','\\ ','g')."']"
     call BufMinMaxDate()
@@ -2568,7 +2566,7 @@ function! Timeline(...)
     try
         call RunAgenda(b:MinMaxDate[0], num_days,spec)
     finally
-        let g:search_spec = prev_spec
+        let g:org_search_spec = prev_spec
         let g:agenda_files = prev_files
     endtry
 endfunction
@@ -2661,7 +2659,7 @@ function! DateListAdd(valdict)
     let i = 0
     while i < 4
         if templist[i] != 0
-            call add(g:datelist, templist[i] . ' ' . namelist[i] . ' ' . a:valdict.l )
+            call add(g:org_datelist, templist[i] . ' ' . namelist[i] . ' ' . a:valdict.l )
         endif
         let i += 1
     endwhile
@@ -2670,11 +2668,11 @@ endfunction
 
 function! AgendaMove(direction)
     if a:direction == 'forward'
-        if g:agenda_days == 1
+        if g:org_agenda_days == 1
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)+1)
-        elseif g:agenda_days == 7
+        elseif g:org_agenda_days == 7
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)+7)
-        elseif g:agenda_days >= 360
+        elseif g:org_agenda_days >= 360
             let g:agenda_startdate = string(g:agenda_startdate[0:3]+1).'-01-01'
         else
             if g:agenda_startdate[5:6] == '12'
@@ -2683,14 +2681,14 @@ function! AgendaMove(direction)
                 let g:agenda_startdate = g:agenda_startdate[0:4].
                             \ Pre0(string(str2nr(g:agenda_startdate[5:6])+1)) .'-01'
             endif
-            let g:agenda_days = DaysInMonth(g:agenda_startdate)
+            let g:org_agenda_days = DaysInMonth(g:agenda_startdate)
         endif
     else            "we're going backward
-        if g:agenda_days == 1
+        if g:org_agenda_days == 1
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)-1)
-        elseif g:agenda_days == 7
+        elseif g:org_agenda_days == 7
             let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)-7)
-        elseif g:agenda_days >= 360
+        elseif g:org_agenda_days >= 360
             let g:agenda_startdate = string(g:agenda_startdate[0:3]-1).'-01-01'
         else
             if g:agenda_startdate[5:6] == '01'
@@ -2699,14 +2697,14 @@ function! AgendaMove(direction)
                 let g:agenda_startdate = g:agenda_startdate[0:4].
                             \ Pre0(string(str2nr(g:agenda_startdate[5:6]) - 1)) .'-01'
             endif
-            let g:agenda_days = DaysInMonth(g:agenda_startdate)
+            let g:org_agenda_days = DaysInMonth(g:agenda_startdate)
         endif
 
     endif
-    if g:agenda_days==1
-        call RunAgenda(g:agenda_startdate,g:agenda_days,g:search_spec,g:agenda_startdate)
+    if g:org_agenda_days==1
+        call RunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec,g:agenda_startdate)
     else
-        call RunAgenda(g:agenda_startdate,g:agenda_days,g:search_spec)
+        call RunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec)
     endif
 endfunction
 
@@ -3217,7 +3215,7 @@ function! DateEdit(type)
                 let cue .= newchar
             endif
             let newdate = GetNewDate(cue,basedate)
-            if g:use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
+            if g:org_use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
                 let g:org_cal_date = newdate[1:10]
                 call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
             endif
@@ -3302,10 +3300,10 @@ function! GetNewDate(cue,basedate)
             let day = matchstr(cue,'-\zs\d\+\ze$')
             let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
 
-            "       elseif cue =~ g:monthstring
+            "       elseif cue =~ g:org_monthstring
             "           let mycount = matchstr(cue,'^\d\+')
             "           let mymonth = 
-            "           let newday = index(g:weekdays,cue)
+            "           let newday = index(g:org_weekdays,cue)
             "           let oldday = calutil#dow(basedate)
             "           if newday > oldday
             "               let amt=newday-oldday
@@ -3315,11 +3313,11 @@ function! GetNewDate(cue,basedate)
             "               let amt = 7
             "           endif
             "           let newdate=calutil#cal(calutil#jul(basedate)+amt)
-        elseif cue =~ g:weekdaystring
+        elseif cue =~ g:org_weekdaystring
             " wed, 3tue, 5fri, i.e., dow string
             let mycount = matchstr(cue,'^\d\+')
-            let myday = matchstr(cue,g:weekdaystring) 
-            let newday = index(g:weekdays,myday)
+            let myday = matchstr(cue,g:org_weekdaystring) 
+            let newday = index(g:org_weekdays,myday)
             let oldday = calutil#dow(matchstr(basedate,'\d\d\d\d-\d\d-\d\d'))
             if newday > oldday
                 let amt=newday-oldday
@@ -3965,23 +3963,23 @@ function! SetColumnHead()
 
     let result = ''
     let i = 0
-    while i < len(g:colview_list)
-        let result .= '|' . PrePad(g:colview_list[i] , g:colview_list[i+1]) . ' ' 
+    while i < len(g:org_colview_list)
+        let result .= '|' . PrePad(g:org_colview_list[i] , g:org_colview_list[i+1]) . ' ' 
         let i += 2
     endwhile
-    let g:ColumnHead = result[:-2]
+    let g:org_ColumnHead = result[:-2]
 endfunction
 
 function! GetColumns(line)
     let props = GetProperties(a:line,0)
     let result = ''
     let i = 0
-    while i < len(g:colview_list)
-        let result .= '|' . PrePad(get(props,g:colview_list[i],'') , g:colview_list[i+1]) . ' ' 
+    while i < len(g:org_colview_list)
+        let result .= '|' . PrePad(get(props,g:org_colview_list[i],'') , g:org_colview_list[i+1]) . ' ' 
         let i += 2
     endwhile
     if get(props,'Columns') > ''
-        let g:colview_list=split(props['Columns'],',')
+        let g:org_colview_list=split(props['Columns'],',')
     endif
     return result[:-2]
 
@@ -4002,20 +4000,19 @@ function! ToggleColumnView()
     endif   
 endfunction
 function! <SID>ColumnStatusLine()
-    let part2 = PrePad(g:ColumnHead, winwidth(0)-12) 
+    let part2 = PrePad(g:org_ColumnHead, winwidth(0)-12) 
     return '      ITEM ' .  part2
 endfunction
 function! AdjustItemLen()
     "if exists('b:columnview') && b:columnview 
-    let g:item_len = winwidth(0) - 10 - len(g:ColumnHead)
+    let g:org_item_len = winwidth(0) - 10 - len(g:org_ColumnHead)
     "endif
 endfunction
 au VimResized * call AdjustItemLen()
 
 function! <SID>CalendarChoice(day, month, year, week, dir)
-    "call add(g:templist,a:year.'-' . a:month.'-'.a:day.'-'.a:week)
     let g:agenda_startdate = a:year.'-' . Pre0(a:month).'-'.Pre0(a:day) 
-    call RunAgenda(g:agenda_startdate, g:agenda_days,g:search_spec)
+    call RunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
 endfunction
 function! <SID>CalendarInsertDate(day, month, year, week, dir)
     if (a:year > 0) && (a:month>0) && (a:day>0)
@@ -4100,7 +4097,7 @@ function! MyFoldText(...)
     elseif l:line[0] == '#'
         let v:foldhighlight = hlID('VisualNOS')
     else
-        let l = g:item_len
+        let l = g:org_item_len
         let line = line[:l]
     endif
     if exists('w:sparse_on') && w:sparse_on && (a:0 == 0) 
@@ -4112,13 +4109,13 @@ function! MyFoldText(...)
             let v:foldhighlight = hlID('TabLineFill')
         endif
     endif
-    if g:show_fold_dots 
+    if g:org_show_fold_dots 
         let l:line .= '...'
     endif
     if b:columnview && (origline =~ b:headMatch) 
         let l:line .= PrePad(GetColumns(foldstart), winwidth(0)-len(l:line) -3)
     endif
-    if !a:0 && g:show_fold_lines && !b:columnview 
+    if !a:0 && g:org_show_fold_lines && !b:columnview 
         let l:line .= PrePad("(" . PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
                     \ winwidth(0)-len(l:line) - 3) 
     endif
@@ -4170,39 +4167,6 @@ function! BCompare(i1,i2)
         endif
     endwhile
 endfunction
-function! InsertDate(ba)
-    " Insert today's date.
-    let @x = strftime("%Y-%m-%d")
-    if a:ba == "0"
-        normal! "xp
-    else
-        normal! "xP
-    endif
-endfunction
-
-function! InsertSpaceDate()
-    " Insert a space, then today's date.
-    let @x = " "
-    let @x = @x . strftime("%Y-%m-%d")
-    normal! "xp
-endfunction
-
-function! InsertTime(ba)
-    " Insert the time.
-    let @x = strftime("%T")
-    if a:ba == "0"
-        normal! "xp
-    else
-        normal! "xP
-    endif
-endfunction
-
-function! InsertSpaceTime()
-    " Insert a space, then the time.
-    let @x = " "
-    let @x = @x . strftime("%T")
-    normal! "xp
-endfunction
 
 function! s:OrgShowMatch(cycleflag)
     "wincmd k
@@ -4250,11 +4214,11 @@ function! s:OrgAgendaToBufTest()
         let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
     endif
     let cur_buf = bufnr("%")
-    let g:folds=0
+    let g:org_folds=0
     let newbuf = bufnr(g:tofile)
     execute "b"newbuf
     execute g:showndx
-    let g:folds=1
+    let g:org_folds=1
 endfunction
 function! OrgAgendaToBuf()
     let win = bufwinnr('Calendar')
@@ -4393,7 +4357,7 @@ endfunction
 
 function! MyFoldLevel(line)
     " Determine the fold level of a line.
-    if g:folds == 0
+    if g:org_folds == 0
         return 0
     endif
     let l:text = getline(a:line)
@@ -4406,7 +4370,7 @@ function! MyFoldLevel(line)
 
     " STUFF FOR SPARSE TREE LEVELS
     if exists('w:sparse_on') && w:sparse_on  
-        if g:first_sparse==0    
+        if g:org_first_sparse==0    
             let b:signstring= GetPlacedSignsString(bufnr("%")) 
             if match(b:signstring,'line='.(a:line+1).'\s\sid=\d\+\s\sname=fbegin') >=0
                 return '<0'
@@ -4632,7 +4596,7 @@ function! CaptureBuffer()
 endfunction
 function! ProcessCapture()
     normal ggVG"xy
-    execute "tab drop ".g:capture_file
+    execute "tab drop ".g:org_capture_file
     normal gg
     call search('^\* Agenda')
     execute OrgSubtreeLastLine()
@@ -4712,7 +4676,7 @@ function! AgendaDashboard()
         echo " L   Timeline for current buffer"
         echo " s   Search for keywords"
         echo " "
-        echo " f   Sparse tree of: " . g:search_spec
+        echo " f   Sparse tree of: " . g:org_search_spec
         echo " "
         let key = nr2char(getchar())
         if key == 't'
@@ -4730,7 +4694,7 @@ function! AgendaDashboard()
             silent execute "call RunSearch(mysearch)"
         elseif key == 'f'
             redraw
-            let mysearch = input("Enter search string: ",g:search_spec)
+            let mysearch = input("Enter search string: ",g:org_search_spec)
             if bufname("%")=='__Agenda__'
                 :bd
             endif
@@ -4786,7 +4750,7 @@ function! s:AgendaBufHighlight()
     nmap <silent> <buffer> <c-tab>  :wincmd k<cr>
 endfunction
 function! AgendaHighlight()
-    if g:gray_agenda
+    if g:org_gray_agenda
         hi link AOL1 NONE 
         hi link AOL2 NONE
         hi link AOL3 NONE
@@ -4898,11 +4862,6 @@ let g:org_loaded=1
 if !exists('b:todoitems')
     call TodoSetup(['TODO','DONE'])
 endif
-" Key Mappings
-" insert the date
-nmap <buffer> <localleader>d $:call InsertSpaceDate()<cr>
-imap <buffer> <localleader>d ~<esc>x:call InsertDate(0)<cr>a
-nmap <buffer> <localleader>D ^:call InsertDate(1)<cr>a <esc>
 
 " below block of 10 or 15 maps are ones collected
 " from body of doc that weren't getting assigned for docs
