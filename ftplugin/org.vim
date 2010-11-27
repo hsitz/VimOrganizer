@@ -1699,8 +1699,6 @@ function! FoldTouch()
 endfunction
 
 function! OrgIfExpr()
-    " right now just does search for any todo tags
-    "let g:search_spec = '+TODO+URGENT-home'
     let mypattern = ''
     " two wrapper subst statements around middle 
     " subst are to make dates work properly with substitute/split
@@ -1735,7 +1733,9 @@ function! OrgIfExpr()
             if mtch[3] =~ '^\d\+$'
                 let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
             else
-                let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
+                let rightside="'".mtch[3]."'"
+                let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
+                "let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
             endif
             let i += 1
             " loop to next item
