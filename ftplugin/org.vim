@@ -48,7 +48,6 @@ setlocal tw=78
 setlocal expandtab
 setlocal nosmarttab
 setlocal softtabstop=0 
-setlocal foldlevel=20
 setlocal foldcolumn=1 
 setlocal tabstop=4   
 setlocal shiftwidth=4
@@ -59,7 +58,6 @@ if !exists('g:v.in_agenda_search') "&& (&foldmethod!='expr')
 else
     setlocal foldmethod=manual
 endif
-"setlocal foldmethod=expr
 setlocal foldexpr=OrgFoldLevel(v:lnum)
 setlocal indentexpr=
 "setlocal iskeyword+=<
@@ -3159,7 +3157,7 @@ function! OrgDateEdit(type)
         hi Ag_Date guifg=red
         call matchadd('Ag_Date','+\s\{0,1}\d\+')
         redraw
-        let g:v.calendar_action='<SNR>'.s:SID().'_CalendarInsertDate'
+        let g:calendar_action='<SNR>'.s:SID().'_CalendarInsertDate'
         let cue = ''
         while 1
             echohl LineNr | echon 'Date+time ['.basedate . ' '.basetime.']: ' 
@@ -4026,14 +4024,14 @@ endfunction
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
-function MySID()
+function! OrgSID()
     return s:SID()
 endfunction
 function! s:MyPopup()
     call feedkeys("i\<c-x>\<c-u>")
 endfunction
 
-let g:v.calendar_action = '<SNR>' . s:SID() .'_CalendarChoice'
+let g:calendar_action = '<SNR>' . s:SID() .'_CalendarChoice'
 let b:v.ColorList=['purple', 'green', 'white', 'black','blue','red','orange','green']
 function! s:CompleteOrg(findstart, base)
     if a:findstart
@@ -4904,7 +4902,7 @@ inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
 inoremap <expr> <Up>       pumvisible() ? "\<C-p>" : "\<Up>"
 inoremap <expr> <PageDown> pumvisible() ? "\<PageDown>\<C-p>\<C-n>" : "\<PageDown>"
 inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
-map <localleader>b  :call ShowBottomCal()<cr> 
+map <silent> <localleader>b  :call ShowBottomCal()<cr> 
 
 nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
 
@@ -4913,30 +4911,26 @@ nmap <silent> <buffer> <localleader>cs :let @/=''<cr>
 
 map <buffer>   <C-K>         <C-]>
 map <buffer>   <C-N>         <C-T>
-map <buffer>   <localleader>0          :call OrgExpandWithoutText(99999)<CR>
-map <buffer>   <localleader>9          :call OrgExpandWithoutText(9)<CR>
-map <buffer>   <localleader>8          :call OrgExpandWithoutText(8)<CR>
-map <buffer>   <localleader>7          :call OrgExpandWithoutText(7)<CR>
-map <buffer>   <localleader>6          :call OrgExpandWithoutText(6)<CR>
-map <buffer>   <localleader>5          :call OrgExpandWithoutText(5)<CR>
-map <buffer>   <localleader>4          :call OrgExpandWithoutText(4)<CR>
-map <buffer>   <localleader>3          :call OrgExpandWithoutText(3)<CR>
-map <buffer>   <localleader>2          :call OrgExpandWithoutText(2)<CR>
-map <buffer>   <localleader>1          :call OrgExpandWithoutText(1)<CR>
-map <buffer>   <localleader>,0           :set foldlevel=99999<CR>
-map <buffer>   <localleader>,9           :call OrgSetLevel (1,9)<CR>
-map <buffer>   <localleader>,8           :call OrgSetLevel (1,8)<CR>
-map <buffer>   <localleader>,7           :call OrgSetLevel (1,7)<CR>
-map <buffer>   <localleader>,6           :call OrgSetLevel (1,6)<CR>
-map <buffer>   <localleader>,5           :call OrgSetLevel (1,5)<CR>
-map <buffer>   <localleader>,4           :call OrgSetLevel (1,4)<CR>
-map <buffer>   <localleader>,3           :call OrgSetLevel (1,3)<CR>
-map <buffer>   <localleader>,2           :call OrgSetLevel (1,2)<CR>
-map <buffer>   <localleader>,1           :call OrgSetLevel (1,1)<CR>
-map  <localleader>wj           :wincmd j<CR>
-map  <localleader>wl           :wincmd l<CR>
-map  <localleader>wh           :wincmd h<CR>
-map  <localleader>wk           :wincmd k<CR>
+map <silent> <buffer>   <localleader>0          :call OrgExpandWithoutText(99999)<CR>
+map <silent> <buffer>   <localleader>9          :call OrgExpandWithoutText(9)<CR>
+map <silent> <buffer>   <localleader>8          :call OrgExpandWithoutText(8)<CR>
+map <silent> <buffer>   <localleader>7          :call OrgExpandWithoutText(7)<CR>
+map <silent> <buffer>   <localleader>6          :call OrgExpandWithoutText(6)<CR>
+map <silent> <buffer>   <localleader>5          :call OrgExpandWithoutText(5)<CR>
+map <silent> <buffer>   <localleader>4          :call OrgExpandWithoutText(4)<CR>
+map <silent> <buffer>   <localleader>3          :call OrgExpandWithoutText(3)<CR>
+map <silent> <buffer>   <localleader>2          :call OrgExpandWithoutText(2)<CR>
+map <silent> <buffer>   <localleader>1          :call OrgExpandWithoutText(1)<CR>
+map <silent> <buffer>   <localleader>,0           :set foldlevel=99999<CR>
+map <silent> <buffer>   <localleader>,9           :call OrgSetLevel (1,9)<CR>
+map <silent> <buffer>   <localleader>,8           :call OrgSetLevel (1,8)<CR>
+map <silent> <buffer>   <localleader>,7           :call OrgSetLevel (1,7)<CR>
+map <silent> <buffer>   <localleader>,6           :call OrgSetLevel (1,6)<CR>
+map <silent> <buffer>   <localleader>,5           :call OrgSetLevel (1,5)<CR>
+map <silent> <buffer>   <localleader>,4           :call OrgSetLevel (1,4)<CR>
+map <silent> <buffer>   <localleader>,3           :call OrgSetLevel (1,3)<CR>
+map <silent> <buffer>   <localleader>,2           :call OrgSetLevel (1,2)<CR>
+map <silent> <buffer>   <localleader>,1           :call OrgSetLevel (1,1)<CR>
 
 imap <silent> <buffer>   <s-c-CR>               <c-r>=OrgNewHead('levelup',1)<CR>
 imap <silent> <buffer>   <c-CR>               <c-r>=OrgNewHead('leveldown',1)<CR>
