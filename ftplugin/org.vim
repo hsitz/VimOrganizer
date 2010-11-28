@@ -1,52 +1,44 @@
-let b:prevlev = 0
-let maplocalleader = ","        " Org key mappings prepend single comma
-
-setlocal ignorecase         " searches ignore case
-setlocal smartcase          " searches use smart case
-set guioptions-=L
-if !exists('g:v.v')
-    let g:v.v={}
+if !exists('g:v')
+    let g:v={}
 endif
 let b:v={}
+let b:v.prevlev = 0
+let maplocalleader = ","        " Org key mappings prepend single comma
+
 " below is match string that will match all body text lines
 "           t1      t1'      t2     t7   t3-4    t5-6 
-let b:textMatch = '\(^\s*.*\|^\t*:\|^\t* \|^\t*;\|^\t*|\|^\t*>\)'
-let b:dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
+let b:v.textMatch = '\(^\s*.*\|^\t*:\|^\t* \|^\t*;\|^\t*|\|^\t*>\)'
+let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
 let b:v.headMatchLevel = '^\(\*\)\{level}\s'
-let b:propMatch = '^\s*:\s*\(PROPERTIES\)'
-let b:propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
-let b:drawerMatch = '^\s*:\s*\(PROPERTIES\|LOGBOOK\)'
-let b:levelstars = 1
-"let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
-"let b:todoitems = ['TODO','NEXT','STARTED','DONE','CANCELED']
-let b:effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
-"let b:todoMatch = '^\*\+\s*\(TODO\|DONE\|STARTED\|CANCELED\|NEXT\)'
-"let b:todoNotDoneMatch = '^\*\+\s*\(TODO\|STARTED\|NEXT\)'
-let b:tagMatch = '\(:\S*:\)\s*$'
-let b:mytags = ['buy','home','work','URGENT']
-let b:foldhi = ''
+let b:v.propMatch = '^\s*:\s*\(PROPERTIES\)'
+let b:v.propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
+let b:v.drawerMatch = '^\s*:\s*\(PROPERTIES\|LOGBOOK\)'
+let b:v.levelstars = 1
+let b:v.effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
+let b:v.tagMatch = '\(:\S*:\)\s*$'
+let b:v.mytags = ['buy','home','work','URGENT']
+let b:v.foldhi = ''
 
 let w:sparse_on = 0
-let b:columnview = 0
-let b:clock_to_logbook = 1
-let b:messages = []
-let b:global_cycle_levels_to_show=4
-let b:src_fold=0
-let b:foldhilines = []
-let b:cycle_with_text=1
-let b:foldcolors=['Normal','SparseSkip','Folded','WarningMsg','WildMenu','DiffAdd','DiffChange','Normal','Normal','Normal','Normal']
-let b:foldcolors_orig=['Normal','SparseSkip','Folded','WarningMsg','WildMenu','DiffAdd','DiffChange','Normal','Normal','Normal','Normal']
-" list to hold columns to be added to fold text
-let b:foldcolors_bad=['Normal','Folded','Folded','Folded','Folded','Folded','Folded','Folded','Folded','Folded','Folded']
-" currently can hold 'cost' or 'r'(eminder date)
-let b:cols = []
+let b:v.columnview = 0
+let b:v.clock_to_logbook = 1
+let b:v.messages = []
+let b:v.global_cycle_levels_to_show=4
+let b:v.src_fold=0
+let b:v.foldhilines = []
+let b:v.cycle_with_text=1
+let b:v.foldcolors=['Normal','SparseSkip','Folded','WarningMsg','WildMenu','DiffAdd','DiffChange','Normal','Normal','Normal','Normal']
+let b:v.cols = []
 set list
 set listchars=tab:»\ ,eol:¬
 set cfu=Mycfu
 set noswapfile
 hi MatchGroup guibg=yellow guifg=black
 
+setlocal ignorecase         " searches ignore case
+setlocal smartcase          " searches use smart case
+set guioptions-=L
 setlocal autoindent 
 setlocal backspace=2
 "setlocal wrapmargin=5
@@ -57,11 +49,16 @@ setlocal expandtab
 setlocal nosmarttab
 setlocal softtabstop=0 
 setlocal foldlevel=20
-setlocal foldcolumn=1       " turns on "+" at the begining of close folds
-setlocal tabstop=4          " tabstop and shiftwidth must match
-setlocal shiftwidth=4       " values from 2 to 8 work well
+setlocal foldcolumn=1 
+setlocal tabstop=4   
+setlocal shiftwidth=4
 set formatlistpat=^\\s*\\d\\+\\.\\s\\+\\\|^\\s*\\-\\s\\+
-setlocal foldmethod=manual
+if !exists('g:v.in_agenda_search') "&& (&foldmethod!='expr')
+        setlocal foldmethod=expr
+        set foldlevel=1
+else
+    setlocal foldmethod=manual
+endif
 "setlocal foldmethod=expr
 setlocal foldexpr=MyFoldLevel(v:lnum)
 setlocal indentexpr=
@@ -69,11 +66,11 @@ setlocal indentexpr=
 setlocal nocindent
 setlocal iskeyword=@,39,45,48-57,_,129-255
 
-let b:basedate = strftime("%Y-%m-%d %a")
-let b:sparse_list = []
-let b:fold_list = []
-let b:suppress_indent=0
-let b:suppress_list_indent=0
+let b:v.basedate = strftime("%Y-%m-%d %a")
+let b:v.sparse_list = []
+let b:v.fold_list = []
+let b:v.suppress_indent=0
+let b:v.suppress_list_indent=0
 
 if !exists('g:v.org_loaded')
 
@@ -119,47 +116,47 @@ let s:AgendaBufferName = "__Agenda__"
 
 function! TodoSetup(todolist)
     "set up list and patterns for use throughout
-    let b:todoitems=[]
-    let b:fulltodos=a:todolist
-    let b:todocycle=[]
-    let b:todoMatch=''
-    let b:todoNotDoneMatch=''
-    let b:todoDoneMatch=''
+    let b:v.todoitems=[]
+    let b:v.fulltodos=a:todolist
+    let b:v.todocycle=[]
+    let b:v.todoMatch=''
+    let b:v.todoNotDoneMatch=''
+    let b:v.todoDoneMatch=''
     let i = 0
     while i < len(a:todolist) 
         if type(a:todolist[i]) == type('abc')
-            call add(b:todoitems,a:todolist[i])
-            call add(b:todocycle,a:todolist[i])
+            call add(b:v.todoitems,a:todolist[i])
+            call add(b:v.todocycle,a:todolist[i])
             " add to patterns
-            let newtodo = b:todoitems[len(b:todoitems)-1]
-            let b:todoMatch .= newtodo . '\|'
+            let newtodo = b:v.todoitems[len(b:v.todoitems)-1]
+            let b:v.todoMatch .= newtodo . '\|'
             if i < len(a:todolist) - 1
-                let b:todoNotDoneMatch .= newtodo . '\|'
+                let b:v.todoNotDoneMatch .= newtodo . '\|'
             else
-                let b:todoDoneMatch .= newtodo . '\|'
+                let b:v.todoDoneMatch .= newtodo . '\|'
             endif
             else
             let j = 0
             while j < len(a:todolist[i])
-                call add(b:todoitems,a:todolist[i][j])
+                call add(b:v.todoitems,a:todolist[i][j])
                 if j == 0
-                    call add(b:todocycle,a:todolist[i][0])
+                    call add(b:v.todocycle,a:todolist[i][0])
                 endif
                 " add to patterns
-                let b:todoMatch .= a:todolist[i][j] . '\|'
+                let b:v.todoMatch .= a:todolist[i][j] . '\|'
                 if i < len(a:todolist) - 1
-                    let b:todoNotDoneMatch .= a:todolist[i][j] . '\|'
+                    let b:v.todoNotDoneMatch .= a:todolist[i][j] . '\|'
                 else
-                    let b:todoDoneMatch .= a:todolist[i][j] . '\|'
+                    let b:v.todoDoneMatch .= a:todolist[i][j] . '\|'
                 endif
                 let j += 1
             endwhile
         endif
         let i += 1
     endwhile
-    let b:todoMatch = '^\*\+\s*\('.b:todoMatch[:-2] . ')'
-    let b:todoDoneMatch = '^\*\+\s*\('.b:todoDoneMatch[:-2] . ')'
-    let b:todoNotDoneMatch = '^\*\+\s*\('.b:todoNotDoneMatch[:-2] . ')'
+    let b:v.todoMatch = '^\*\+\s*\('.b:v.todoMatch[:-2] . ')'
+    let b:v.todoDoneMatch = '^\*\+\s*\('.b:v.todoDoneMatch[:-2] . ')'
+    let b:v.todoNotDoneMatch = '^\*\+\s*\('.b:v.todoNotDoneMatch[:-2] . ')'
 
 endfunction
 function! CurfileAgenda()
@@ -167,11 +164,11 @@ function! CurfileAgenda()
 endfunction
 
 function! TagSetup(tagspec)
-       let b:tags = split(tr(a:tagspec,'{}','  '),'\s\+') 
-       let b:tagdict={}
-       let b:tagchars=''
-       let b:tags_order = []
-       for item in b:tags
+       let b:v.tags = split(tr(a:tagspec,'{}','  '),'\s\+') 
+       let b:v.tagdict={}
+       let b:v.tagchars=''
+       let b:v.tags_order = []
+       for item in b:v.tags
             if item =~ '('
                    let char = matchstr(item,'(\zs.\ze)')
                   let tag = matchstr(item,'.*\ze(')
@@ -179,10 +176,10 @@ function! TagSetup(tagspec)
                  let char = ''
                     let tag = item
             endif
-            let b:tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
-            call add(b:tags_order,item)
+            let b:v.tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
+            call add(b:v.tags_order,item)
             if char != ' '
-                let b:tagchars .= char
+                let b:v.tagchars .= char
             endif
         endfor
 
@@ -194,10 +191,10 @@ function! TagSetup(tagspec)
                 let templist = substitute(templist,strikeout,'','')
                 let xlist = split(exclusive,'\s\+')
                 for item in xlist
-                    let b:tagdict[item].exgroup = i
+                    let b:v.tagdict[item].exgroup = i
                     for x in xlist
                             if x != item
-                                   let b:tagdict[item].exclude .= b:tagdict[x].char
+                                   let b:v.tagdict[item].exclude .= b:v.tagdict[x].char
                             endif
                     endfor
                 endfor
@@ -214,8 +211,8 @@ function! TagsEdit(...)
             let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
             let line_file_str = ','.lineno.',"'.file.'"'
             let filestr = ',"'.file.'"'
-            let b:tagdict = getbufvar(file,'tagdict')
-            let b:tags_order = getbufvar(file,'tags_order')
+            let b:v.tagdict = getbufvar(file,'v').tagdict
+            let b:v.tags_order = getbufvar(file,'v').tags_order
         endif
 	
         execute "let heading_tags = get(GetProperties(lineno,0".filestr."),'tags','')"
@@ -230,10 +227,10 @@ function! TagMenu(heading_tags)
 	let heading_tags = a:heading_tags
 	let tagstring = ''
     let tagchars = ''
-	for item in b:tags_order
-        let tagchars .= b:tagdict[item].char
-		if match(heading_tags,':'.b:tagdict[item].tag .':') >= 0
-			let tagstring .= b:tagdict[item].char
+	for item in b:v.tags_order
+        let tagchars .= b:v.tagdict[item].char
+		if match(heading_tags,':'.b:v.tagdict[item].tag .':') >= 0
+			let tagstring .= b:v.tagdict[item].char
 		endif
 	endfor
 
@@ -245,10 +242,10 @@ function! TagMenu(heading_tags)
         echohl Title | echo 'Choose tags:   ' | echohl None | echon '( <enter> to accept, <esc> to cancel )'
         echo '------------'
         let oldgroup = 0
-		for item in b:tags_order
-            let newgroup = b:tagdict[item].exgroup
+		for item in b:v.tags_order
+            let newgroup = b:v.tagdict[item].exgroup
             let select = ' '
-            if match(tagstring,b:tagdict[item].char) >= 0
+            if match(tagstring,b:v.tagdict[item].char) >= 0
                 let select = 'X'
                 echohl Question
             else
@@ -256,17 +253,17 @@ function! TagMenu(heading_tags)
             endif
             if (g:v.org_tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 )
                 echo repeat(' ',3) . '[' | echohl Question | echon select | echohl None | echon '] ' 
-                echohl None | echon b:tagdict[item].tag | echohl Title | echon '('.b:tagdict[item].char.')' | echohl None
-                let nextindent = repeat(' ',12-len(b:tagdict[item].tag))
+                echohl None | echon b:v.tagdict[item].tag | echohl Title | echon '('.b:v.tagdict[item].char.')' | echohl None
+                let nextindent = repeat(' ',12-len(b:v.tagdict[item].tag))
             else    
                 "echon repeat(' ',3) . 
                 echon nextindent
                 echon '[' | echohl Question | echon select | echohl None | echon '] ' 
-                echohl None | echon b:tagdict[item].tag | echohl Title | echon '('.b:tagdict[item].char.')' | echohl None
-                let nextindent = repeat(' ',12-len(b:tagdict[item].tag))
-                "echon repeat(' ', 12-len(b:tagdict[item]))
+                echohl None | echon b:v.tagdict[item].tag | echohl Title | echon '('.b:v.tagdict[item].char.')' | echohl None
+                let nextindent = repeat(' ',12-len(b:v.tagdict[item].tag))
+                "echon repeat(' ', 12-len(b:v.tagdict[item]))
             endif
-            let oldgroup = b:tagdict[item].exgroup
+            let oldgroup = b:v.tagdict[item].exgroup
 		endfor
 		echo ""
             "echohl LineNr | echon 'Date+time ['.basedate . ' '.basetime.']: ' 
@@ -287,9 +284,9 @@ function! TagMenu(heading_tags)
                 if (match(tagstring,newchar)==-1) 
                     let tagstring .= newchar
                     " check for mutually exclusve tags
-                    for item in keys(b:tagdict)
-                        if b:tagdict[item].char == newchar
-                            let exclude_str = b:tagdict[item].exclude
+                    for item in keys(b:v.tagdict)
+                        if b:v.tagdict[item].char == newchar
+                            let exclude_str = b:v.tagdict[item].exclude
                             let tagstring = tr(tagstring,exclude_str,repeat(' ',len(exclude_str)))
                             break
                         endif
@@ -309,9 +306,9 @@ function! TagMenu(heading_tags)
 	set more
 
 	let heading_tags = ''
-	for item in keys(b:tagdict)
-		if match(tagstring, b:tagdict[item].char) >= 0
-			let heading_tags .= b:tagdict[item].tag . ':'
+	for item in keys(b:v.tagdict)
+		if match(tagstring, b:v.tagdict[item].char) >= 0
+			let heading_tags .= b:v.tagdict[item].tag . ':'
 		endif
 	endfor
 	if heading_tags > '' | let heading_tags = ':' . heading_tags | endif
@@ -321,11 +318,11 @@ endfunction
 
 function! GetBufferTags()
     let save_cursor = getpos(".") 
-    let b:tagdict = {}
+    let b:v.tagdict = {}
     " call addtags for each headline in buffer
     g/^\*/call AddTagsToDict(line("."))
     call setpos('.',save_cursor)
-    return sort(keys(b:tagdict))
+    return sort(keys(b:v.tagdict))
 endfunction
 inoremap <F5> <C-R>=Effort()<CR>
 noremap <F5> A<C-R>=Effort()<CR>
@@ -333,7 +330,7 @@ function! Effort()
     if getline(line('.'))=~':Effort:'
         call setline(line('.'), substitute(getline(line('.')),'ort:\zs.*','',''))
         normal A  
-        call complete(col('.'),b:effort)
+        call complete(col('.'),b:v.effort)
     endif
     return ''
 endfunction
@@ -342,10 +339,10 @@ function! AddTagsToDict(line)
     let taglist = GetTagList(a:line)
     if !empty(taglist)
         for item in taglist
-            "if has_key(b:tagdict, item)
-            "execute "let b:tagdict['" . item . "'] += 1"
+            "if has_key(b:v.tagdict, item)
+            "execute "let b:v.tagdict['" . item . "'] += 1"
             "else
-            execute "let b:tagdict['" . item . "'] = 1"
+            execute "let b:v.tagdict['" . item . "'] = 1"
             "endif
         endfor
     endif
@@ -353,7 +350,7 @@ endfunction
 
 function! GetTagList(line)
     let text = getline(a:line+1)
-    if (text !~ b:drawerMatch) && (text !~ b:dateMatch) && (text =~ s:remstring)
+    if (text !~ b:v.drawerMatch) && (text !~ b:v.dateMatch) && (text =~ s:remstring)
         let tags = matchlist(text,':\(\S*\):\s*$')
         if !empty(tags)
             return split(tags[1],':')
@@ -366,7 +363,7 @@ function! GetTagList(line)
 endfunction
 function! IsTagLine(line)
     let text = getline(a:line)
-    return (text !~ b:drawerMatch) && (text !~ b:dateMatch) && (text =~ s:remstring)
+    return (text !~ b:v.drawerMatch) && (text !~ b:v.dateMatch) && (text =~ s:remstring)
 endfunction
 function! GetTags(line)
     if IsTagLine(a:line+1)
@@ -412,13 +409,13 @@ function! TagInput(line)
 
         let @/=''
         if foldclosed(a:line) > 0
-            let b:sparse_list = [a:line]
+            let b:v.sparse_list = [a:line]
         else
             normal V
         endif
         redraw
         if foldclosed(a:line) > 0
-            let b:sparse_list = []
+            let b:v.sparse_list = []
         else
             normal V
         endif
@@ -509,7 +506,7 @@ function! OrgToggleTodo(line,...)
         if a:1 == 'x'
             let newtodo = ''
         else
-            for item in b:todoitems
+            for item in b:v.todoitems
                 if item[0] ==? a:1
                     let newtodo = item
                 endif
@@ -533,12 +530,12 @@ function! NewTodo(curtodo)
     " substitution
     let j = -1
     let newi = -1
-    let i = index(b:fulltodos,curtodo)
+    let i = index(b:v.fulltodos,curtodo)
     if i == -1 
         let i = 0
-        while i < len(b:fulltodos)
-            if type(b:fulltodos[i])==type([])
-                let j = index(b:fulltodos[i],curtodo)
+        while i < len(b:v.fulltodos)
+            if type(b:v.fulltodos[i])==type([])
+                let j = index(b:v.fulltodos[i],curtodo)
                 if j > -1
                     break
                 endif
@@ -547,20 +544,20 @@ function! NewTodo(curtodo)
         endwhile
     endif
 
-    if i == len(b:fulltodos)-1
+    if i == len(b:v.fulltodos)-1
         let newtodo = ''
     else
-        if (i == len(b:fulltodos))
+        if (i == len(b:v.fulltodos))
             " not found, newtodo is index 0
             let newi = 0
         elseif (i >= 0) 
             let newi = i+1
         endif
 
-        if type(b:fulltodos[newi]) == type([])
-            let newtodo = b:fulltodos[newi][0]
+        if type(b:v.fulltodos[newi]) == type([])
+            let newtodo = b:v.fulltodos[newi][0]
         else
-            let newtodo = b:fulltodos[newi]
+            let newtodo = b:v.fulltodos[newi]
         endif
     endif
     return newtodo
@@ -577,7 +574,7 @@ function! ReplaceTodo(todoword,...)
     if newtodo > ''
         let newtodo .= ' '
     endif
-    if (index(b:todoitems,todoword) >= 0) 
+    if (index(b:v.todoitems,todoword) >= 0) 
         if newtodo > ''
             let newline = substitute(getline(line(".")),
                         \ '\* ' . a:todoword.' ',
@@ -660,9 +657,9 @@ function! OrgParentHead()
 endfunction
 
 function! OrgParentHead_l(line)
-    " todo -- get b:levelstars in here
+    " todo -- get b:v.levelstars in here
     let l:starthead = OrgGetHead_l(a:line)
-    let l:parentheadlevel = Starcount(l:starthead) - b:levelstars
+    let l:parentheadlevel = Starcount(l:starthead) - b:v.levelstars
     if l:parentheadlevel <= 0 
         return 0
     else
@@ -891,9 +888,9 @@ function! NewHead(type,...)
 
         let l:lastline  = OrgSubtreeLastLine()  
         if a:type == 'levelup'
-            let l:linebegin = substitute(l:linebegin,'^\*\{'.b:levelstars.'}','','')
+            let l:linebegin = substitute(l:linebegin,'^\*\{'.b:v.levelstars.'}','','')
         elseif a:type == 'leveldown'
-            let l:linebegin = substitute(l:linebegin,'^\*',repeat('*',b:levelstars+1),'')
+            let l:linebegin = substitute(l:linebegin,'^\*',repeat('*',b:v.levelstars+1),'')
         endif   
         call append( l:lastline ,l:linebegin)
         execute l:lastline + 1
@@ -1103,7 +1100,7 @@ function! MoveLevel(line, direction)
             normal g'a
             " now move tree to the left
             normal ma
-            silent execute line(".") ',' . OrgSubtreeLastLine() . 's/^' . repeat('\*',b:levelstars) .'//'
+            silent execute line(".") ',' . OrgSubtreeLastLine() . 's/^' . repeat('\*',b:v.levelstars) .'//'
             call DoFullCollapse(a:line)
             normal g'a
             call ShowSubs(1,0)
@@ -1113,7 +1110,7 @@ function! MoveLevel(line, direction)
         endif       
     elseif a:direction == 'right'
         if Ind(OrgPrevHead_l(a:line)) >= Ind(a:line)
-            execute a:line . ',' . lastline . 's/^\*/'.repeat('\*',b:levelstars+1).'/'
+            execute a:line . ',' . lastline . 's/^\*/'.repeat('\*',b:v.levelstars+1).'/'
             call DoFullCollapse(a:line)
             execute a:line
             call ShowSubs(1,0)
@@ -1223,7 +1220,7 @@ function! OrgCycle(headline)
     elseif ((end == -1) && (Ind(OrgNextHead_l(a:headline)) > Ind(a:headline))          
                 \ && (IsText(a:headline+1))) && (foldclosed(OrgNextHead_l(a:headline)) > 0)
         "\ && (OrgSubtreeLastLine_l(a:headline) < line("$")) 
-        "call OrgExpandSubtree(a:headline,b:cycle_with_text)
+        "call OrgExpandSubtree(a:headline,b:v.cycle_with_text)
         let nextsamelevel = OrgNextHeadSameLevel_l(a:headline)
         let nextuplevel = OrgNextHeadSameLevel_l(OrgParentHead_l(a:headline)) 
         if (nextsamelevel > 0) && (nextsamelevel > nextuplevel)
@@ -1233,7 +1230,7 @@ function! OrgCycle(headline)
         else 
             let endline = line('$')
         endif
-        if b:cycle_with_text
+        if b:v.cycle_with_text
             call BodyTextOperation(a:headline+1,endline,'expand')
         else
             call OrgExpandSubtree(a:headline,0)
@@ -1246,7 +1243,7 @@ endfunction
 function! Cycle()
     if getline(line(".")) =~ b:v.headMatch
         call OrgCycle(line("."))
-    elseif getline(line(".")) =~ b:drawerMatch
+    elseif getline(line(".")) =~ b:v.drawerMatch
         normal! za
     endif
     " position to center of screen with cursor in col 0
@@ -1254,10 +1251,10 @@ function! Cycle()
 endfunction
 function! GlobalCycle()
     "if getline(line(".")) =~ b:v.headMatch
-    if (&foldlevel > 1) && (&foldlevel != b:global_cycle_levels_to_show)
+    if (&foldlevel > 1) && (&foldlevel != b:v.global_cycle_levels_to_show)
         call ExpandWithoutText(1)
     elseif &foldlevel == 1
-        call ExpandWithoutText(b:global_cycle_levels_to_show)
+        call ExpandWithoutText(b:v.global_cycle_levels_to_show)
     else
         set foldlevel=9999
     endif
@@ -1324,23 +1321,23 @@ function! GetProperties(hl,withtextinfo,...)
     " get date on headline, if any
     let result1['htext']=getline(hl)
     let result1['file']=expand("%:t:r")
-    if getline(hl) =~ b:dateMatch
-        let result1['ld'] = matchlist(getline(hl),b:dateMatch)[1]
+    if getline(hl) =~ b:v.dateMatch
+        let result1['ld'] = matchlist(getline(hl),b:v.dateMatch)[1]
     endif
-    if (getline(hl+1) =~ b:tagMatch) && (getline(hl+1) !~ b:drawerMatch)
-        let result1['tags'] = matchlist(getline(hl+1),b:tagMatch)[1]
+    if (getline(hl+1) =~ b:v.tagMatch) && (getline(hl+1) !~ b:v.drawerMatch)
+        let result1['tags'] = matchlist(getline(hl+1),b:v.tagMatch)[1]
     endif
-    if getline(hl) =~ b:todoMatch
-        let result1['todo'] = matchlist(getline(hl),b:todoMatch)[1]
+    if getline(hl) =~ b:v.todoMatch
+        let result1['todo'] = matchlist(getline(hl),b:v.todoMatch)[1]
     endif
 
     let line = hl + 1
     "let firsttext=0
     while 1
         let ltext = getline(line)
-        if ltext =~ b:propMatch
+        if ltext =~ b:v.propMatch
             let result = GetPropVals(line+1)        
-        elseif (ltext =~ b:dateMatch) && !datesdone
+        elseif (ltext =~ b:v.dateMatch) && !datesdone
             let dateresult = GetDateVals(line)
             let datesdone = 1
             " no break, go back around to check for props
@@ -1371,8 +1368,8 @@ function! GetDateVals(line)
     let result = {}
     while 1
         let ltext = getline(myline)
-        if ltext =~ b:dateMatch
-            let mydate = matchlist(ltext, b:dateMatch)[1]
+        if ltext =~ b:v.dateMatch
+            let mydate = matchlist(ltext, b:v.dateMatch)[1]
             if ltext =~ 'DEADLINE'
                 let dtype = 'dd'
             elseif ltext =~ 'SCHEDULED'
@@ -1401,8 +1398,8 @@ function! GetPropVals(line)
     let result = {}
     while 1
         let ltext = getline(myline)
-        if ltext =~ b:propvalMatch
-            let mtch = matchlist(ltext, b:propvalMatch)
+        if ltext =~ b:v.propvalMatch
+            let mtch = matchlist(ltext, b:v.propvalMatch)
             try
                 let result[mtch[1]] = mtch[2]   
             catch /^Vim\%((\a\+)\)\=:E/ 
@@ -1489,8 +1486,8 @@ function! SetRandomDate(...)
     endif
 endfunction
 function! SetRandomTodo()
-    let newtodo = b:todoitems[Random(3)-1]
-    if index(b:todoitems,matchstr(getline(line('.')),'^\*\+ \zs\S*\ze ')) >= 0
+    let newtodo = b:v.todoitems[Random(3)-1]
+    if index(b:v.todoitems,matchstr(getline(line('.')),'^\*\+ \zs\S*\ze ')) >= 0
         call setline(line('.'),matchstr(getline(line('.')),'^\*\+ ') . newtodo . 
                     \    ' '. matchstr(getline(line('.')),'^\*\+ \S* \zs.*')) 
     else
@@ -1504,7 +1501,7 @@ endfunction
 function! UpdateHeadlineSums()
     call MakeOrgDict()
     let g:v.tempdict = {}
-    g/\*\+ /let g:v.tempdict[line('.')] = b:org_dict.SumTime(line('.'),'ItemClockTime')
+    g/\*\+ /let g:v.tempdict[line('.')] = b:v.org_dict.SumTime(line('.'),'ItemClockTime')
     let items = sort(keys(g:v.tempdict))
     let i = len(items) - 1
     while i >= 0
@@ -1516,22 +1513,22 @@ function! UpdateHeadlineSums()
 endfunction
 
 function! MakeOrgDict()
-    let b:org_dict = {}
-	function! b:org_dict.SumTime(ndx,property) dict
+    let b:v.org_dict = {}
+	function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop,'00:00')
         " now recursion down the subtree of children in c
         for item in self[a:ndx].c
-            let result = AddTime(result,b:org_dict.SumTime(item,prop))
+            let result = AddTime(result,b:v.org_dict.SumTime(item,prop))
         endfor
         return result
 	endfunction	
-	function! b:org_dict.Sum(ndx,property) dict
+	function! b:v.org_dict.Sum(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop)
         " now recursion down the subtree of children in c
         for item in self[a:ndx].c
-            let result += b:org_dict.Sum(item,prop)
+            let result += b:v.org_dict.Sum(item,prop)
         endfor
         return result
 	endfunction	
@@ -1542,11 +1539,11 @@ function! MakeOrgDict()
    endif
    while next > 0
       execute next
-      let b:org_dict[line('.')] = {'c':[]}
-      let b:org_dict[line('.')].props = GetProperties(line('.'),1)
+      let b:v.org_dict[line('.')] = {'c':[]}
+      let b:v.org_dict[line('.')].props = GetProperties(line('.'),1)
       let parent = OrgParentHead()
       if parent > 0
-          call add(b:org_dict[parent].c ,line('.'))
+          call add(b:v.org_dict[parent].c ,line('.'))
       endif
       let next = OrgNextHead()
    endwhile 
@@ -1555,9 +1552,9 @@ endfunction
 function! MakeDict2()
 
     exec 1
-    let b:doclist = []
+    let b:v.doclist = []
     let dict =  {}
-    let b:dict = {}
+    let b:v.dict = {}
 
     while 1
         let nh = OrgNextHead()
@@ -1565,9 +1562,9 @@ function! MakeDict2()
             break
         endif
         let myline = getline(nh)    
-        let todo = matchlist(myline,b:todoMatch)
+        let todo = matchlist(myline,b:v.todoMatch)
         let tags = matchlist(myline+1,'\(:\S*:\)\s*$')
-        call add(b:doclist,{'line': nh , 'lev': Ind(nh), 
+        call add(b:v.doclist,{'line': nh , 'lev': Ind(nh), 
                     \'todo': todo != [] ? todo[1] : '', 'tags': tags != [] ? tags[1] : '' } )
         execute nh
     endwhile
@@ -1604,11 +1601,11 @@ function! SparseTreeRun(term)
 
     call ClearSparseLists()
     let w:sparse_on = 1
-    execute 'g/' . a:term . '/call add(b:sparse_list,line("."))'
+    execute 'g/' . a:term . '/call add(b:v.sparse_list,line("."))'
     call SparseTreeDoFolds()
     call clearmatches()
     let g:v.org_first_sparse=1
-    let b:signstring= GetPlacedSignsString(bufnr("%")) 
+    let b:v.signstring= GetPlacedSignsString(bufnr("%")) 
     set fdm=expr
     set foldlevel=0
     let g:v.org_first_sparse=0
@@ -1619,41 +1616,41 @@ function! SparseTreeRun(term)
 endfunction
 
 function! SparseTreeDoFolds()
-    let i = len(b:sparse_list) - 1
+    let i = len(b:v.sparse_list) - 1
     while i >= 0
-        "if b:sparse_list[i] + g:v.org_sparse_lines_after > line("$")
-        if b:sparse_list[i] + 10 > line("$")
-            call remove(b:sparse_list, i) "insert(b:fold_list,0)
+        "if b:v.sparse_list[i] + g:v.org_sparse_lines_after > line("$")
+        if b:v.sparse_list[i] + 10 > line("$")
+            call remove(b:v.sparse_list, i) "insert(b:v.fold_list,0)
             let i -= 1
             continue
-        "elseif (i>0) && (b:sparse_list[i] < b:sparse_list[i-1] + g:v.org_sparse_lines_after)
-        elseif (i>0) && (b:sparse_list[i] < b:sparse_list[i-1] + 10)
-            call remove(b:sparse_list, i) "insert(b:fold_list,0)
+        "elseif (i>0) && (b:v.sparse_list[i] < b:v.sparse_list[i-1] + g:v.org_sparse_lines_after)
+        elseif (i>0) && (b:v.sparse_list[i] < b:v.sparse_list[i-1] + 10)
+            call remove(b:v.sparse_list, i) "insert(b:v.fold_list,0)
             let i -= 1
             continue
         else
-            let phead = OrgUltimateParentHead_l(b:sparse_list[i])
+            let phead = OrgUltimateParentHead_l(b:v.sparse_list[i])
             if phead >= 1 
-                call insert(b:fold_list,phead-1)
+                call insert(b:v.fold_list,phead-1)
             else
                 " match is already on level 1 head
-                call insert(b:fold_list,b:sparse_list[i]-1)
+                call insert(b:v.fold_list,b:v.sparse_list[i]-1)
             endif
         endif
 
         let i -= 1
     endwhile        
-    "call map(b:sparse_list,"v:val + g:v.org_sparse_lines_after")
-    call map(b:sparse_list,"v:val + 10")
-    call insert(b:sparse_list, 1)
-    call add(b:fold_list, line("$"))
+    "call map(b:v.sparse_list,"v:val + g:v.org_sparse_lines_after")
+    call map(b:v.sparse_list,"v:val + 10")
+    call insert(b:v.sparse_list, 1)
+    call add(b:v.fold_list, line("$"))
 
     " sign method to potentially supersede list based method above
     call DeleteSigns()
-    for item in b:sparse_list
+    for item in b:v.sparse_list
         execute "sign place " . item ." line=".item." name=fbegin buffer=".bufnr("%")
     endfor
-    for item in b:fold_list
+    for item in b:v.fold_list
         execute "sign place " . item ." line=".item." name=fend buffer=".bufnr("%")
     endfor
     " FoldTouch below instead of fdm line above to save time
@@ -1664,17 +1661,17 @@ endfunction
 
 function! ClearSparseLists()
     " mylist with lines of matches
-    let b:sparse_list = []
+    let b:v.sparse_list = []
     " foldlist with line before previous level 1 parent
-    let b:fold_list = []
-    let b:sparse_heads = []
+    let b:v.fold_list = []
+    let b:v.sparse_heads = []
 endfunction
 function! ClearSparseTree()
     " mylist with lines of matches
     let w:sparse_on = 0
-    let b:sparse_list = []
+    let b:v.sparse_list = []
     " foldlist with line before previous level 1 parent
-    let b:fold_list = []
+    let b:v.fold_list = []
     set fdm=expr
     set foldlevel=1
     execute 1
@@ -1687,12 +1684,12 @@ function! FoldTouch()
     "
     " touch each line in lists to update their fold levels  
     let i = 0
-    while i < len(b:sparse_list)
-        execute b:sparse_list[i]
+    while i < len(b:v.sparse_list)
+        execute b:v.sparse_list[i]
         " insert letter 'b' to  force level update and then undo
         silent execute "normal! ib"
         silent execute "normal! u"
-        execute b:fold_list[i]
+        execute b:v.fold_list[i]
         silent execute "normal! ib"
         silent execute "normal! u"
         let i += 1
@@ -1708,7 +1705,7 @@ function! OrgIfExpr()
     let str = substitute(str,'\([+-]\)','~\1','g')
     let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
     let g:v.str = str
-    let b:my_if_list = split(str,'\~')
+    let b:v.my_if_list = split(str,'\~')
     let ifexpr = ''
     " okay, right now we have split list with each item prepended by + or -
     " now change each item to be a pattern match equation in parens
@@ -1716,13 +1713,13 @@ function! OrgIfExpr()
     let i = 0
     "using while structure because for structure doesn't allow changing
     " items?
-    while i < len(b:my_if_list)
-        let item = b:my_if_list[i]
+    while i < len(b:v.my_if_list)
+        let item = b:v.my_if_list[i]
         " Propmatch has '=' sign and something before and after
         if item[1:] =~ 'TEXT=\S.*'
             let mtch = matchlist(item[1:],'\(\S.*\)=\(\S.*\)')
-            let b:my_if_list[i] = "(Range_Search('" . mtch[2] . "','nbW'," 
-            let b:my_if_list[i] .= 'tbegin,tend)> 0)'
+            let b:v.my_if_list[i] = "(Range_Search('" . mtch[2] . "','nbW'," 
+            let b:v.my_if_list[i] .= 'tbegin,tend)> 0)'
             let i += 1
             " loop to next item
             continue
@@ -1730,13 +1727,13 @@ function! OrgIfExpr()
         if item[1:] =~ '\S.*=\S.*'
             let pat = '\(\S.*\)\(==\|>=\|<=\|!=\)\(\S.*\)'
             let mtch = matchlist(item[1:],pat)
-            "let b:my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
+            "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
             if mtch[3] =~ '^\d\+$'
-                let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
+                let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
             else
                 let rightside="'".mtch[3]."'"
-                let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
-                "let b:my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
+                let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
+                "let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
             endif
             let i += 1
             " loop to next item
@@ -1749,30 +1746,30 @@ function! OrgIfExpr()
         elseif item[0] == '-'
             let op = '!~'
         endif
-        if index(b:todoitems,item[1:]) >= 0
+        if index(b:v.todoitems,item[1:]) >= 0
             let item = '(thisline ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
-            let b:my_if_list[i] = item
+            let b:v.my_if_list[i] = item
         elseif item[1:] == 'UNFINISHED_TODOS'
-            let item = '(thisline ' . op . " '" . b:todoNotDoneMatch . "')"
-            let b:my_if_list[i] = item
+            let item = '(thisline ' . op . " '" . b:v.todoNotDoneMatch . "')"
+            let b:v.my_if_list[i] = item
         elseif item[1:] == 'FINISHED_TODOS'
-            let item = '(thisline ' . op . " '" . b:todoDoneMatch . "')"
-            let b:my_if_list[i] = item
+            let item = '(thisline ' . op . " '" . b:v.todoDoneMatch . "')"
+            let b:v.my_if_list[i] = item
         elseif item[1:] == 'ALL_TODOS'
-            let item = '(thisline ' . op . " '" . b:todoMatch . "')"
-            let b:my_if_list[i] = item
+            let item = '(thisline ' . op . " '" . b:v.todoMatch . "')"
+            let b:v.my_if_list[i] = item
         else
             let item = '(thisline ' . op . " ':" . item[1:] . ":')"
-            let b:my_if_list[i] = item
+            let b:v.my_if_list[i] = item
         endif
         let i += 1 
     endwhile    
     let i = 0
-    let b:check1 = b:my_if_list
+    let b:v.check1 = b:v.my_if_list
     let ifexpr = ''
-    while i < len(b:my_if_list) 
-        let ifexpr .= b:my_if_list[i]
-        if i < len(b:my_if_list) - 1
+    while i < len(b:v.my_if_list) 
+        let ifexpr .= b:v.my_if_list[i]
+        if i < len(b:v.my_if_list) - 1
             let ifexpr .= ' && '
         endif
         let i += 1
@@ -1979,17 +1976,17 @@ function! RunSearch(search_spec,...)
         for key in keys(g:v.adict)
             call add(temp,g:v.adict[key].l)
         endfor
-        let b:sparse_list = sort(temp,'NumCompare')
+        let b:v.sparse_list = sort(temp,'NumCompare')
         "for key in keys(g:v.adict)
-        "   call add(b:sparse_heads,str2nr(key))
+        "   call add(b:v.sparse_heads,str2nr(key))
         "endfor
-        "for item in sort(b:sparse_heads,'NumCompare')
-        call sort(b:fold_list,"NumCompare")
+        "for item in sort(b:v.sparse_heads,'NumCompare')
+        call sort(b:v.fold_list,"NumCompare")
         call SparseTreeDoFolds()
-        "for item in sort(b:fold_list,'NumCompare')
+        "for item in sort(b:v.fold_list,'NumCompare')
         set fdm=expr
         set foldlevel=0
-        for item in b:sparse_list
+        for item in b:v.sparse_list
             if item > 11
                 execute item - g:v.org_sparse_lines_after
                 normal! zv
@@ -2001,20 +1998,21 @@ function! RunSearch(search_spec,...)
         " make agenda buf have its own todoitems, need
         " to get rid of g:v.... so each agenda_file can have
         " its own todoitems defined. . . "
-        let todos = b:todoitems
-        let todoNotDoneMatch = b:todoNotDoneMatch
-        let todoDoneMatch = b:todoDoneMatch
-        let todoMatch = b:todoMatch
-        let fulltodos = b:fulltodos
+        let todos = b:v.todoitems
+        let todoNotDoneMatch = b:v.todoNotDoneMatch
+        let todoDoneMatch = b:v.todoDoneMatch
+        let todoMatch = b:v.todoMatch
+        let fulltodos = b:v.fulltodos
         if bufnr('__Agenda__') >= 0
             bdelete __Agenda__
         endif
         :AAgenda
-        let b:todoitems = todos
-        let b:todoNotDoneMatch = todoNotDoneMatch
-        let b:todoDoneMatch = todoDoneMatch
-        let b:todoMatch = todoMatch
-        let b:fulltodos = fulltodos
+        let b:v={}
+        let b:v.todoitems = todos
+        let b:v.todoNotDoneMatch = todoNotDoneMatch
+        let b:v.todoDoneMatch = todoDoneMatch
+        let b:v.todoMatch = todoMatch
+        let b:v.fulltodos = fulltodos
         %d
         set nowrap
         map <buffer> <silent> <tab> :call AgendaGetText()<CR>
@@ -2036,7 +2034,7 @@ call s:AgendaBufHighlight()
         if exists("search_type") && (search_type=='agenda_todo')
             let msg = "Press num to redo search: "
             let numstr= ''
-            let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:todoitems
+            let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
             for item in tlist
                 let num = index(tlist,item)
                 let numstr .= '('.num.')'.item.'  '
@@ -2210,20 +2208,21 @@ function! RunAgenda(date,count,...)
     else
         call MakeAgenda(a:date,a:count)
     endif
-    let todos = b:todoitems
-    let todoNotDoneMatch = b:todoNotDoneMatch
-    let todoDoneMatch = b:todoDoneMatch
-    let todoMatch = b:todoMatch
-    let fulltodos = b:fulltodos
+    let todos = b:v.todoitems
+    let todoNotDoneMatch = b:v.todoNotDoneMatch
+    let todoDoneMatch = b:v.todoDoneMatch
+    let todoMatch = b:v.todoMatch
+    let fulltodos = b:v.fulltodos
     if bufnr('__Agenda__') >= 0
         bdelete __Agenda__
     endif
     :AAgenda
-    let b:todoitems = todos
-    let b:todoNotDoneMatch = todoNotDoneMatch
-    let b:todoDoneMatch = todoDoneMatch
-    let b:todoMatch = todoMatch
-    let b:fulltodos = fulltodos
+    let b:v={}
+    let b:v.todoitems = todos
+    let b:v.todoNotDoneMatch = todoNotDoneMatch
+    let b:v.todoDoneMatch = todoDoneMatch
+    let b:v.todoMatch = todoMatch
+    let b:v.fulltodos = fulltodos
     silent exe '%d'
     set nowrap
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
@@ -2275,7 +2274,7 @@ endfunction
 function! GetDateHeads(date1,count,...)
     let save_cursor=getpos(".")
     if g:v.org_search_spec > ''
-        let b:agenda_ifexpr = OrgIfExpr()
+        let b:v.agenda_ifexpr = OrgIfExpr()
     endif
     let g:v.date1 = a:date1
     let date1 = a:date1
@@ -2323,7 +2322,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     let date2 = a:date2
     let s:headline=0
     if (datematch >= date1) && (datematch < date2)
-                \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:v.agenda_ifexpr)))
         let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\|CLOSED\)')
         call SetHeadInfo()
         if empty(mlist)
@@ -2372,7 +2371,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     " Now test for late and upcoming warnings if 'today' is in range
     if (today >= date1) && (today < date2)
         if (datematch < today) && (match(line,'\(DEADLINE\|SCHEDULED\)')>-1)
-                    \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                    \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:v.agenda_ifexpr)))
             let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\)')
             call SetHeadInfo()
             if !empty(mlist)
@@ -2386,7 +2385,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
             endif
             " also put in warning entry for deadlines when appropriate
         elseif (datematch > today) && (match(line,'DEADLINE')>-1)
-                    \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                    \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:v.agenda_ifexpr)))
             let mlist = matchlist(line,'DEADLINE')
             call SetHeadInfo()
             if !empty(mlist)
@@ -2401,7 +2400,7 @@ function! ProcessDateMatch(datematch,date1,date2,...)
     endif
     " finally handle things for a range that began before date1
     if (rangedate != '')  && (datematch < date1)
-                \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:agenda_ifexpr)))
+                \ && ((g:v.org_search_spec == '') || (CheckIfExpr(line("."),b:v.agenda_ifexpr)))
         let days_in_range = calutil#jul(rangedate) - calutil#jul(datematch) + 1
         if rangedate >= date2
             let last_day_to_add = calutil#jul(date2) - calutil#jul(datematch) 
@@ -2538,17 +2537,17 @@ function! RepeatMatch(rptdate, date1, date2)
 endfunction
 
 function! BufMinMaxDate()
-    let b:MinMaxDate=['2099-12-31','1900-01-01']
+    let b:v.MinMaxDate=['2099-12-31','1900-01-01']
     g/<\d\d\d\d-\d\d-\d\d/call CheckMinMax()
 
 endfunction
 function! CheckMinMax()
     let date = matchstr(getline(line(".")),'<\zs\d\d\d\d-\d\d-\d\d')
-    if (date < b:MinMaxDate[0])
-        let b:MinMaxDate[0] = date
+    if (date < b:v.MinMaxDate[0])
+        let b:v.MinMaxDate[0] = date
     endif
-    if (date > b:MinMaxDate[1])
-        let b:MinMaxDate[1] = date
+    if (date > b:v.MinMaxDate[1])
+        let b:v.MinMaxDate[1] = date
     endif
 endfunction        
 function! Timeline(...)
@@ -2565,9 +2564,9 @@ function! Timeline(...)
     let prev_files = g:v.agenda_files
     exec "let g:v.agenda_files=['".substitute(expand("%"),' ','\\ ','g')."']"
     call BufMinMaxDate()
-    let num_days = 1 + calutil#jul(b:MinMaxDate[1]) - calutil#jul(b:MinMaxDate[0])
+    let num_days = 1 + calutil#jul(b:v.MinMaxDate[1]) - calutil#jul(b:v.MinMaxDate[0])
     try
-        call RunAgenda(b:MinMaxDate[0], num_days,spec)
+        call RunAgenda(b:v.MinMaxDate[0], num_days,spec)
     finally
         let g:v.org_search_spec = prev_spec
         let g:v.agenda_files = prev_files
@@ -3008,7 +3007,7 @@ endfunction
 function! StarLevelFromTo(from, to)
     let save_cursor = getpos(".")
     set fdm=manual
-    let b:levelstars = a:to
+    let b:v.levelstars = a:to
     ChangeSyn
     g/^\*\+/call setline(line("."),substitute(getline(line(".")),'^\*\+','*' . 
                 \ repeat('*',(len(matchstr(getline(line(".")),'^\*\+')) - 1) * a:to / a:from),''))
@@ -3017,7 +3016,7 @@ function! StarLevelFromTo(from, to)
 endfunction
 
 function! StarsForLevel(level)
-    return 1 + (a:level - 1) * b:levelstars
+    return 1 + (a:level - 1) * b:v.levelstars
 endfunction
 
 function! OrgExpandLevelText(startlevel, endlevel)
@@ -3030,7 +3029,7 @@ function! OrgExpandLevelText(startlevel, endlevel)
     let l:mypattern = substitute(b:v.headMatchLevel,'level', startlevel . ',' . endlevel, "") 
     while search(l:mypattern, 'cW') > 0
         execute line(".") + 1
-        while getline(line(".")) =~ b:drawerMatch
+        while getline(line(".")) =~ b:v.drawerMatch
             execute line(".") + 1
         endwhile
         if IsText(line(".")) 
@@ -3108,7 +3107,7 @@ endfunction
 
 function! DateEdit(type)
         let text = a:type
-        let b:basetime=''
+        let b:v.basetime=''
         let from_agenda=0
         let str = ''
         let filestr = ''
@@ -3125,34 +3124,34 @@ function! DateEdit(type)
            return
         endif
         if text =~ 'DEADLINE'
-            execute "let b:mdate = GetProp('DEADLINE'".str .")[1:-2]"
+            execute "let b:v.mdate = GetProp('DEADLINE'".str .")[1:-2]"
         elseif text =~ 'SCHEDULED'
-            execute "let b:mdate = GetProp('SCHEDULED'".str .")[1:-2]"
+            execute "let b:v.mdate = GetProp('SCHEDULED'".str .")[1:-2]"
         elseif text =~ 'CLOSED'
-            execute "let b:mdate = GetProp('CLOSED'".str .")[1:-2]"
+            execute "let b:v.mdate = GetProp('CLOSED'".str .")[1:-2]"
         else
-            execute "let b:mdate = get(GetProperties(lineno,0".filestr."),'ud','')"
-            if b:mdate > '' | let b:mdate .= ' '.calutil#dayname(b:mdate) | endif 
+            execute "let b:v.mdate = get(GetProperties(lineno,0".filestr."),'ud','')"
+            if b:v.mdate > '' | let b:v.mdate .= ' '.calutil#dayname(b:v.mdate) | endif 
         endif
-        let b:mdate = matchstr(b:mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
-        if b:mdate > ''
-            let b:basedate = b:mdate[0:9]
-            let b:baseday = b:mdate[11:13]
-            if len(b:mdate) > 14
-                let b:basetime = b:mdate[15:19]
+        let b:v.mdate = matchstr(b:v.mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
+        if b:v.mdate > ''
+            let b:v.basedate = b:v.mdate[0:9]
+            let b:v.baseday = b:v.mdate[11:13]
+            if len(b:v.mdate) > 14
+                let b:v.basetime = b:v.mdate[15:19]
             else
-                let b:basetime = ''
+                let b:v.basetime = ''
             endif
         else
-            let b:mdate=strftime("%Y-%m-%d %a")
-            let b:basedate=Today()
-            let b:basetime = ''
+            let b:v.mdate=strftime("%Y-%m-%d %a")
+            let b:v.basedate=Today()
+            let b:v.basetime = ''
         endif
 
-        let basedate = b:basedate[0:9]
-        let basetime = b:basetime
-        let newdate = '<'.b:mdate[0:13].'>'
-        let newtime = b:basetime
+        let basedate = b:v.basedate[0:9]
+        let basetime = b:v.basetime
+        let newdate = '<'.b:v.mdate[0:13].'>'
+        let newtime = b:v.basetime
         hi Cursor guibg=black
         let g:v.org_cal_date = newdate[1:10]
         call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
@@ -3605,7 +3604,7 @@ function! ClockOut(...)
     if found
         execute found
         execute 'normal A--' . GetClock() 
-        if b:clock_to_logbook 
+        if b:v.clock_to_logbook 
             let headline = OrgGetHead()
             let clockline = getline(line(".")) . ' -> ' . ClockTime(line("."))
             normal! dd
@@ -3990,16 +3989,16 @@ endfunction
 function! ToggleColumnView()
 
     "au! BufEnter ColHeadBuffer call ColHeadBufferEnter()
-    if b:columnview
+    if b:v.columnview
         let winnum = bufwinnr('ColHeadBuffer')
         if winnum > 0 
             execute "bd" . bufnr('ColHeadBuffer')
             "wincmd c
         endif
-        let b:columnview = 0
+        let b:v.columnview = 0
     else
         call ColHeadWindow()
-        let b:columnview = 1
+        let b:v.columnview = 1
     endif   
 endfunction
 function! <SID>ColumnStatusLine()
@@ -4007,7 +4006,7 @@ function! <SID>ColumnStatusLine()
     return '      ITEM ' .  part2
 endfunction
 function! AdjustItemLen()
-    "if exists('b:columnview') && b:columnview 
+    "if exists('b:v.columnview') && b:v.columnview 
     let g:v.org_item_len = winwidth(0) - 10 - len(g:v.org_ColumnHead)
     "endif
 endfunction
@@ -4027,13 +4026,15 @@ endfunction
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
-
+function MySID()
+    return s:SID()
+endfunction
 function! MyPopup()
     call feedkeys("i\<c-x>\<c-u>")
 endfunction
 
 let g:v.calendar_action = '<SNR>' . s:SID() .'_CalendarChoice'
-let b:ColorList=['purple', 'green', 'white', 'black','blue','red','orange','green']
+let b:v.ColorList=['purple', 'green', 'white', 'black','blue','red','orange','green']
 function! CompleteOrg(findstart, base)
     if a:findstart
         " locate the start of the word
@@ -4047,7 +4048,7 @@ function! CompleteOrg(findstart, base)
         let prop = matchstr(getline(line(".")),'^\s*:\zs\s*\S\+\s*\ze:')
         " find months matching with "a:base"
         let res = []
-        execute "let proplist = b:" . prop . 'List' 
+        execute "let proplist = b:v." . prop . 'List' 
         "for m in split("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec")
         for m in proplist
             if m =~ '^' . a:base
@@ -4073,7 +4074,7 @@ function! MyFoldText(...)
     let l:nextline = getline(foldstart + 1)
     let myind = Ind(foldstart)
 
-    let v:foldhighlight = hlID(b:foldcolors[myind])
+    let v:foldhighlight = hlID(b:v.foldcolors[myind])
 
     "if Ind(v:foldstart) == v:foldlevel - 3
     "   let l:txtmrk = 'd-'
@@ -4089,7 +4090,7 @@ function! MyFoldText(...)
     let l:line = substitute(l:line,'^\*\+\s*','','g')
     let l:line = repeat(' ', Starcount(foldstart)+1) . l:line 
 
-    if l:line =~ b:drawerMatch
+    if l:line =~ b:v.drawerMatch
         let v:foldhighlight = hlID('Title')
         let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
@@ -4104,9 +4105,9 @@ function! MyFoldText(...)
         let line = line[:l]
     endif
     if exists('w:sparse_on') && w:sparse_on && (a:0 == 0) 
-        let b:signstring= GetPlacedSignsString(bufnr("%")) 
-        if match(b:signstring,'line='.v:foldstart.'\s\sid=\d\+\s\sname=fbegin') >=0
-        "if index(b:sparse_list,v:foldstart) > -1            "v:foldstart == 10
+        let b:v.signstring= GetPlacedSignsString(bufnr("%")) 
+        if match(b:v.signstring,'line='.v:foldstart.'\s\sid=\d\+\s\sname=fbegin') >=0
+        "if index(b:v.sparse_list,v:foldstart) > -1            "v:foldstart == 10
             let l:line = '* * * * * * * * * * * ' . (v:foldend - v:foldstart) . ' lines skipped here * * * * * * *'
             let l:line .= repeat(' ', winwidth(0)-len(l:line)-28) . 'SPARSETREE SKIP >>'
             let v:foldhighlight = hlID('TabLineFill')
@@ -4115,10 +4116,10 @@ function! MyFoldText(...)
     if g:v.org_show_fold_dots 
         let l:line .= '...'
     endif
-    if b:columnview && (origline =~ b:v.headMatch) 
+    if b:v.columnview && (origline =~ b:v.headMatch) 
         let l:line .= PrePad(GetColumns(foldstart), winwidth(0)-len(l:line) -3)
     endif
-    if !a:0 && g:v.org_show_fold_lines && !b:columnview 
+    if !a:0 && g:v.org_show_fold_lines && !b:v.columnview 
         let l:line .= PrePad("(" . PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
                     \ winwidth(0)-len(l:line) - 3) 
     endif
@@ -4126,8 +4127,8 @@ function! MyFoldText(...)
     return l:line
 endfunction
 function! MySort(comppattern) range
-    let b:sortcompare = a:comppattern
-    let b:complist = ['\s*\S\+','\s*\S\+\s\+\zs\S\+','\s*\(\S\+\s\+\)\{2}\zs\S\+'
+    let b:v.sortcompare = a:comppattern
+    let b:v.complist = ['\s*\S\+','\s*\S\+\s\+\zs\S\+','\s*\(\S\+\s\+\)\{2}\zs\S\+'
                 \ , '\s*\(\S\+\s\+\)\{3}\zs\S\+'
                 \ , '\s*\(\S\+\s\+\)\{4}\zs\S\+'
                 \ , '\s*\(\S\+\s\+\)\{5}\zs\S\+'
@@ -4135,29 +4136,29 @@ function! MySort(comppattern) range
     let mylines = getline(a:firstline, a:lastline)
     let mylines = sort(mylines,"BCompare")
     call setline(a:firstline, mylines)
-    unlet b:sortcompare
-    unlet b:complist
+    unlet b:v.sortcompare
+    unlet b:v.complist
 endfunction
 
 function! BCompare(i1,i2)
-    if !exists('b:sortcompare')
-        echo 'b:sortcompare is not defined'
+    if !exists('b:v.sortcompare')
+        echo 'b:v.sortcompare is not defined'
         return
     endif
     let i = 0
 
-    while i < len(b:sortcompare)
+    while i < len(b:v.sortcompare)
         " prefix an item by 'n' if you want numeric sorting
-        if (i < len(b:sortcompare) - 1) && (b:sortcompare[i] == 'n')
+        if (i < len(b:v.sortcompare) - 1) && (b:v.sortcompare[i] == 'n')
             let i = i + 1
-            let m1 = str2nr(matchstr(a:i1,b:complist[b:sortcompare[i]-1])) 
-            let m2 = str2nr(matchstr(a:i2,b:complist[b:sortcompare[i]-1]))
+            let m1 = str2nr(matchstr(a:i1,b:v.complist[b:v.sortcompare[i]-1])) 
+            let m2 = str2nr(matchstr(a:i2,b:v.complist[b:v.sortcompare[i]-1]))
         else
-            let m1 = matchstr(a:i1,b:complist[b:sortcompare[i]-1]) 
-            let m2 = matchstr(a:i2,b:complist[b:sortcompare[i]-1])
+            let m1 = matchstr(a:i1,b:v.complist[b:v.sortcompare[i]-1]) 
+            let m2 = matchstr(a:i2,b:v.complist[b:v.sortcompare[i]-1])
         endif
         if m1 == m2
-            if i == len(b:sortcompare) - 1
+            if i == len(b:v.sortcompare) - 1
                 return 0
             else
                 let i += 1
@@ -4177,18 +4178,18 @@ function! s:OrgShowMatch(cycleflag)
     " and todo list as main buffer
     call GotoMainWindow()
     let l:headMatch = b:v.headMatch
-    let l:todoitems = b:todoitems
+    let l:todoitems = b:v.todoitems
     "wincmd j
     call GotoAgendaWindow()
     let b:v.headMatch = l:headMatch
-    let b:todoitems = l:todoitems
+    let b:v.todoitems = l:todoitems
     if a:cycleflag
         call OrgToggleTodo(line("."))
     endif
     "let g:v.showndx = line(".")-1
     if getline(line(".")) =~ '^\d\+'
         let g:v.showndx = matchlist(getline(line(".")),'^\d\+')[0]
-        execute "let b:sparse_list = [" . g:v.showndx . ']'
+        execute "let b:v.sparse_list = [" . g:v.showndx . ']'
     endif
     "wincmd k
     call GotoMainWindow()
@@ -4299,8 +4300,8 @@ endfunction
 
 function! Ind(line) 
     " used to get level of a heading (todo : rename this function)
-    "return 1 + (len(matchstr(getline(a:line),'^\**\s'))-1)/b:levelstars  
-    return 2 + (len(matchstr(getline(a:line),'^\**\s'))-2)/b:levelstars  
+    "return 1 + (len(matchstr(getline(a:line),'^\**\s'))-1)/b:v.levelstars  
+    return 2 + (len(matchstr(getline(a:line),'^\**\s'))-2)/b:v.levelstars  
 
 endfunction
 
@@ -4336,7 +4337,7 @@ function!  DoSingleFold(line)
         if (cur_end >= line("$")) || (MyFoldLevel(cur_end+1) == '<0')
             return
         endif
-        if getline(cur_end+1) =~ b:drawerMatch
+        if getline(cur_end+1) =~ b:v.drawerMatch
             "while (foldclosedend(a:line) == cur_end) && (runaway_count < 10)
             while (foldclosedend(a:line) == cur_end) && (cur_end != line("$"))
                 let runaway_count += 1
@@ -4366,7 +4367,7 @@ function! MyFoldLevel(line)
     let l:text = getline(a:line)
     "if l:text =~ b:v.headMatch
     if l:text[0] == '*'
-        let b:myAbsLevel = Ind(a:line)
+        let b:v.myAbsLevel = Ind(a:line)
     endif
     let l:nextAbsLevel = Ind(a:line+1)
     let l:nexttext = getline(a:line + 1)
@@ -4374,24 +4375,24 @@ function! MyFoldLevel(line)
     " STUFF FOR SPARSE TREE LEVELS
     if exists('w:sparse_on') && w:sparse_on  
         if g:v.org_first_sparse==0    
-            let b:signstring= GetPlacedSignsString(bufnr("%")) 
-            if match(b:signstring,'line='.(a:line+1).'\s\sid=\d\+\s\sname=fbegin') >=0
+            let b:v.signstring= GetPlacedSignsString(bufnr("%")) 
+            if match(b:v.signstring,'line='.(a:line+1).'\s\sid=\d\+\s\sname=fbegin') >=0
                 return '<0'
             endif
-            if match(b:signstring,'line='.a:line.'\s\sid=\d\+\s\sname=fbegin') >=0
+            if match(b:v.signstring,'line='.a:line.'\s\sid=\d\+\s\sname=fbegin') >=0
                 return '>99'
-            elseif match(b:signstring,'line='.a:line.'\s\sid=\d\+\s\sname=fend') >=0
+            elseif match(b:v.signstring,'line='.a:line.'\s\sid=\d\+\s\sname=fend') >=0
                 return '<0'
             endif
         else
-            if index(b:sparse_list,a:line+1) >= 0
+            if index(b:v.sparse_list,a:line+1) >= 0
                 return '<0'
             endif
-            let sparse = index(b:sparse_list,a:line)
+            let sparse = index(b:v.sparse_list,a:line)
             if sparse >= 0
                 return '>20'
             endif
-            let sparse = index(b:fold_list,a:line)
+            let sparse = index(b:v.fold_list,a:line)
             if sparse >= 0
                 return '<0' 
             endif
@@ -4404,63 +4405,63 @@ function! MyFoldLevel(line)
 
         " propmatch line is new (sep 27) need ot test having different
         " value for propmatch and deadline lines
-        if l:nexttext =~ b:drawerMatch
-            let b:lev = '>' . string(b:myAbsLevel + 4)
+        if l:nexttext =~ b:v.drawerMatch
+            let b:v.lev = '>' . string(b:v.myAbsLevel + 4)
         elseif l:nexttext =~ s:remstring
-            let b:lev = '>' . string(b:myAbsLevel + 6)
+            let b:v.lev = '>' . string(b:v.myAbsLevel + 6)
         elseif l:nexttext !~ b:v.headMatch
-            let b:lev = '>' . string(b:myAbsLevel + 3)
-        elseif l:nextAbsLevel > b:myAbsLevel
-            "let b:lev = '>20'
-            "let b:lev = '>' . string(l:nextAbsLevel)
-            let b:lev = '>' . string(b:myAbsLevel)
-        elseif l:nextAbsLevel < b:myAbsLevel
-            let b:lev = '<' . string(l:nextAbsLevel)
+            let b:v.lev = '>' . string(b:v.myAbsLevel + 3)
+        elseif l:nextAbsLevel > b:v.myAbsLevel
+            "let b:v.lev = '>20'
+            "let b:v.lev = '>' . string(l:nextAbsLevel)
+            let b:v.lev = '>' . string(b:v.myAbsLevel)
+        elseif l:nextAbsLevel < b:v.myAbsLevel
+            let b:v.lev = '<' . string(l:nextAbsLevel)
         else
-            let b:lev = '<' . b:myAbsLevel
+            let b:v.lev = '<' . b:v.myAbsLevel
         endif
-        let b:prevlev = b:myAbsLevel
+        let b:v.prevlev = b:v.myAbsLevel
 
     else    
         "we have a text line 
-        if b:lastline != a:line - 1    " backup to headline to get bearings
-            let b:prevlev = Ind(OrgPrevHead_l(a:line))
+        if b:v.lastline != a:line - 1    " backup to headline to get bearings
+            let b:v.prevlev = Ind(OrgPrevHead_l(a:line))
         endif
 
-        if l:text =~ b:drawerMatch
-            let b:lev = '>' . string(b:prevlev + 4)
+        if l:text =~ b:v.drawerMatch
+            let b:v.lev = '>' . string(b:v.prevlev + 4)
         elseif l:text =~ s:remstring
             if (getline(a:line - 1) =~ b:v.headMatch) && (l:nexttext =~ s:remstring)
-                let b:lev =  string(b:prevlev + 5)
+                let b:v.lev =  string(b:v.prevlev + 5)
             elseif (l:nexttext !~ s:remstring) || 
-                        \ (l:nexttext =~ b:drawerMatch) 
-                let b:lev = '<' . string(b:prevlev + 4)
+                        \ (l:nexttext =~ b:v.drawerMatch) 
+                let b:v.lev = '<' . string(b:v.prevlev + 4)
             " reverting back to use the if and elseif blocks above
             " (11-24-2009)
             "if (getline(a:line - 1) =~ b:v.headMatch) 
-            "    let b:lev = '>' . string(b:prevlev + 4)
+            "    let b:v.lev = '>' . string(b:v.prevlev + 4)
             else
-                let b:lev = b:prevlev + 4
+                let b:v.lev = b:v.prevlev + 4
             endif
         elseif l:text[0] != '#'
-            let b:lev = (b:prevlev + 2)
-        elseif b:src_fold  
+            let b:v.lev = (b:v.prevlev + 2)
+        elseif b:v.src_fold  
             if l:text =~ '^#+begin_src'
-                let b:lev = '>' . (b:prevlev + 2)
+                let b:v.lev = '>' . (b:v.prevlev + 2)
             elseif l:text =~ '^#+end_src'
-                let b:lev = '<' . (b:prevlev + 2)
+                let b:v.lev = '<' . (b:v.prevlev + 2)
             endif
         else 
-            let b:lev = (b:prevlev + 2)
+            let b:v.lev = (b:v.prevlev + 2)
         endif   
 
         "if l:nexttext =~ b:v.headMatch
         if l:nexttext[0] == '*'
-            let b:lev = '<' . string(l:nextAbsLevel)
+            let b:v.lev = '<' . string(l:nextAbsLevel)
         endif
     endif   
-    let b:lastline = a:line
-    return b:lev    
+    let b:v.lastline = a:line
+    return b:v.lev    
 
 endfunction
 
@@ -4472,11 +4473,11 @@ function! AlignSection(regex,skip,extra) range
     let sep = empty(a:regex) ? '=' : a:regex
     let minst = 999
     let maxst = 0
-    let b:stposd = {}
+    let b:v.stposd = {}
     let section = getline(a:firstline, a:lastline)
     for line in section
         let stpos = matchend(line,a:skip)   
-        let b:stposd[index(section,line)]=stpos
+        let b:v.stposd[index(section,line)]=stpos
         if maxst < stpos
             let maxst = stpos
         endif
@@ -4490,12 +4491,12 @@ function! AlignSection(regex,skip,extra) range
 endfunction
 
 function! AlignLine(line, sep, skip, maxpos, offset, extra)
-    let b:m = matchlist(a:line, '\(' .a:skip . '\)\('.a:sep.'.*\)')
-    if empty(b:m)
+    let b:v.m = matchlist(a:line, '\(' .a:skip . '\)\('.a:sep.'.*\)')
+    if empty(b:v.m)
         return a:line
     endif
     let spaces = repeat(' ',  a:offset + a:extra)
-    exec 'return b:m[1][:-' . a:maxpos .'] . spaces . b:m[3]'
+    exec 'return b:v.m[1][:-' . a:maxpos .'] . spaces . b:v.m[3]'
 endfunction
 function! AlignSectionR(regex,skip,extra) range
     let extra = a:extra
@@ -4503,7 +4504,7 @@ function! AlignSectionR(regex,skip,extra) range
     let minst = 999
     let maxpos = 0
     let maxst = 0
-    let b:stposd = {}
+    let b:v.stposd = {}
     let section = getline(a:firstline, a:lastline)
     for line in section
         execute 'let pos = matchend(line, a:skip ." *".sep)'
@@ -4775,7 +4776,7 @@ endfunction
 
 function! CurTodo(line)
     let result = matchstr(getline(a:line),'.*\* \zs\S\+\ze ')`
-    if index(b:todoitems,curtodo) == -1
+    if index(b:v.todoitems,curtodo) == -1
         let result = ''
     endif
     return result
@@ -4862,7 +4863,7 @@ let g:v.org_loaded=1
 "*********************************************************************
 " below is default todo setup, anything different can be done
 " in vimrc (or in future using a config line in the org file itself)
-if !exists('b:todoitems')
+if !exists('b:v.todoitems')
     call TodoSetup(['TODO','DONE'])
 endif
 
@@ -4997,6 +4998,6 @@ command! PostWriteTags :silent call <SID>UndoUnconvertTags()
 set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
 set fo=qtcwn
 " Added an indication of current syntax as per Dillon Jones' request
-let b:current_syntax = "org"
+let b:v.current_syntax = "org"
 
 " vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^func'?0\:1:
