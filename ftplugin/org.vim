@@ -1949,6 +1949,9 @@ function! OrgRunSearch(search_spec,...)
         "set mouseshape-=n:busy,v:busy,i:busy
 
     try
+    if bufname('%') == '__Agenda__'
+        wincmd k
+    endif
 
     let g:v.agenda_head_lookup={}
     let sparse_search = 0
@@ -1965,10 +1968,13 @@ function! OrgRunSearch(search_spec,...)
         call confirm("No agenda files defined.  Will add current file to agenda files.")
         call s:CurfileAgenda()
     endif
+    if exists('b:v.sparse_list') && (len(b:v.sparse_list) > 0)
+        call s:ClearSparseTree()
+    endif
     call s:MakeResults(a:search_spec,sparse_search)
 
     if sparse_search
-        call s:ClearSparseTree()
+        "call s:ClearSparseTree()
         let w:sparse_on = 1
         let temp = []
         for key in keys(g:v.adict)
@@ -2002,7 +2008,7 @@ function! OrgRunSearch(search_spec,...)
         let todoMatch = b:v.todoMatch
         let fulltodos = b:v.fulltodos
         if bufnr('__Agenda__') >= 0
-            bdelete __Agenda__
+            bwipeout __Agenda__
         endif
         :AAgenda
         let b:v={}
@@ -2024,7 +2030,7 @@ function! OrgRunSearch(search_spec,...)
         call matchadd( 'OL2', '\s\+\*\{2}.*$') 
         call matchadd( 'OL3', '\s\+\*\{3}.*$' )
         call matchadd( 'OL4', '\s\+\*\{4}.*$' )
-call s:AgendaBufHighlight()
+        call s:AgendaBufHighlight()
         wincmd J
         let i = 0
         call s:ADictPlaceSigns()
@@ -2185,6 +2191,9 @@ endfunction
 function! OrgRunAgenda(date,count,...)
     try
 
+    if bufname('%') == '__Agenda__'
+        wincmd k
+    endif
     let g:v.agenda_head_lookup={}
     let win = bufwinnr('Calendar')
     if win >= 0 
@@ -2197,6 +2206,9 @@ function! OrgRunAgenda(date,count,...)
     if !exists("g:v.agenda_files") || (g:v.agenda_files==[])
         call confirm("No agenda files defined.  Will add current file to agenda files.")
         call s:CurfileAgenda()
+    endif
+    if exists('b:v.sparse_list') && (len(b:v.sparse_list) > 0)
+        call s:ClearSparseTree()
     endif
     " a:1 is search_spec, a:2 is "today" for search
     if a:0 == 1
@@ -2212,7 +2224,7 @@ function! OrgRunAgenda(date,count,...)
     let todoMatch = b:v.todoMatch
     let fulltodos = b:v.fulltodos
     if bufnr('__Agenda__') >= 0
-        bdelete __Agenda__
+        bwipeout __Agenda__
     endif
     :AAgenda
     let b:v={}
@@ -4791,7 +4803,7 @@ endfunction
 autocmd BufNewFile __Agenda__ call s:AgendaBufSetup()
 autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
 " Command to edit the scratch buffer in the current window
-command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
+"command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
 " Command to open the scratch buffer in a new split window
 command! -nargs=0 AAgenda call s:AgendaBufferOpen(1)
 
@@ -4888,6 +4900,7 @@ map <silent> <buffer> <localleader>tc :call OrgToggleTodo(line('.'),'c')<cr>
 map <silent> <buffer> <localleader>tn :call OrgToggleTodo(line('.'),'n')<cr>
 map <silent> <buffer> <localleader>tx :call OrgToggleTodo(line('.'),'x')<cr>
 map <silent> <localleader>ag :call OrgAgendaDashboard()<cr>
+command! -nargs=0 Agenda :call OrgAgendaDashboard()
 "map <localleader>ar :startofbasedateedit 
 "map <localleader>ad :start_DEADLINE_edit 
 "map <localleader>ac :start_CLOSED_edit 
