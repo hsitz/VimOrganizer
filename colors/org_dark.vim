@@ -1,67 +1,51 @@
 let g:colors_name="org_dark"
-"hi normal guifg=#11cc11 guibg=black	ctermfg=green ctermbg=black
-hi normal guifg=#bbbbbb guibg=black	ctermfg=green ctermbg=black
-hi StatusLine guifg=white guibg=black	ctermfg=white ctermbg=black
-hi StatusLineNC guifg=white guibg=black	ctermfg=white ctermbg=black
-hi VertSplit guifg=white guibg=black	ctermfg=white ctermbg=black
-hi FoldColumn guifg=black guibg=NONE
-hi SignColumn guibg=black
+" 'normal' holds defaults, set them to whatever you want
+" or just move lines below it into your own color file and
+" they will inherit 'normal' settings except where they
+" override them
+hi Normal guifg=#bbbbbb guibg=black	ctermfg=green ctermbg=black
 
-hi OL1 guifg=#7744ff guibg=black	ctermfg=blue
-hi OL2 guifg=#aaaa22 guibg=black	ctermfg=brown
-hi OL3 guifg=#00ccff guibg=black	ctermfg=cyan
-hi OL4 guifg=#999999 guibg=black gui=italic  	ctermfg=gray
-hi OL5 guifg=#eeaaee  	guibg=black ctermfg=lightgray
+hi FoldColumn guifg=black guibg=black ctermfg=black
+hi SignColumn guifg=gray guibg=black ctermfg=black
 
-hi OL5 guifg=#eeaaee  	ctermfg=cyan
+" define foreground colors for ****UNfolded**** outline heading levels
+hi OL1 guifg=#7744ff ctermfg=blue
+hi OL2 guifg=#aaaa22 ctermfg=brown
+hi OL3 guifg=#00ccff ctermfg=cyan
+hi OL4 guifg=#999999 gui=italic  	ctermfg=gray
+hi OL5 guifg=#eeaaee ctermfg=lightgray
 hi OL6 guifg=#9966ff 	ctermfg=yellow
 hi OL7 guifg=#dd99dd  	ctermfg=red
 hi OL8 guifg=cyan	ctermfg=grey
 hi OL9 guifg=magenta	ctermfg=blue
+
+" define highlighting for ***FOLDED*** outline heading levels
+" 'Folded' is used for folded OL1
 hi Folded gui=bold guifg=#6633ff guibg=#111111 	ctermfg=blue
-"hi link OLB1 Folded 
+" 'WarningMsg' is used for folded OL2
 hi WarningMsg gui=bold guifg=#aaaa22  guibg=#111111	ctermfg=brown
-"hi link OLB2 WarningMsg
+" 'WildMenu' is used for folded OL3
 hi WildMenu gui=bold guifg=#00ccff  guibg=#111111	ctermfg=cyan
-"hi link OLB3 WildMenu
+" 'DiffAdd' is used for folded OL4
 hi DiffAdd gui=bold guifg=#999999 gui=italic  guibg=#111111	ctermfg=gray
-"hi link OLB4 DiffAdd
+" 'DiffChange' is used for folded OL5
 hi DiffChange gui=bold guifg=#eeaaee  guibg=#111111	ctermfg=lightgray
 
-hi OLB6 gui=bold guifg=#9966ff 	ctermfg=yellow
-hi OLB7 gui=bold guifg=#dd99dd  	ctermfg=red
-hi OLB8 gui=bold guifg=cyan	ctermfg=grey
-hi OLB9 gui=bold guifg=magenta	ctermfg=blue
+" various text item highlightings are below
+hi Properties guifg=pink ctermfg=lightred
+hi Tags guifg=pink ctermfg=lightred
+hi Dates guifg=magenta ctermfg=magenta
+hi stars guifg=#444444 ctermfg=darkgray
+hi Props guifg=#ffa0a0 ctermfg=lightred
+hi code guifg=orange gui=bold ctermfg=14
+hi itals gui=italic guifg=#aaaaaa ctermfg=lightgray
+hi boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray
+hi undertext gui=underline guifg=#aaaaaa ctermfg=lightgray
+hi lnumber guifg=#999999 ctermfg=gray
 
-syn match Props '^\s*:\s*\S\+\s*:'
-hi Props guifg=#ffa0a0
-hi T1 guifg=#00ee00
-hi T2 guifg=#ffff33
-hi T3 guifg=#99cc33
-hi T4 guifg=#99cc66
+hi TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
+hi CANCELED guifg=red guibg=NONE ctermfg=red ctermbg=NONE
+hi STARTED guifg=yellow guibg=NONE ctermfg=yellow ctermbg=NONE
+hi NEXT guifg=cyan guibg=NONE ctermfg=cyan ctermbg=NONE
+hi DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
 
-"hi code guifg=#88aa88 gui=bold
-hi code guifg=orange gui=bold
-syn match code '=\S.\{-}\S='
-hi itals gui=italic guifg=#aaaaaa
-syn match itals '/\zs\S.\{-}\S\ze/'
-hi boldtext gui=bold guifg=#aaaaaa
-syn match boldtext '*\zs\S.\{-}\S\ze\*'
-hi undertext gui=underline guifg=#aaaaaa
-syn match undertext '_\zs\S.\{-}\S\ze_'
-
-syn match colon '^\t*:' contained
-hi colon guifg=#666666
-syn match lnumber '^\t*\(\d\.\)*\s\s' contained
-hi lnumber guifg=#999999
-
-hi TODO guifg=orange guibg=NONE
-hi CANCELED guifg=red guibg=NONE
-hi STARTED guifg=yellow
-hi NEXT guifg=cyan
-hi DONE guifg=green
-
-" colors for experimental spelling error highlighting
-" this only works for spellfix.vim with will be cease to exist soon
-hi spellErr gui=underline guifg=yellow	cterm=underline ctermfg=yellow
-hi BadWord gui=underline guifg=yellow	cterm=underline ctermfg=yellow
