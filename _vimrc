@@ -7,10 +7,6 @@ set nocompatible
 source $VIMRUNTIME/vimrc_example.vim
 source $VIMRUNTIME/mswin.vim
 behave mswin
-set gfn=Andale_Mono:h9:cANSI
-set foldmethod=manual
-filetype off
-call pathogen#runtime_append_all_bundles() 
 "---------------------------gg----------------------------
 
 " stuff below here is necessary for VimOrganizer to work right
