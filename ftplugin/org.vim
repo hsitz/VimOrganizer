@@ -240,6 +240,10 @@ function! s:TagMenu(heading_tags)
         echo '------------'
         let oldgroup = 0
 		for item in b:v.tags_order
+            if item == '\n'
+                continue
+            endif
+            let curindex = index(b:v.tags_order,item)
             let newgroup = b:v.tagdict[item].exgroup
             let select = ' '
             if match(tagstring,b:v.tagdict[item].char) >= 0
@@ -248,7 +252,8 @@ function! s:TagMenu(heading_tags)
             else
                 echohl None
             endif
-            if (g:org_tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 )
+            "if (g:org_tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 ) || (b:v.tags_order[curindex+1]=='\n')
+            if (curindex==0) || (b:v.tags_order[curindex-1]=='\n')
                 echo repeat(' ',3) . '[' | echohl Question | echon select | echohl None | echon '] ' 
                 echohl None | echon b:v.tagdict[item].tag | echohl Title | echon '('.b:v.tagdict[item].char.')' | echohl None
                 let nextindent = repeat(' ',12-len(b:v.tagdict[item].tag))
@@ -304,7 +309,7 @@ function! s:TagMenu(heading_tags)
 
 	let heading_tags = ''
 	for item in keys(b:v.tagdict)
-		if match(tagstring, b:v.tagdict[item].char) >= 0
+		if (item!='\n') && (match(tagstring, b:v.tagdict[item].char) >= 0)
 			let heading_tags .= b:v.tagdict[item].tag . ':'
 		endif
 	endfor
