@@ -41,7 +41,7 @@ set guioptions-=L
 " note that g:org_todo_setup is a list with string items: 
 let g:org_todo_setup=[['TODO','NEXT'],'STARTED',['DONE','CANCELED']]
 " while g:org_tag_setup is itself a string
-let g:org_tag_setup='{@home(h) @work(w) @tennisclub(t)} {easy(e) hard(d)} {computer(c) phone(p)}'
+let g:org_tag_setup='{@home(h) @work(w) @tennisclub(t)} \n {easy(e) hard(d)} \n {computer(c) phone(p)}'
 
 " leave these as is:
 au! BufRead,BufWrite,BufWritePost,BufNewFile *.org 
