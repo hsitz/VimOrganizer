@@ -3112,7 +3112,7 @@ function! OrgBodyTextOperation(startline,endline, operation)
 endfunction
 
 let g:calendar_sign = 'OrgCalSign'
-function! s:OrgCalSign(day, month, year)
+function! OrgCalSign(day, month, year)
   if a:year .'-'.s:Pre0(a:month).'-'.s:Pre0(a:day) == g:org_cal_date
 	  return 1
   else
