@@ -32,7 +32,7 @@ set guioptions-=L
 " directory which is directory of the first .org file opened
 " in current Vim instance:
 " Below is line I use in my Windows install:
-let g:org_agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop"]
+"let g:org_agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop"]
 
 " vars below are used to define default Todo list and
 " default Tag list.  Will be changed in near future so

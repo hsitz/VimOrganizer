@@ -66,7 +66,7 @@ let b:v.suppress_indent=0
 let b:v.suppress_list_indent=0
 
 if !exists('g:org_agenda_dirs')
-    let g:org_agenda_dirs = expand("%:p:h")
+    execute "let g:org_agenda_dirs =['".expand("%:p:h")."']"
 endif
 
 if !exists('g:org_loaded')
