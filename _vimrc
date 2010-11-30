@@ -2,7 +2,9 @@
 " Integrate the VimOrganizer specific sections into your own
 " vimrc if you wish to use VimOrganizer on a regular basis. . .
 " ---------------------------------------------------
-" generic non-VimOrganizer-related stuff
+" generic non-VimOrganizer-related stuff used in
+" my Windows installation, comment out 3rd and 4th
+" lines below if not on Wndows. . . "
 set nocompatible
 source $VIMRUNTIME/vimrc_example.vim
 source $VIMRUNTIME/mswin.vim
