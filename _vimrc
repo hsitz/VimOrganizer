@@ -21,7 +21,7 @@ colorscheme org_dark
 " as having soft returns, lines ending with non-space have 
 " hard returns
 set list
-set listchars=tab:»\ ,eol:¬
+set listchars=tab:ï¿½\ ,eol:ï¿½
 " guioption -L removes left scrollbar, which is especially 
 " irritating when split vertical windows appear in VimOrganizer
 set guioptions-=L
@@ -38,8 +38,7 @@ set guioptions-=L
 " default Tag list.  Will be changed in near future so
 " that these are defined by config lines in each .org
 " file itself, but now these are where you can change things:
-" note that g:org_todo_setup is a list with string items: 
-let g:org_todo_setup=[['TODO','NEXT'],'STARTED',['DONE','CANCELED']]
+let g:org_todo_setup='TODO | DONE'
 " while g:org_tag_setup is itself a string
 let g:org_tag_setup='{@home(h) @work(w) @tennisclub(t)} \n {easy(e) hard(d)} \n {computer(c) phone(p)}'
 
