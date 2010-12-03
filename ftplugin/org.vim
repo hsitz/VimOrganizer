@@ -129,11 +129,11 @@ function! OrgTodoConvert(orgtodo)
     let todolist = []
     let sublist = []
    " let templist = []
-    let temp_list = split(string(a:orgtodo),' ')
+    let temp_list = split(a:orgtodo,' ')
     " count | chars in lsit, if 0 or 1 then
     " it is like Org-mode format, otherwise
     " sublists are used in non-done slot"
-    let bar_count = count(split(string(a:orgtodo),'\zs'),'|')
+    let bar_count = count(split(a:orgtodo,'\zs'),'|')
     let after_bar = 0
     if bar_count >= 2
         for item in temp_list
