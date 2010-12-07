@@ -72,14 +72,17 @@ endif
 if !exists('g:org_loaded')
 
 let g:org_clock_history=[]
-let g:org_headMatch = '^\*\+\s'
-let g:org_cal_date = '2000-01-01'
+let g:org_path_to_emacs='"c:\program files (x86)\emacs\emacs\bin\emacs.exe"'
+let s:org_headMatch = '^\*\+\s'
+let s:org_cal_date = '2000-01-01'
 let g:org_tag_group_arrange = 0
 let g:org_first_sparse=0
 let g:org_clocks_in_agenda = 0
 let s:remstring = '^\s*:'
+let s:block_line = '^\s*\(:\|DEADLINE\|SCHEDULED\|CLOSED\|<\d\d\d\d-\|[\d\d\d\d-\)'
 "let s:remstring = '^\s*\(:\|DEADLINE:\|SCHEDULED:\|CLOSED:\|<\d\d\d\d-\)'
 let g:org_use_calendar = 1
+let g:org_todoitems=[]
 let s:headline = ''
 let g:org_ColumnHead = 'Lines'
 let g:org_gray_agenda = 0
@@ -106,10 +109,10 @@ let g:org_show_balloon_tips=1
 let g:org_datelist = []
 let g:org_search_spec = ''
 let g:org_deadline_warning_days = 3
-let g:org_weekdays = ['mon','tue','wed','thu','fri','sat','sun']
-let g:org_weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
-let g:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
-let g:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
+let s:org_weekdays = ['mon','tue','wed','thu','fri','sat','sun']
+let s:org_weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
+let s:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
+let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 let s:AgendaBufferName = "__Agenda__"
 
 function! OrgProcessConfigLines()
@@ -130,7 +133,7 @@ function! OrgTodoConvert(orgtodo)
     let sublist = []
    " let templist = []
     let temp_list = split(a:orgtodo,' ')
-    " count | chars in lsit, if 0 or 1 then
+    " count '|' chars in list, if 0 or 1 then
     " it is like Org-mode format, otherwise
     " sublists are used in non-done slot"
     let bar_count = count(split(a:orgtodo,'\zs'),'|')
@@ -555,7 +558,7 @@ function! s:FCTest(line)
     endif
 endfunction
 
-function! OrgToggleTodo(line,...)
+function! OrgSequenceTodo(line,...)
     if a:0 == 1
         if a:1 == 'x'
             let newtodo = ''
@@ -568,7 +571,7 @@ function! OrgToggleTodo(line,...)
         endif
     endif
     let linetext = getline(a:line)
-    if (linetext =~ g:org_headMatch) 
+    if (linetext =~ s:org_headMatch) 
         " get first word in line and its index in todoitems
         let tword = matchstr(linetext,'\*\+\s\+\zs\S\+\ze')
         if a:0 == 1
@@ -1368,18 +1371,21 @@ function! s:GetProperties(hl,withtextinfo,...)
     let datesdone = 0
     let result1 = {}
     let result = {}
-    let result1['l'] = hl
-    " get date on headline, if any
-    let result1['htext']=getline(hl)
+    let result1['line'] = hl
+    let linetext = getline(hl)
+    let result1['ITEM'] = linetext
     let result1['file']=expand("%:t:r")
-    if getline(hl) =~ b:v.dateMatch
-        let result1['ld'] = matchlist(getline(hl),b:v.dateMatch)[1]
+    " get date on headline, if any
+    if linetext =~ b:v.dateMatch
+        let result1['ld'] = matchlist(linetext,b:v.dateMatch)[1]
     endif
     if (getline(hl+1) =~ b:v.tagMatch) && (getline(hl+1) !~ b:v.drawerMatch)
-        let result1['tags'] = matchlist(getline(hl+1),b:v.tagMatch)[1]
+        let result1['tags'] = matchstr(getline(hl+1),b:v.tagMatch)
     endif
-    if getline(hl) =~ b:v.todoMatch
-        let result1['todo'] = matchlist(getline(hl),b:v.todoMatch)[1]
+    if linetext =~ b:v.todoMatch
+        let result1['todo'] = matchstr(linetext,b:v.todoMatch)[2:]
+    else
+        let result1['todo'] = ''
     endif
 
     let line = hl + 1
@@ -1392,17 +1398,20 @@ function! s:GetProperties(hl,withtextinfo,...)
             let dateresult = s:GetDateVals(line)
             let datesdone = 1
             " no break, go back around to check for props
-        elseif  (ltext =~ b:v.headMatch) || (line >= hl + 8)
+        elseif  ltext =~ '^\s*:\s*CLOCK'
+            " do nothing
+        elseif  (ltext !~ s:block_line)
             call extend(result, result1)
             if datesdone
                 call extend(result, dateresult)
             endif
+            let result['block_end'] = line - 1
             break
         endif
         let line += 1
     endwhile
     if a:withtextinfo
-        let result['tbegin'] = hl + 1
+        "let result['tbegin'] = line 
         let result['tend'] = s:OrgNextHead_l(hl) - 1
     endif
     if a:0 >= 1
@@ -1419,23 +1428,31 @@ function! s:GetDateVals(line)
     let result = {}
     while 1
         let ltext = getline(myline)
-        if ltext =~ b:v.dateMatch
-            let mydate = matchlist(ltext, b:v.dateMatch)[1]
+        let mtest1 = '<\zs'.b:v.dateMatch.'.*\ze>'
+        let mtest2 = '\[\zs'.b:v.dateMatch.'.*\ze\]'
+        if ltext =~ mtest1
+            let mydate = matchstr(ltext, mtest1)
             if ltext =~ 'DEADLINE'
-                let dtype = 'dd'
+                let dtype = 'DEADLINE'
             elseif ltext =~ 'SCHEDULED'
-                let dtype = 'sd'
+                let dtype = 'SCHEDULED'
             elseif ltext =~ 'CLOSED'
-                let dtype = 'cd'
+                let dtype = 'CLOSED'
             else
-                let dtype = 'ud'
+                let dtype = 'TIMESTAMP'
             endif
+        elseif ltext =~ mtest2
+            let mydate = matchstr(ltext, mtest2)
+            let dtype = 'TIMESTAMP_IA'
         else
             break
         endif
 
         try
-            let result[dtype] = mydate  
+            "only add if first of dtype encountered
+            if get(result,dtype) == 0
+                let result[dtype] = mydate  
+            endif
         catch /^Vim\%((\a\+)\)\=:E/ 
         endtry
         let myline += 1
@@ -1520,7 +1537,7 @@ function! s:SetRandomDate(...)
     if a:0 == 1
         let date_type = a:1
     else
-        let date_type = ['DEADLINE','','SCHEDULED'][s:Random(3)-1]
+        let date_type = ['DEADLINE','TIMESTAMP','SCHEDULED'][s:Random(3)-1]
     endif
     if date_type != ''
         call s:SetProp(date_type,s:RandomDate())
@@ -1878,7 +1895,9 @@ function! s:OrgIfExprResults(ifexpr,...)
             let g:filedict={}
             let i = 1
             for item in g:agenda_files
-                if match(item,'/') >= 0
+                if match(item,'c:\') >= 0
+                    execute "let g:filedict['".matchstr(item,'.*\\\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+                elseif match(item,'/') >= 0
                     execute "let g:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
                 else
                     execute "let g:filedict['".matchstr(item,'.*\ze.org')."']='".s:PrePad(i,3,'0')."'"
@@ -1915,12 +1934,13 @@ function! s:MakeResults(search_spec,...)
     let curfile = substitute(expand("%"),' ','\\ ','g')
 
     let g:org_search_spec = a:search_spec
+    let g:org_todoitems=[]
     let g:adict = {}
     let g:datedict = {}
-    let ifexpr = s:OrgIfExpr()
 
     if sparse_search 
         "execute 'let myfiles=["' . curfile . '"]'
+        let ifexpr = s:OrgIfExpr()
         call s:OrgIfExprResults(ifexpr,sparse_search)
     else
         for file in g:agenda_files
@@ -1928,6 +1948,8 @@ function! s:MakeResults(search_spec,...)
             let mycommand = 'tab drop '. file
             "execute 'tab drop ' . file
             execute mycommand
+            let ifexpr = s:OrgIfExpr()
+            let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
             call s:OrgIfExprResults(ifexpr,sparse_search)
         endfor
         call s:LocateFile(curfile)
@@ -1960,6 +1982,9 @@ function! s:MakeAgenda(date,count,...)
     else
         let g:org_search_spec = ''
     endif
+    if a:0 >= 2
+        let as_today = a:2
+    endif
     let save_cursor = getpos(".")
     let curfile = expand("%:t")
     if a:count == 7
@@ -1975,6 +2000,7 @@ function! s:MakeAgenda(date,count,...)
         let g:agenda_startdate = a:date
         let g:org_agenda_days=a:count
     endif
+    if a:count == 1 | let as_today = g:agenda_startdate | endif
     "let myfiles=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
     let g:adict = {}
     let g:datedict = {}
@@ -1983,8 +2009,8 @@ function! s:MakeAgenda(date,count,...)
     for file in g:agenda_files
         call s:LocateFile(file)
         let t:agenda_date=a:date
-        if a:0 == 2
-            call s:GetDateHeads(g:agenda_startdate,a:count,a:2)
+        if as_today > ''
+            call s:GetDateHeads(g:agenda_startdate,a:count,as_today)
         else 
             call s:GetDateHeads(g:agenda_startdate,a:count)
         endif
@@ -2094,7 +2120,8 @@ function! OrgRunSearch(search_spec,...)
         if exists("search_type") && (search_type=='agenda_todo')
             let msg = "Press num to redo search: "
             let numstr= ''
-            let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
+            "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
+            let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + Union(g:org_todoitems,[])
             for item in tlist
                 let num = index(tlist,item)
                 let numstr .= '('.num.')'.item.'  '
@@ -2105,8 +2132,8 @@ function! OrgRunSearch(search_spec,...)
         for key in sort(keys(g:adict))
             call setline(line("$")+1, g:adict[key].l . repeat(' ',6-len(g:adict[key].l)) . 
                         \ org#Pad(g:adict[key].file,13)  . 
-                        \ s:PrePad(matchstr(g:adict[key].htext,'^\*\+ '),8) .
-                        \ matchstr(g:adict[key].htext,'\* \zs.*$'))
+                        \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
+                        \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
             let i += 1
         endfor
     endif
@@ -2296,8 +2323,7 @@ function! OrgRunAgenda(date,count,...)
     set nowrap
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    "map <silent> <buffer> f :call OrgRunAgenda(calutil#cal(calutil#jul(g:date1)+7),7,g:org_search_spec)<CR>
-    "map <silent> <buffer> b :call OrgRunAgenda(calutil#cal(calutil#jul(g:date1)-7),7,g:org_search_spec)<CR>
+    map <silent> <buffer> vt :call OrgRunAgenda(strftime("%Y-%m-%d"), 1,g:org_search_spec)<CR>
     map <silent> <buffer> vd :call OrgRunAgenda(g:agenda_startdate, 1,g:org_search_spec,g:agenda_startdate)<CR>
     map <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 7,g:org_search_spec)<CR>
     map <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 30,g:org_search_spec)<CR>
@@ -2349,7 +2375,7 @@ function! s:GetDateHeads(date1,count,...)
     let date1 = a:date1
     let date2 = calutil#Jul2Cal(calutil#Cal2Jul(split(date1,'-')[0],split(date1,'-')[1],split(date1,'-')[2]) + a:count)
     execute 1
-    while search('[^-][[<]\d\d\d\d-\d\d-\d\d','W') > 0
+    while search('\(\|[^-]\)[[<]\d\d\d\d-\d\d-\d\d','W') > 0
         let repeatlist = []
         let line = getline(line("."))
         let datematch = matchstr(line,'[[<]\d\d\d\d-\d\d-\d\d\ze')
@@ -3163,41 +3189,86 @@ endfunction
 
 let g:calendar_sign = 'OrgCalSign'
 function! OrgCalSign(day, month, year)
-  if a:year .'-'.s:Pre0(a:month).'-'.s:Pre0(a:day) == g:org_cal_date
+  if a:year .'-'.s:Pre0(a:month).'-'.s:Pre0(a:day) == s:org_cal_date
 	  return 1
   else
 	  return 0
   endif
 endfunction
+function! OrgSetLine(line, file, newtext)
+    let save_cursor = getpos(".")
+    let curfile = expand("%:t")
+
+    call s:LocateFile(a:file)
+    call setline(a:line,a:newtext)
+    
+    call s:LocateFile(curfile)
+    call setpos('.',save_cursor)
+endfunction
+function! OrgGetLine(line, file)
+    let save_cursor = getpos(".")
+    let curfile = expand("%:t")
+
+    call s:LocateFile(a:file)
+    let result = getline(a:line)
+    
+    call s:LocateFile(curfile)
+    call setpos('.',save_cursor)
+    return result
+endfunction
+function! OrgAgendaDateType()
+    " return type of date line in Agenda
+    let text = getline(line('.'))[19:29]
+    if text =~ 'Sched'
+        let result = 'Scheduled'
+    elseif text =~ '\(In \|DEADLINE\)'
+       let result = 'Deadline'
+    elseif text =~ 'Closed'
+        let result = 'Closed'
+    elseif text =~ '('
+        let result = 'Range'
+    else
+        let result = 'Regular'
+    endif
+    return result
+endfunction
 
 function! OrgDateEdit(type)
+    " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP or blank for 
+    " date on current line
         let text = a:type
         let b:v.basetime=''
         let from_agenda=0
         let str = ''
         let filestr = ''
         let lineno=line('.')
+        let file = expand("%:t")
+        let bufline = getline(lineno)
         if bufname("%")==('__Agenda__')
             let lineno = matchstr(getline(line('.')),'^\d\+')
             let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
             let str = ','.lineno.',"'.file.'"'
             let filestr = ',"'.file.'"'
             let from_agenda=1
+            let bufline = OrgGetLine(lineno,file)
+            if bufline !~ '[<[]\d\d\d\d-\d\d-\d\d'
+                call confirm("Can't find corresponding line in main buffer, may need to refresh Agenda")
+                return
+            endif
         endif
-        if matchstr(getline(line('.')),'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
+
+        if matchstr(bufline,'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
            call confirm("Date has a repeater.  Please edit by hand.")
            return
         endif
-        if text =~ 'DEADLINE'
-            execute "let b:v.mdate = s:GetProp('DEADLINE'".str .")[1:-2]"
-        elseif text =~ 'SCHEDULED'
-            execute "let b:v.mdate = s:GetProp('SCHEDULED'".str .")[1:-2]"
-        elseif text =~ 'CLOSED'
-            execute "let b:v.mdate = s:GetProp('CLOSED'".str .")[1:-2]"
-        else
-            execute "let b:v.mdate = get(s:GetProperties(lineno,0".filestr."),'ud','')"
+
+        if text =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\)'
+            let b:v.mdate = s:GetProp(text,lineno, file)
             if b:v.mdate > '' | let b:v.mdate .= ' '.calutil#dayname(b:v.mdate) | endif 
+        else
+            let b:v.mdate = matchstr(bufline,'[[<]\zs\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
         endif
+
         let b:v.mdate = matchstr(b:v.mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)\{}') 
         if b:v.mdate > ''
             let b:v.basedate = b:v.mdate[0:9]
@@ -3212,13 +3283,20 @@ function! OrgDateEdit(type)
             let b:v.basedate=s:Today()
             let b:v.basetime = ''
         endif
+"        call OrgDatePrompt(b:v.basedate, b:v.basetime)
+"endfunction
 
+"function! OrgDatePrompt(basedate, basetime)
         let basedate = b:v.basedate[0:9]
         let basetime = b:v.basetime
         let newdate = '<'.b:v.mdate[0:13].'>'
         let newtime = b:v.basetime
+        "let basedate = a:basedate
+        "let basetime = a:basetime
+        "let newdate = '<'.basedate.'>'
+        "let newtime = basetime
         hi Cursor guibg=black
-        let g:org_cal_date = newdate[1:10]
+        let s:org_cal_date = newdate[1:10]
         call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
         " highlight chosen dates in calendar
         hi Ag_Date guifg=red
@@ -3283,7 +3361,7 @@ function! OrgDateEdit(type)
             endif
             let newdate = s:GetNewDate(cue,basedate)
             if g:org_use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
-                let g:org_cal_date = newdate[1:10]
+                let s:org_cal_date = newdate[1:10]
                 call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
             endif
             echon repeat(' ',72)
@@ -3294,14 +3372,18 @@ function! OrgDateEdit(type)
         if (from_agenda==0) && bufname("%")=='__Agenda__'
            wincmd k 
         endif
-        if text =~ 'DEADLINE'
-            silent execute "call s:SetProp('DEADLINE'".",'".newdate."'".str .")"
-        elseif text =~ 'SCHEDULED'
-            silent execute "call s:SetProp('SCHEDULED'".",'".newdate."'".str .")"
-        elseif text =~ 'CLOSED'
-            silent execute "call s:SetProp('CLOSED'".",'".newdate."'".str .")"
+
+        " set buffer text with new date . . . 
+        if text =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\)'
+            let b:v.mdate = s:SetProp(text,newdate,lineno, file)
         else
-            silent execute "call s:SetProp('ud'".",'".newdate."'".str .")"
+            " set the date at linenumber to new date
+            let newdate = substitute(bufline,'[[<]\zs\d\d\d\d-\d\d-\d\d.\{-}\ze[>\]]',newdate[1:-2],'')
+            if bufname("%")==('__Agenda__')
+                call OrgSetLine(lineno,file,newdate)
+            else
+                call setline(lineno,newdate)
+            endif
         endif
         let @/=''
         set nohlsearch
@@ -3310,7 +3392,6 @@ function! OrgDateEdit(type)
         echo 
         redraw
 endfunction
-
 
 function! s:GetNewDate(cue,basedate)
         if match(a:cue,':') >= 0
@@ -3367,10 +3448,10 @@ function! s:GetNewDate(cue,basedate)
             let day = matchstr(cue,'-\zs\d\+\ze$')
             let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
 
-            "       elseif cue =~ g:org_monthstring
+            "       elseif cue =~ s:org_monthstring
             "           let mycount = matchstr(cue,'^\d\+')
             "           let mymonth = 
-            "           let newday = index(g:org_weekdays,cue)
+            "           let newday = index(s:org_weekdays,cue)
             "           let oldday = calutil#dow(basedate)
             "           if newday > oldday
             "               let amt=newday-oldday
@@ -3380,11 +3461,11 @@ function! s:GetNewDate(cue,basedate)
             "               let amt = 7
             "           endif
             "           let newdate=calutil#cal(calutil#jul(basedate)+amt)
-        elseif cue =~ g:org_weekdaystring
+        elseif cue =~ s:org_weekdaystring
             " wed, 3tue, 5fri, i.e., dow string
             let mycount = matchstr(cue,'^\d\+')
-            let myday = matchstr(cue,g:org_weekdaystring) 
-            let newday = index(g:org_weekdays,myday)
+            let myday = matchstr(cue,s:org_weekdaystring) 
+            let newday = index(s:org_weekdays,myday)
             let oldday = calutil#dow(matchstr(basedate,'\d\d\d\d-\d\d-\d\d'))
             if newday > oldday
                 let amt=newday-oldday
@@ -3740,7 +3821,7 @@ function! s:ClockTable()
     call s:UpdateHeadlineSums()
     let g:ctable_dict = {}
     let mycommand = "let g:ctable_dict[line('.')] = "
-                \ . "{'text':s:GetProperties(line('.'),0)['htext']"
+                \ . "{'text':s:GetProperties(line('.'),0)['ITEM']"
                 \ . " , 'time':s:GetProperties(line('.'),0)['TotalClockTime']}"
     g/:TotalClockTime/execute mycommand
     let total='00:00'
@@ -3867,14 +3948,18 @@ function! s:SetProp(key, val,...)
     let key = a:key
     let val = a:val
     execute s:OrgGetHead() 
-    if key =~ 'DEADLINE\|SCHEDULED\|CLOSED\|ud'
-        " it's one of the four date props
+    let block_end = s:GetProperties(line('.'),0)['block_end']
+    if key =~ 'DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP'
+        " it's one of the five date props
         " find existing date line if there is one
-        if key=='ud' 
+        if key=='TIMESTAMP' 
             let key = ''
-            let foundline = s:Range_Search('^\s*:\s*<\d\d\d\d-\d\d-\d\d','n',s:OrgNextHead(),line("."))
+            let foundline = s:Range_Search('^\s*:\s*<\d\d\d\d-\d\d-\d\d','n',block_end,line("."))
+        elseif key=='TIMESTAMP_IA' 
+            let key = ''
+            let foundline = s:Range_Search('^\s*:\s*[\d\d\d\d-\d\d-\d\d','n',block_end,line("."))
         else
-            let foundline = s:Range_Search('^\s*\(:\)\{}'.key.'\s*:','n',s:OrgNextHead(),line("."))
+            let foundline = s:Range_Search('^\s*\(:\)\{}'.key.'\s*:','n',block_end,line("."))
         endif
         if foundline > 0
             exec foundline
@@ -3882,7 +3967,7 @@ function! s:SetProp(key, val,...)
         else
             let line_ind = len(matchstr(getline(line(".")),'^\**'))+1 + g:org_indent_from_head
             if s:IsTagLine(line('.')+1)
-                normal j
+                execute line('.') + 1
             endif
             call append(line("."),org#Pad(' ',line_ind)
                         \ .':'.key.(key==''?'':':').a:val)
@@ -4094,8 +4179,9 @@ endfunction
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
-function! OrgSID()
-    return s:SID()
+function! OrgSID(func)
+    "return s:SID()
+    execute 'call <SNR>'.s:SID().'_'.a:func
 endfunction
 function! s:MyPopup()
     call feedkeys("i\<c-x>\<c-u>")
@@ -4187,14 +4273,18 @@ function! OrgFoldText(...)
     let offset = &fdc + 5*(&number) + 4
     if b:v.columnview && (origline =~ b:v.headMatch) 
         let l:line .= s:PrePad(s:GetColumns(foldstart), winwidth(0)-len(l:line) - offset)
-    endif
-    if !a:0 && g:org_show_fold_lines && !b:v.columnview 
+    elseif a:0 && (foldclosed(line('.')) > 0)
+        let l:line .= s:PrePad("(" 
+            \  . s:PrePad(l:txtmrk . (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
+            \ winwidth(0)-len(l:line) - offset) 
+    elseif g:org_show_fold_lines && !b:v.columnview 
         let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
 
     return l:line
 endfunction
+
 function! s:MySort(comppattern) range
     let b:v.sortcompare = a:comppattern
     let b:v.complist = ['\s*\S\+','\s*\S\+\s\+\zs\S\+','\s*\(\S\+\s\+\)\{2}\zs\S\+'
@@ -4253,7 +4343,7 @@ function! s:OrgShowMatch(cycleflag)
     let b:v.headMatch = l:headMatch
     let b:v.todoitems = l:todoitems
     if a:cycleflag
-        call OrgToggleTodo(line("."))
+        call OrgSequenceTodo(line("."))
     endif
     "let g:showndx = line(".")-1
     if getline(line(".")) =~ '^\d\+'
@@ -4267,7 +4357,7 @@ function! s:OrgShowMatch(cycleflag)
     "execute g:alines[g:showndx]
     normal zv
     if a:cycleflag
-        call OrgToggleTodo(line("."))
+        call OrgSequenceTodo(line("."))
     endif
     if getline(line(".")) =~ b:v.headMatch
         call OrgBodyTextOperation(line("."),s:OrgNextHead(),'collapse')
@@ -4830,6 +4920,7 @@ function! s:AgendaBufHighlight()
     map <silent> <buffer> <localleader>tx :call OrgAgendaGetText(1,'')<cr>
     nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
     nmap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
+    nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
     nmap <silent> <buffer> q  :quit<cr>
     nmap <silent> <buffer> <c-tab>  :wincmd k<cr>
 endfunction
@@ -4852,6 +4943,30 @@ function! s:AgendaHighlight()
         hi Deadline guifg=NONE
         hi Scheduled guifg=NONE
     endif
+endfunction
+
+function! OrgScreenLines() range
+    " returns lines as
+    " seen on screen, including folded text overlays
+    " Call with visual selection set, or will
+    " use last selection
+    let save_cursor = getpos('.')
+    let newline=0
+    let oldline=1
+    let mylines=[]
+    normal '>
+    let endline = line('.')
+    " go to first line of selection
+    normal '<
+    while (line('.') <= endline) && (newline != oldline)
+        let oldline=line('.')
+        let newline=oldline
+        call add(mylines,OrgFoldText(line('.')))
+        normal j
+        let newline=line('.')
+    endwhile
+    call setpos('.',save_cursor)
+    return mylines
 endfunction
 
 function! s:CurTodo(line)
@@ -4880,14 +4995,15 @@ command! -nargs=0 AAgenda call s:AgendaBufferOpen(1)
 command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()
 function! s:ExportToPDF()
-    let mypath = '"c:\program files (x86)\emacs\emacs\bin\emacs.exe" -batch --visit='
+    let mypath = '"c:\program files (x86)\emacs\emacs\bin\emacs.exe" -batch --load $HOME/.emacs --visit='
     let part2 = ' --funcall org-export-as-pdf'
-    silent execute '!'.mypath.expand("%").part2
+    silent execute '!' . mypath . expand("%") . part2
     "call inputdialog("just waiting to go forward. . . ")
     silent execute '!'.expand("%:r").'.pdf'
 endfunction
 function! s:ExportToHTML()
-    let mypath = '"c:\program files (x86)\emacs\emacs\bin\emacs.exe" -batch --visit='
+    "let mypath = '"c:\program files (x86)\emacs\emacs\bin\emacs.exe" -batch --visit='
+    let mypath = g:org_path_to_emacs .' -batch --visit='
     let part2 = ' --funcall org-export-as-html'
     silent execute '!'.mypath.expand("%").part2
     "call inputdialog("just waiting to go forward. . . ")
@@ -4898,6 +5014,18 @@ function! s:MailLookup()
     Utl openlink https://mail.google.com/mail/?hl=en&shva=1#search/after:2010-10-24+before:2010-10-26
     "https://mail.google.com/mail/?hl=en&shva=1#search/after%3A2010-10-24+before%3A2010-10-26
 endfunction
+function! Union(list1, list2)
+    " returns the union of two lists
+    " (some algo ...)
+    let rdict = {}
+    for item in a:list1
+            let rdict[item] = 1
+    endfor
+    for item in a:list2
+            let rdict[item] = 1
+    endfor
+    return sort(keys(rdict))
+endfunc 
 function! s:Intersect(list1, list2)
     " returns the intersection of two lists
     " (some algo ...)
@@ -4957,7 +5085,9 @@ nmap <silent> <buffer> <s-tab> :call OrgGlobalCycle()<cr>
 nmap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
 nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 "cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
-map <silent> <localleader>dr :call OrgDateEdit('ud')<cr>
+" dl is for the date on the current line
+map <silent> <localleader>dl :call OrgDateEdit('')<cr>
+map <silent> <localleader>dr :call OrgDateEdit('TIMESTAMP')<cr>
 map <silent> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
 map <silent> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
 map <silent> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
@@ -4965,12 +5095,13 @@ map <silent> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'')<cr>
 map <silent> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+ALL_TODOS')<cr>
 map <silent> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+UNFINISHED_TODOS')<cr>
 map <silent> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+FINISHED_TODOS')<cr>
-map <silent> <buffer> <localleader>tt :call OrgToggleTodo(line('.'),'t')<cr>
-map <silent> <buffer> <localleader>ts :call OrgToggleTodo(line('.'),'s')<cr>
-map <silent> <buffer> <localleader>td :call OrgToggleTodo(line('.'),'d')<cr>
-map <silent> <buffer> <localleader>tc :call OrgToggleTodo(line('.'),'c')<cr>
-map <silent> <buffer> <localleader>tn :call OrgToggleTodo(line('.'),'n')<cr>
-map <silent> <buffer> <localleader>tx :call OrgToggleTodo(line('.'),'x')<cr>
+map <silent> <buffer> <localleader>tt :call OrgSequenceTodo(line('.'),'t')<cr>
+map <silent> <buffer> <localleader>ts :call OrgSequenceTodo(line('.'),'s')<cr>
+map <silent> <buffer> <localleader>td :call OrgSequenceTodo(line('.'),'d')<cr>
+map <silent> <buffer> <localleader>tc :call OrgSequenceTodo(line('.'),'c')<cr>
+map <silent> <buffer> <localleader>tn :call OrgSequenceTodo(line('.'),'n')<cr>
+map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
+map <silent> <buffer> <localleader>nt :call OrgSequenceTodo(line('.'))<cr>
 map <silent> <localleader>ag :call OrgAgendaDashboard()<cr>
 command! -nargs=0 Agenda :call OrgAgendaDashboard()
 "map <localleader>ar :startofbasedateedit 
@@ -5076,7 +5207,6 @@ command! PostWriteTags :silent call <SID>UndoUnconvertTags()
 "  :autocmd CursorMoved,CursorMovedI * :if match(getline(line(".")), '^*\*\s') == 0 | :setlocal textwidth=99 | :else | :setlocal textwidth=79 | :endif 
 set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
 set fo=qtcwn
-" Added an indication of current syntax as per Dillon Jones' request
 let b:v.current_syntax = "org"
 
 " vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^func'?0\:1:
