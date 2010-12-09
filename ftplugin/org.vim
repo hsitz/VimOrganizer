@@ -630,7 +630,7 @@ function! s:ReplaceTodo(todoword,...)
     else
         let newtodo = s:NewTodo(todoword)
     endif
-    if newtodo > ''
+    if len(newtodo) > 0
         let newtodo .= ' '
     endif
     if (index(b:v.todoitems,todoword) >= 0) 
