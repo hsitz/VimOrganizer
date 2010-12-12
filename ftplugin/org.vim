@@ -1569,7 +1569,7 @@ endfunction
 
 
 function! s:UpdateHeadlineSums()
-    call s:MakeOrgDict()
+    call OrgMakeDict()
     let g:tempdict = {}
     g/\*\+ /let g:tempdict[line('.')] = b:v.org_dict.SumTime(line('.'),'ItemClockTime')
     let items = sort(keys(g:tempdict))
@@ -1582,7 +1582,42 @@ function! s:UpdateHeadlineSums()
     endwhile
 endfunction
 
-function! s:MakeOrgDict()
+function! OrgMakeDictInh()
+    let b:v.org_dict = {'0':{'cat':'0cat'}}
+	function! b:v.org_dict.iprop(ndx,property) dict
+        let prop = a:property
+        let result = get(self[a:ndx] , prop,'#a?q')
+        if (result == '#a?q') && (a:ndx != 0)
+            "recurse up through parents in tree
+            let result = b:v.org_dict.iprop(self[a:ndx].parent,prop)
+        endif
+        if result == '#a?q' 
+            let result = ''
+        endif
+        return result
+	endfunction	
+    execute 1
+   let next = 1
+   if s:IsText(line('.'))
+      let next = s:OrgNextHead()
+   endif
+   while next > 0
+      execute next
+      let b:v.org_dict[line('.')] = {'c':[]}
+      if getline(line('.'))[1] == ' '
+          let parent = 0
+      else
+          let parent = s:OrgParentHead()
+      endif
+      let b:v.org_dict[line('.')].parent = parent
+      if parent > 0
+          call add(b:v.org_dict[parent].c ,line('.'))
+      endif
+      let next = s:OrgNextHead()
+   endwhile 
+   g/^\s*:CATEGORY/let b:v.org_dict[s:OrgGetHead()].cat = getline(line('.')) 
+endfunction
+function! OrgMakeDict()
     let b:v.org_dict = {}
 	function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
