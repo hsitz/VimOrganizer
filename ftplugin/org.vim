@@ -1374,6 +1374,7 @@ function! s:GetProperties(hl,withtextinfo,...)
     let result1['line'] = hl
     let linetext = getline(hl)
     let result1['ITEM'] = linetext
+    let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
     let result1['file']=expand("%:t:r")
     " get date on headline, if any
     if linetext =~ b:v.dateMatch
@@ -1582,17 +1583,14 @@ function! s:UpdateHeadlineSums()
     endwhile
 endfunction
 
-function! OrgMakeDictInh()
-    let b:v.org_dict = {'0':{'cat':'0cat'}}
+function! OrgMakeDictInherited()
+    let b:v.org_dict = {'0':{'CATEGORY':expand("%:t:r")}}
 	function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
-        let result = get(self[a:ndx] , prop,'#a?q')
-        if (result == '#a?q') && (a:ndx != 0)
+        let result = get(self[a:ndx] , prop,'')
+        if (result == '') && (a:ndx != 0)
             "recurse up through parents in tree
             let result = b:v.org_dict.iprop(self[a:ndx].parent,prop)
-        endif
-        if result == '#a?q' 
-            let result = ''
         endif
         return result
 	endfunction	
@@ -1615,10 +1613,11 @@ function! OrgMakeDictInh()
       endif
       let next = s:OrgNextHead()
    endwhile 
-   g/^\s*:CATEGORY/let b:v.org_dict[s:OrgGetHead()].cat = getline(line('.')) 
+   g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line('.')),':CATEGORY:\s*\zs.*') 
 endfunction
 function! OrgMakeDict()
-    let b:v.org_dict = {}
+    "let b:v.org_dict = {}
+    call OrgMakeDictInherited()
 	function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop,'00:00')
@@ -1834,8 +1833,10 @@ function! s:OrgIfExpr()
             let mtch = matchlist(item[1:],pat)
             "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
             if mtch[3] =~ '^\d\+$'
+                " numeric comparison
                 let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
             else
+                " string comparison
                 let rightside="'".mtch[3]."'"
                 let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
                 "let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
@@ -1898,6 +1899,10 @@ function! s:CheckIfExpr(line,ifexpr,...)
 
 endfunction
 
+function! FileDict()
+    return s:filedict
+endfunction
+
 function! s:OrgIfExprResults(ifexpr,...)
     " ifexpr has single compound expression that will evaluate
     " as true only for desired lines
@@ -1929,15 +1934,18 @@ function! s:OrgIfExprResults(ifexpr,...)
             " next line is to fix for text area search
             " now that we can reference tbegin and tend
             let myifexpr = substitute(a:ifexpr,'tbegin,tend',get(lineprops,'tbegin') .','. get(lineprops,'tend'),"")
-            let g:filedict={}
+            let s:filedict={}
             let i = 1
             for item in g:agenda_files
+               "let s:filedict[item]= s:PrePad(i,3,'0')
                 if match(item,'c:\') >= 0
-                    execute "let g:filedict['".matchstr(item,'.*\\\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+                   "execute "let s:filedict['".matchstr(item,'.*\\\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+                   let s:filedict[ matchstr(item,'.*\\\zs\S\{}\ze.org$') ] = s:PrePad(i,3,'0')
                 elseif match(item,'/') >= 0
-                    execute "let g:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+                    execute "let s:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
                 else
-                    execute "let g:filedict['".matchstr(item,'.*\ze.org')."']='".s:PrePad(i,3,'0')."'"
+                    "execute "let s:filedict['".matchstr(item,'.*\ze.org')."']='".s:PrePad(i,3,'0')."'"
+                    let s:filedict[matchstr(item,'.*\ze.org')] = s:PrePad(i,3,'0')
                 endif
                 let i +=1
             endfor
@@ -1947,8 +1955,8 @@ function! s:OrgIfExprResults(ifexpr,...)
                 if sparse_search
                     let keyval = headline
                 else
-                    let keyval = g:filedict[lineprops.file] . "_" . s:PrePad(headline,5,'0')
-                    "let keyval = lineprops.file . "_" . s:PrePad(headline,5,'0')
+                    "let keyval = s:filedict[lineprops.file] . "_" . s:PrePad(headline,5,'0')
+                    let keyval = s:filedict[lineprops.file] . s:PrePad(headline,5,'0')
                 endif
 
                 let g:adict[keyval]=lineprops
@@ -1981,10 +1989,9 @@ function! s:MakeResults(search_spec,...)
         call s:OrgIfExprResults(ifexpr,sparse_search)
     else
         for file in g:agenda_files
-            let g:mycommand = 'tab drop '. file
             let mycommand = 'tab drop '. file
-            "execute 'tab drop ' . file
             execute mycommand
+            call OrgMakeDictInherited()
             let ifexpr = s:OrgIfExpr()
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
             call s:OrgIfExprResults(ifexpr,sparse_search)
@@ -2019,6 +2026,7 @@ function! s:MakeAgenda(date,count,...)
     else
         let g:org_search_spec = ''
     endif
+    let as_today = ''
     if a:0 >= 2
         let as_today = a:2
     endif
@@ -2168,9 +2176,10 @@ function! OrgRunSearch(search_spec,...)
         endif
         for key in sort(keys(g:adict))
             call setline(line("$")+1, g:adict[key].line . repeat(' ',6-len(g:adict[key].line)) . 
-                        \ org#Pad(g:adict[key].file,13)  . 
+                        \ org#Pad(g:adict[key].CATEGORY,13)  . 
                         \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
                         \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
+                        "\ org#Pad(g:adict[key].file,13)  . 
             let i += 1
         endfor
     endif
