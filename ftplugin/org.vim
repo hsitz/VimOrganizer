@@ -5,9 +5,6 @@ let b:v={}
 let b:v.prevlev = 0
 let maplocalleader = ","        " Org key mappings prepend single comma
 
-" below is match string that will match all body text lines
-"           t1      t1'      t2     t7   t3-4    t5-6 
-let b:v.textMatch = '\(^\s*.*\|^\t*:\|^\t* \|^\t*;\|^\t*|\|^\t*>\)'
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
 let b:v.headMatchLevel = '^\(\*\)\{level}\s'
@@ -1934,29 +1931,34 @@ function! s:OrgIfExprResults(ifexpr,...)
             " next line is to fix for text area search
             " now that we can reference tbegin and tend
             let myifexpr = substitute(a:ifexpr,'tbegin,tend',get(lineprops,'tbegin') .','. get(lineprops,'tend'),"")
-            let s:filedict={}
-            let i = 1
-            for item in g:agenda_files
-               "let s:filedict[item]= s:PrePad(i,3,'0')
-                if match(item,'c:\') >= 0
-                   "execute "let s:filedict['".matchstr(item,'.*\\\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
-                   let s:filedict[ matchstr(item,'.*\\\zs\S\{}\ze.org$') ] = s:PrePad(i,3,'0')
-                elseif match(item,'/') >= 0
-                    execute "let s:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
-                else
-                    "execute "let s:filedict['".matchstr(item,'.*\ze.org')."']='".s:PrePad(i,3,'0')."'"
-                    let s:filedict[matchstr(item,'.*\ze.org')] = s:PrePad(i,3,'0')
-                endif
-                let i +=1
-            endfor
-
+            "let s:filedict={}
+            let s:filedict  = copy(g:agenda_files)
+"            let i = 1
+"            for item in g:agenda_files
+"               "let s:filedict[item]= s:PrePad(i,3,'0')
+"                if match(item,'c:\') >= 0
+"                   "execute "let s:filedict['".matchstr(item,'.*\\\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+"                   "let s:filedict[ matchstr(item,'.*\\\zs\S\{}\ze.org$') ] = s:PrePad(i,3,'0')
+"                   let s:filedict[ s:PrePad(i,3,'0') ] = matchstr(item,'.*\\\zs\S\{}\ze.org$')
+"                elseif match(item,'/') >= 0
+"                    "execute "let s:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+"                     "let s:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
+"                    let s:filedict[ s:PrePad(i,3,'0')] = matchstr(item,'.matchstr(item,'.*/\zs\S\{}\ze.org$')
+"                else
+"                    "execute "let s:filedict['".matchstr(item,'.*\ze.org')."']='".s:PrePad(i,3,'0')."'"
+"                    let s:filedict[ s:PrePad(i,3,'0')] = matchstr(item,'.*\ze.org')
+"                endif
+"                let i +=1
+"            endfor
+"
             "********  eval() is what does it all ***************
             if eval(myifexpr)
                 if sparse_search
                     let keyval = headline
                 else
                     "let keyval = s:filedict[lineprops.file] . "_" . s:PrePad(headline,5,'0')
-                    let keyval = s:filedict[lineprops.file] . s:PrePad(headline,5,'0')
+                    "let keyval = s:filedict[lineprops.file] . s:PrePad(headline,5,'0')
+                    let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
                 endif
 
                 let g:adict[keyval]=lineprops
@@ -1982,6 +1984,7 @@ function! s:MakeResults(search_spec,...)
     let g:org_todoitems=[]
     let g:adict = {}
     let g:datedict = {}
+    let s:agenda_files_copy = copy(g:agenda_files)
 
     if sparse_search 
         "execute 'let myfiles=["' . curfile . '"]'
@@ -2175,7 +2178,8 @@ function! OrgRunSearch(search_spec,...)
             call append(1,split(msg.numstr,'\%72c\S*\zs '))
         endif
         for key in sort(keys(g:adict))
-            call setline(line("$")+1, g:adict[key].line . repeat(' ',6-len(g:adict[key].line)) . 
+            "call setline(line("$")+1, g:adict[key].line . repeat(' ',6-len(g:adict[key].line)) . 
+            call setline(line("$")+1, key . ' ' . 
                         \ org#Pad(g:adict[key].CATEGORY,13)  . 
                         \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
                         \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
@@ -2937,15 +2941,14 @@ function! s:AgendaPutText(...)
     let thisline = getline(line("."))
     if thisline =~ '^\d\+\s\+'
         if (getline(line(".") + 1) =~ '^\*\+ ')
-            let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
-            let lineno = matchstr(thisline,'^\d\+\ze\s\+')
+            "let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
+            let file = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+            "let lineno = matchstr(thisline,'^\d\+\ze\s\+')
+            let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             let starttab = tabpagenr() 
-            "if bufwinnr(file) > -1
-            "    execute bufwinnr(file).'wincmd w'
-            "else
-            "    execute "tab drop " . file . '.org'
-            "endif
-            call s:LocateFile(file.'.org')
+
+            "call s:LocateFile(file.'.org')
+            call s:LocateFile(file)
             if g:agenda_date_dict != {}
                 "let confirmhead = g:agenda_head_lookup[lineno]
                 let confirmhead = lineno
@@ -3014,7 +3017,8 @@ function! s:SaveHeadline(file, headline, lines)
     let lines=a:lines
     let starttab = tabpagenr() 
 
-    call s:LocateFile(file.'.org')
+    "call s:LocateFile(file.'.org')
+    call s:LocateFile(file)
     "let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.headline)
     let newhead = a:headline
     execute newhead
@@ -3047,15 +3051,15 @@ function! OrgAgendaGetText(...)
         if (getline(line(".") + 1) =~ '^\d\+\s\+') || (line(".") == line("$")) ||
                     \ (getline(line(".") + 1 ) =~ '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d')
                     \ || (getline(line(".") + 1 ) =~ '\d empty days omitted')
-            let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
-            let lineno = matchstr(thisline,'^\d\+\ze\s\+')
+            "let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
+            "let lineno = matchstr(thisline,'^\d\+\ze\s\+')
+            "let starttab = tabpagenr() 
+            "call s:LocateFile(file.'.org')
+            let file = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+            let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             let starttab = tabpagenr() 
-            "if bufwinnr(file) > -1
-            "    execute bufwinnr(file).'wincmd w'
-            "else
-            "    execute "tab drop " . file . '.org'
-            "endif
-            call s:LocateFile(file.'.org')
+
+            call s:LocateFile(file)
             let save_cursor2 = getpos(".")
             "let confirmhead = s:OrgGetHead_l(headline)
             if g:agenda_date_dict != {}
