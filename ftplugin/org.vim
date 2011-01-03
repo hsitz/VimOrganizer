@@ -1584,10 +1584,11 @@ function! OrgMakeDictInherited()
     let b:v.org_dict = {'0':{'CATEGORY':expand("%:t:r")}}
 	function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
-        let result = get(self[a:ndx] , prop,'')
-        if (result == '') && (a:ndx != 0)
+        let ndx = a:ndx
+        let result = get(self[ndx] , prop,'')
+        if (result == '') && (ndx != 0)
             "recurse up through parents in tree
-            let result = b:v.org_dict.iprop(self[a:ndx].parent,prop)
+            let result = b:v.org_dict.iprop(self[ndx].parent,prop)
         endif
         return result
 	endfunction	
@@ -1613,7 +1614,7 @@ function! OrgMakeDictInherited()
    g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line('.')),':CATEGORY:\s*\zs.*') 
 endfunction
 function! OrgMakeDict()
-    "let b:v.org_dict = {}
+    let b:v.org_dict = {}
     call OrgMakeDictInherited()
 	function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
@@ -1640,7 +1641,8 @@ function! OrgMakeDict()
    endif
    while next > 0
       execute next
-      let b:v.org_dict[line('.')] = {'c':[]}
+      let b:v.org_dict[line('.')].c = []
+      "let b:v.org_dict[line('.')] = {'c':[]}
       let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
       let parent = s:OrgParentHead()
       if parent > 0
@@ -2051,6 +2053,7 @@ function! s:MakeAgenda(date,count,...)
     if a:count == 1 | let as_today = g:agenda_startdate | endif
     "let myfiles=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
     let g:adict = {}
+    let s:filedict = copy(g:agenda_files)
     let g:datedict = {}
     call s:MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
@@ -2463,6 +2466,8 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     endif
     let datematch = a:datematch
     let rangedate = matchstr(getline(line(".")),'--<\zs\d\d\d\d-\d\d-\d\d')
+                    "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
+    let locator = s:PrePad(index(s:filedict, expand("%:t") ),3,'0') . s:PrePad(line('.'),5,'0') . '  '
     let filename = org#Pad(expand("%:t:r"), 13 )
     let line = getline(line("."))
     let date1 = a:date1
@@ -2488,7 +2493,8 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
                     endif
                 endif
             endif
-            call add(g:agenda_date_dict[datematch].l,  line(".") . repeat(' ',6-len(line("."))) . filename . org#Pad(tmatch,11) . s:headtext)
+            call add(g:agenda_date_dict[datematch].l,  locator . filename . org#Pad(tmatch,11) . s:headtext)
+            "call add(g:agenda_date_dict[datematch].l,  line(".") . repeat(' ',6-len(line("."))) . filename . org#Pad(tmatch,11) . s:headtext)
             if rangedate != ''
                 "let startdate = matchstr(line,'<\zs\d\d\d\d-\d\d-\d\d\ze')
                 "let thisday = calutil#jul(datematch) - calutil#jul(startdate) + 1
@@ -2499,7 +2505,8 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
                 while (rangedate > datematch)
                     let rangestr = '('.i.'/'.days_in_range.')'
                     if exists("g:agenda_date_dict['".rangedate."']")
-                        call add(g:agenda_date_dict[rangedate].l,  line(".") . repeat(' ',6-len(line("."))) . 
+                        "call add(g:agenda_date_dict[rangedate].l,  line(".") . repeat(' ',6-len(line("."))) . 
+                        call add(g:agenda_date_dict[rangedate].l,  locator . 
                                     \ filename . org#Pad(rangestr,11) . s:headtext)
                     endif
                     let rangedate = calutil#cal(calutil#jul(rangedate) - 1)
@@ -2512,7 +2519,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
         else
             " it's a deadline/scheduled/closed date
             let type = org#Pad(mlist[1][0] . tolower(mlist[1][1:]) . ':' , 11)
-            call add(g:agenda_date_dict[datematch].l,  line(".") . repeat(' ',6-len(line("."))) . filename . type  . s:headtext)
+            call add(g:agenda_date_dict[datematch].l,  locator . filename . type  . s:headtext)
         endif
     endif
     " Now test for late and upcoming warnings if 'today' is in range
@@ -2528,7 +2535,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
                 else
                     let newpart = org#Pad('Sched:',9-len(dayspast)) . dayspast . 'X:'
                 endif
-                call add(g:agenda_date_dict[today].l,  line(".") . repeat(' ',6-len(line("."))) . filename . newpart . s:headtext)
+                call add(g:agenda_date_dict[today].l,  locator . filename . newpart . s:headtext)
             endif
             " also put in warning entry for deadlines when appropriate
         elseif (datematch > today) && (match(line,'DEADLINE')>-1)
@@ -2540,7 +2547,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
                 let g:specific_warning = str2nr(matchstr(line,'<\S*\d\d.*-\zs\d\+\zed.*>'))
                 if (daysahead <= g:org_deadline_warning_days) || (daysahead <= g:specific_warning)
                     let newpart = org#Pad('In',7-len(daysahead)) . daysahead . ' d.:' 
-                    call add(g:agenda_date_dict[today].l,  line(".") . repeat(' ',6-len(line("."))) . filename . newpart . s:headtext)
+                    call add(g:agenda_date_dict[today].l,  locator . filename . newpart . s:headtext)
                 endif
             endif
         endif
@@ -2560,7 +2567,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
         let i = last_day_to_add
         while (rangedate >= date1)
             let rangestr = '('.i.'/'.days_in_range.')'
-            call add(g:agenda_date_dict[rangedate].l,  line(".") . repeat(' ',6-len(line("."))) . 
+            call add(g:agenda_date_dict[rangedate].l,  locator . 
                         \ filename . org#Pad(rangestr,11) . s:headtext)
             let rangedate = calutil#cal(calutil#jul(rangedate) - 1)
             let i = i - 1
@@ -2733,7 +2740,8 @@ function! s:PrePad(s,amt,...)
     return repeat(char,a:amt - len(a:s)) . a:s
 endfunction
 function! s:AgendaCompare(i0, i1)
-    let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\%20c.\{11}\).*\(\*\+\)\s\(.*$\)'
+    "let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\%24c.\{11}\).*\(\*\+\)\s\(.*$\)'
+    let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\S.\{10}\).*\(\*\+\)\s\(.*$\)'
     " [1] is lineno, [2] is file, [3] is scheduling, [4] is levelstarts, 
     " [5] is headtext
     let cp0 = matchlist(a:i0,mymstr)
@@ -2991,7 +2999,7 @@ function! s:AgendaPutText(...)
             if g:text == getline(firstline, lastline)
                 echo "headings are identical"
             else
-                if g:adict != {}
+                "if g:adict != {}
                     let resp = confirm("Heading's text has changed, save changes?","&Save\n&Cancel",1)
                     if resp == 1
                         call s:SaveHeadline(file, newhead,getline(firstline,lastline))
@@ -2999,11 +3007,11 @@ function! s:AgendaPutText(...)
                     else
                         echo "Changes were _not_ saved."
                     endif
-                else
-                    call confirm("Heading's text has changed, but saving is\n"
-                        \ . "temporarily disabled for date agenda views.\n"
-                        \ . "No changes are being made, buffer text remains as it was.")
-                endif
+                "else
+                 "   call confirm("Heading's text has changed, but saving is\n"
+                  "      \ . "temporarily disabled for date agenda views.\n"
+                   "     \ . "No changes are being made, buffer text remains as it was.")
+                "endif
             endif
         endif
     else
