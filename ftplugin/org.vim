@@ -4506,8 +4506,11 @@ command! AgendaMoveToBuf call s:OrgAgendaToBuf()
 function! s:OrgAgendaToBufTest()
     " this loads unfolded buffer into same window as Agenda
     if getline(line(".")) =~ '^\d\+'
-        let g:showndx = matchlist(getline(line(".")),'^\d\+')[0]
-        let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
+        let thisline = getline(line('.'))
+        let g:tofile = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+        let g:showndx = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
+        "let g:showndx = matchlist(getline(line(".")),'^\d\+')[0]
+        "let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
     endif
     let cur_buf = bufnr("%")
     let g:org_folds=0
@@ -4525,8 +4528,6 @@ function! s:OrgAgendaToBuf()
     endif   
 
     if getline(line(".")) =~ '^\d\+'
-        "let g:showndx = matchlist(getline(line(".")),'^\d\+')[0]
-        "let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
         let thisline = getline(line('.'))
         let g:tofile = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
         let g:showndx = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
