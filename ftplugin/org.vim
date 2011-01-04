@@ -263,35 +263,35 @@ function! OrgTagsEdit(...)
             let b:v.tagdict = getbufvar(file,'v').tagdict
             let b:v.tags_order = getbufvar(file,'v').tags_order
         endif
-	
+    
         execute "let heading_tags = get(s:GetProperties(lineno,0".filestr."),'tags','')"
-	
-	let new_heading_tags = s:TagMenu(heading_tags)
-	if new_heading_tags != heading_tags
+    
+    let new_heading_tags = s:TagMenu(heading_tags)
+    if new_heading_tags != heading_tags
             silent execute "call s:SetProp('tags'".",'".new_heading_tags."'".line_file_str .")"
-	endif
+    endif
 endfunction
 
 function! s:TagMenu(heading_tags)
-	let heading_tags = a:heading_tags
-	let tagstring = ''
+    let heading_tags = a:heading_tags
+    let tagstring = ''
     let tagchars = ''
-	for item in b:v.tags_order
+    for item in b:v.tags_order
         let tagchars .= b:v.tagdict[item].char
-		if match(heading_tags,':'.b:v.tagdict[item].tag .':') >= 0
-			let tagstring .= b:v.tagdict[item].char
-		endif
-	endfor
+        if match(heading_tags,':'.b:v.tagdict[item].tag .':') >= 0
+            let tagstring .= b:v.tagdict[item].char
+        endif
+    endfor
 
         hi Cursor guibg=black
         let cue = ''
-	set nomore
+    set nomore
     while 1
         echo repeat('-',winwidth(0)-1)
         echohl Title | echo 'Choose tags:   ' | echohl None | echon '( <enter> to accept, <esc> to cancel )'
         echo '------------'
         let oldgroup = 0
-		for item in b:v.tags_order
+        for item in b:v.tags_order
             if item == '\n'
                 continue
             endif
@@ -318,8 +318,8 @@ function! s:TagMenu(heading_tags)
                 "echon repeat(' ', 12-len(b:v.tagdict[item]))
             endif
             let oldgroup = b:v.tagdict[item].exgroup
-		endfor
-		echo ""
+        endfor
+        echo ""
             "echohl LineNr | echon 'Date+time ['.basedate . ' '.basetime.']: ' 
             "echohl None | echon cue.'_   =>' | echohl WildMenu | echon ' '.newdate.' '.newtime
             let nchar = getchar()
@@ -357,16 +357,16 @@ function! s:TagMenu(heading_tags)
     hi Cursor guibg=gray
     redraw
     echo 
-	set more
+    set more
 
-	let heading_tags = ''
-	for item in keys(b:v.tagdict)
-		if (item!='\n') && (match(tagstring, b:v.tagdict[item].char) >= 0)
-			let heading_tags .= b:v.tagdict[item].tag . ':'
-		endif
-	endfor
-	if heading_tags > '' | let heading_tags = ':' . heading_tags | endif
-	return heading_tags
+    let heading_tags = ''
+    for item in keys(b:v.tagdict)
+        if (item!='\n') && (match(tagstring, b:v.tagdict[item].char) >= 0)
+            let heading_tags .= b:v.tagdict[item].tag . ':'
+        endif
+    endfor
+    if heading_tags > '' | let heading_tags = ':' . heading_tags | endif
+    return heading_tags
 endfunction
 
 
@@ -1582,7 +1582,7 @@ endfunction
 
 function! OrgMakeDictInherited()
     let b:v.org_dict = {'0':{'CATEGORY':expand("%:t:r")}}
-	function! b:v.org_dict.iprop(ndx,property) dict
+    function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
         let ndx = a:ndx
         let result = get(self[ndx] , prop,'')
@@ -1591,7 +1591,7 @@ function! OrgMakeDictInherited()
             let result = b:v.org_dict.iprop(self[ndx].parent,prop)
         endif
         return result
-	endfunction	
+    endfunction 
     execute 1
    let next = 1
    if s:IsText(line('.'))
@@ -1616,7 +1616,7 @@ endfunction
 function! OrgMakeDict()
     let b:v.org_dict = {}
     call OrgMakeDictInherited()
-	function! b:v.org_dict.SumTime(ndx,property) dict
+    function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop,'00:00')
         " now recursion down the subtree of children in c
@@ -1624,8 +1624,8 @@ function! OrgMakeDict()
             let result = s:AddTime(result,b:v.org_dict.SumTime(item,prop))
         endfor
         return result
-	endfunction	
-	function! b:v.org_dict.Sum(ndx,property) dict
+    endfunction 
+    function! b:v.org_dict.Sum(ndx,property) dict
         let prop = a:property
         let result = get(self[a:ndx].props , prop)
         " now recursion down the subtree of children in c
@@ -1633,7 +1633,7 @@ function! OrgMakeDict()
             let result += b:v.org_dict.Sum(item,prop)
         endfor
         return result
-	endfunction	
+    endfunction 
     execute 1
    let next = 1
    if s:IsText(line('.'))
@@ -3263,9 +3263,9 @@ endfunction
 let g:calendar_sign = 'OrgCalSign'
 function! OrgCalSign(day, month, year)
   if a:year .'-'.s:Pre0(a:month).'-'.s:Pre0(a:day) == s:org_cal_date
-	  return 1
+      return 1
   else
-	  return 0
+      return 0
   endif
 endfunction
 function! OrgSetLine(line, file, newtext)
@@ -4525,14 +4525,18 @@ function! s:OrgAgendaToBuf()
     endif   
 
     if getline(line(".")) =~ '^\d\+'
-        let g:showndx = matchlist(getline(line(".")),'^\d\+')[0]
-        let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
+        "let g:showndx = matchlist(getline(line(".")),'^\d\+')[0]
+        "let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
+        let thisline = getline(line('.'))
+        let g:tofile = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+        let g:showndx = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
     endif
     let ag_line = line(".")
     let ag_height = winheight(0)
     let cur_buf = bufnr("%")  " should be Agenda
     close!
-    call s:LocateFile(g:tofile . '.org')
+    call s:LocateFile(g:tofile )
+    "call s:LocateFile(g:tofile . '.org')
     if &fdm != 'expr'
         set fdm=expr
     endif
