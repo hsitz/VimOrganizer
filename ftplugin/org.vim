@@ -1988,7 +1988,9 @@ function! s:MakeResults(search_spec,...)
     let g:adict = {}
     let g:datedict = {}
     let s:agenda_files_copy = copy(g:agenda_files)
-
+    " fix so copy doesn't have full path. .  .
+    call map(s:agenda_files_copy, 'matchstr(v:val,"[\\/]") > "" ? matchstr(v:val,"[^/\\\\]*$") : v:val')
+    let g:myt = s:agenda_files_copy
     if sparse_search 
         "execute 'let myfiles=["' . curfile . '"]'
         let ifexpr = s:OrgIfExpr()
