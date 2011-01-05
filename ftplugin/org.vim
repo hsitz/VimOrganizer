@@ -621,7 +621,8 @@ function! s:ReplaceTodo(todoword,...)
     let save_cursor = getpos('.')
     let todoword = a:todoword
     if bufname("%")==('__Agenda__')
-        let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+        let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+        "let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
         let b:v.fulltodos = getbufvar(file,'v').fulltodos
         let b:v.todoitems = getbufvar(file,'v').todoitems
     endif
@@ -3059,10 +3060,6 @@ function! OrgAgendaGetText(...)
         if (getline(line(".") + 1) =~ '^\d\+\s\+') || (line(".") == line("$")) ||
                     \ (getline(line(".") + 1 ) =~ '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d')
                     \ || (getline(line(".") + 1 ) =~ '\d empty days omitted')
-            "let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
-            "let lineno = matchstr(thisline,'^\d\+\ze\s\+')
-            "let starttab = tabpagenr() 
-            "call s:LocateFile(file.'.org')
             let file = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
             let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             let starttab = tabpagenr() 
