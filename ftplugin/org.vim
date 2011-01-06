@@ -1373,7 +1373,12 @@ function! s:GetProperties(hl,withtextinfo,...)
     let linetext = getline(hl)
     let result1['ITEM'] = linetext
     let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
-    let result1['file']=expand("%:t:r")
+    "let result1['file']=expand("%:t:r")
+    let filematch = index(s:agenda_files_copy,expand("%:t"))
+    if filematch == -1
+        let filematch = index(s:agenda_files_copy,expand("%:p"))
+    endif
+    let result1['file'] = filematch
     " get date on headline, if any
     if linetext =~ b:v.dateMatch
         let result1['ld'] = matchlist(linetext,b:v.dateMatch)[1]
@@ -1959,9 +1964,8 @@ function! s:OrgIfExprResults(ifexpr,...)
                 if sparse_search
                     let keyval = headline
                 else
-                    "let keyval = s:filedict[lineprops.file] . "_" . s:PrePad(headline,5,'0')
-                    "let keyval = s:filedict[lineprops.file] . s:PrePad(headline,5,'0')
-                    let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
+                    "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
+                    let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
                 endif
 
                 let g:adict[keyval]=lineprops
@@ -1989,8 +1993,7 @@ function! s:MakeResults(search_spec,...)
     let g:datedict = {}
     let s:agenda_files_copy = copy(g:agenda_files)
     " fix so copy doesn't have full path. .  .
-    call map(s:agenda_files_copy, 'matchstr(v:val,"[\\/]") > "" ? matchstr(v:val,"[^/\\\\]*$") : v:val')
-    let g:myt = s:agenda_files_copy
+    "call map(s:agenda_files_copy, 'matchstr(v:val,"[\\/]") > "" ? matchstr(v:val,"[^/\\\\]*$") : v:val')
     if sparse_search 
         "execute 'let myfiles=["' . curfile . '"]'
         let ifexpr = s:OrgIfExpr()
@@ -2005,10 +2008,6 @@ function! s:MakeResults(search_spec,...)
             call s:OrgIfExprResults(ifexpr,sparse_search)
         endfor
         call s:LocateFile(curfile)
-        "jlet g:mycommand2 = 'tab drop '.curfile
-        "let mycommand = 'tab drop '.curfile
-        "execute "tab drop " . curfile
-        "execute mycommand
     endif
     call setpos(".",save_cursor)
 endfunction
@@ -2062,6 +2061,7 @@ function! s:MakeAgenda(date,count,...)
     let g:in_agenda_search=1
     for file in g:agenda_files
         call s:LocateFile(file)
+        let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today > ''
             call s:GetDateHeads(g:agenda_startdate,a:count,as_today)
@@ -2222,7 +2222,9 @@ function! s:ADictPlaceSigns()
     for key in keys(g:adict)
         "let headline = matchstr(key, '_\zs\d\+$')
         let headline = g:adict[key].line
-        let buf = bufnr(g:adict[key].file .'.org')
+        let filenum = s:filenum
+        let buf = bufnr(s:agenda_files_copy[filenum])
+        "let buf = bufnr(g:adict[key].file .'.org')
         "let buf = bufnr(matchstr(key,'^.*\ze_\d\+$').'.org')
         try
             silent execute "sign place " . headline . " line=" 
@@ -2243,7 +2245,10 @@ function! s:DateDictPlaceSigns()
             for item in myl
                 let dateline = matchstr(item,'^\d\+')
                 "let headline = g:agenda_head_lookup[dateline]
-                let buf = bufnr(matchstr(item,'^\d\+\s\+\zs\S\+') . '.org')
+                "let filenum = str2nr(myl[0:2])
+                let filenum = s:filenum
+                let buf = bufnr(s:agenda_files_copy[filenum])
+                "let buf = bufnr(matchstr(item,'^\d\+\s\+\zs\S\+') . '.org')
                 try
                     "silent execute "sign place " . headline . " line=" 
                     "            \ . headline . " name=piet buffer=" . buf  
@@ -2470,7 +2475,9 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     let datematch = a:datematch
     let rangedate = matchstr(getline(line(".")),'--<\zs\d\d\d\d-\d\d-\d\d')
                     "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
-    let locator = s:PrePad(index(s:filedict, expand("%:t") ),3,'0') . s:PrePad(line('.'),5,'0') . '  '
+    "let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
+    "jllet locator = s:PrePad(index(s:filedict, expand("%:t") ),3,'0') . s:PrePad(line('.'),5,'0') . '  '
+    let locator = s:PrePad(s:filenum,3,'0') . s:PrePad(line('.'),5,'0') . '  '
     let filename = org#Pad(expand("%:t:r"), 13 )
     let line = getline(line("."))
     let date1 = a:date1
