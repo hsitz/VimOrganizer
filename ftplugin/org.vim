@@ -1571,7 +1571,6 @@ function! s:SetRandomTodo()
 
 endfunction
 
-
 function! s:UpdateHeadlineSums()
     call OrgMakeDict()
     let g:tempdict = {}
@@ -1619,6 +1618,7 @@ function! OrgMakeDictInherited()
    endwhile 
    g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line('.')),':CATEGORY:\s*\zs.*') 
 endfunction
+
 function! OrgMakeDict()
     let b:v.org_dict = {}
     call OrgMakeDictInherited()
@@ -1648,7 +1648,6 @@ function! OrgMakeDict()
    while next > 0
       execute next
       let b:v.org_dict[line('.')].c = []
-      "let b:v.org_dict[line('.')] = {'c':[]}
       let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
       let parent = s:OrgParentHead()
       if parent > 0
@@ -1656,42 +1655,6 @@ function! OrgMakeDict()
       endif
       let next = s:OrgNextHead()
    endwhile 
-endfunction
-
-function! s:MakeDict2()
-
-    exec 1
-    let b:v.doclist = []
-    let dict =  {}
-    let b:v.dict = {}
-
-    while 1
-        let nh = s:OrgNextHead()
-        if nh < 1 
-            break
-        endif
-        let myline = getline(nh)    
-        let todo = matchlist(myline,b:v.todoMatch)
-        let tags = matchlist(myline+1,'\(:\S*:\)\s*$')
-        call add(b:v.doclist,{'line': nh , 'lev': s:Ind(nh), 
-                    \'todo': todo != [] ? todo[1] : '', 'tags': tags != [] ? tags[1] : '' } )
-        execute nh
-    endwhile
-
-endfunction
-
-function! s:MakeDict(dict,list)
-    " make dictionary of outline
-    " document's outline
-    let l:dict = a:dict 
-    for item in a:list
-        let l:childlist = []
-        let l:sublist = item[1]
-        for subi in l:sublist
-            call add(l:childlist,subi[0])
-        endfor
-        execute "let l:dict[".string(item[0])."]={'c':".string(l:childlist)."}"
-    endfor  
 endfunction
 
 function! s:ClearSparseTreeOld()
@@ -2185,7 +2148,6 @@ function! OrgRunSearch(search_spec,...)
             call append(1,split(msg.numstr,'\%72c\S*\zs '))
         endif
         for key in sort(keys(g:adict))
-            "call setline(line("$")+1, g:adict[key].line . repeat(' ',6-len(g:adict[key].line)) . 
             call setline(line("$")+1, key . ' ' . 
                         \ org#Pad(g:adict[key].CATEGORY,13)  . 
                         \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
@@ -2221,14 +2183,9 @@ function! s:ADictPlaceSigns()
     let myl=[]
     call s:DeleteSigns()  " signs placed in GetDateHeads
     for key in keys(g:adict)
-        "let headline = matchstr(key, '_\zs\d\+$')
         let headline = g:adict[key].line
         let filenum = g:adict[key].file
-        "let filenum = s:filenum
-        "let filenum = str2nr(item[0:2])
         let buf = bufnr(s:agenda_files_copy[filenum])
-        "let buf = bufnr(g:adict[key].file .'.org')
-        "let buf = bufnr(matchstr(key,'^.*\ze_\d\+$').'.org')
         try
             silent execute "sign place " . headline . " line=" 
                         \ . headline . " name=piet buffer=" . buf  
@@ -2239,7 +2196,7 @@ function! s:ADictPlaceSigns()
         endtry
     endfor
 endfunction
-function! DateDictPlaceSigns()
+function! s:DateDictPlaceSigns()
     let myl=[]
     call s:DeleteSigns()  " signs placed in GetDateHeads
     for key in keys(g:agenda_date_dict)
@@ -2247,14 +2204,9 @@ function! DateDictPlaceSigns()
         if len(myl) > 0
             for item in myl
                 let dateline = matchstr(item,'^\d\d\d\zs\d\+')
-                "let headline = g:agenda_head_lookup[dateline]
                 let filenum = str2nr(item[0:2])
-                "let filenum = s:filenum
                 let buf = bufnr(s:agenda_files_copy[filenum])
-                "let buf = bufnr(matchstr(item,'^\d\+\s\+\zs\S\+') . '.org')
                 try
-                    "silent execute "sign place " . headline . " line=" 
-                    "            \ . headline . " name=piet buffer=" . buf  
                     silent execute "sign place " . dateline . " line=" 
                                 \ . dateline . " name=piet buffer=" . buf  
                 catch 
