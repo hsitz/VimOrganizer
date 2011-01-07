@@ -2223,7 +2223,9 @@ function! s:ADictPlaceSigns()
     for key in keys(g:adict)
         "let headline = matchstr(key, '_\zs\d\+$')
         let headline = g:adict[key].line
-        let filenum = s:filenum
+        let filenum = g:adict[key].file
+        "let filenum = s:filenum
+        "let filenum = str2nr(item[0:2])
         let buf = bufnr(s:agenda_files_copy[filenum])
         "let buf = bufnr(g:adict[key].file .'.org')
         "let buf = bufnr(matchstr(key,'^.*\ze_\d\+$').'.org')
@@ -2244,7 +2246,7 @@ function! DateDictPlaceSigns()
         let myl = get(g:agenda_date_dict[key], 'l')
         if len(myl) > 0
             for item in myl
-                let dateline = matchstr(item,'^\d\+')
+                let dateline = matchstr(item,'^\d\d\d\zs\d\+')
                 "let headline = g:agenda_head_lookup[dateline]
                 let filenum = str2nr(item[0:2])
                 "let filenum = s:filenum
