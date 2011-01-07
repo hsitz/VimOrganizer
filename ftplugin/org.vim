@@ -4984,6 +4984,7 @@ function! s:AgendaBufHighlight()
     hi Overdue guifg=red
     hi Upcoming guifg=yellow
     hi DateType guifg=#dd66bb
+    hi Locator guifg=#333333
 "    hi Todos guifg=pink
     hi Dayline guifg=#44aa44 gui=underline
     hi Weekendline guifg=#55ee55 gui=underline
@@ -5001,6 +5002,7 @@ function! s:AgendaBufHighlight()
     
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
+    call matchadd( 'Locator', '^\d\+')
 "    call matchadd( 'Todos', todoMatchInAgenda )
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
