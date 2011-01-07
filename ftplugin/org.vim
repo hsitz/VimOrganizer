@@ -2056,6 +2056,7 @@ function! s:MakeAgenda(date,count,...)
     "let myfiles=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
     let g:adict = {}
     let s:filedict = copy(g:agenda_files)
+    let s:agenda_files_copy = copy(g:agenda_files)
     let g:datedict = {}
     call s:MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
@@ -2236,7 +2237,7 @@ function! s:ADictPlaceSigns()
         endtry
     endfor
 endfunction
-function! s:DateDictPlaceSigns()
+function! DateDictPlaceSigns()
     let myl=[]
     call s:DeleteSigns()  " signs placed in GetDateHeads
     for key in keys(g:agenda_date_dict)
@@ -2245,8 +2246,8 @@ function! s:DateDictPlaceSigns()
             for item in myl
                 let dateline = matchstr(item,'^\d\+')
                 "let headline = g:agenda_head_lookup[dateline]
-                "let filenum = str2nr(myl[0:2])
-                let filenum = s:filenum
+                let filenum = str2nr(item[0:2])
+                "let filenum = s:filenum
                 let buf = bufnr(s:agenda_files_copy[filenum])
                 "let buf = bufnr(matchstr(item,'^\d\+\s\+\zs\S\+') . '.org')
                 try
@@ -2960,7 +2961,8 @@ function! s:AgendaPutText(...)
     if thisline =~ '^\d\+\s\+'
         if (getline(line(".") + 1) =~ '^\*\+ ')
             "let file = matchstr(thisline,'^\d\+\s\+\zs\S\+\ze')
-            let file = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+            "let file = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+            let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
             "let lineno = matchstr(thisline,'^\d\+\ze\s\+')
             let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             let starttab = tabpagenr() 
@@ -3069,7 +3071,7 @@ function! OrgAgendaGetText(...)
         if (getline(line(".") + 1) =~ '^\d\+\s\+') || (line(".") == line("$")) ||
                     \ (getline(line(".") + 1 ) =~ '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d')
                     \ || (getline(line(".") + 1 ) =~ '\d empty days omitted')
-            let file = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
+            let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
             let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             let starttab = tabpagenr() 
 
