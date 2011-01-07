@@ -1965,7 +1965,8 @@ function! s:MakeResults(search_spec,...)
         for file in g:agenda_files
             let mycommand = 'tab drop '. file
             execute mycommand
-            call OrgMakeDictInherited()
+            "call OrgMakeDictInherited()
+            call OrgMakeDict()
             let ifexpr = s:OrgIfExpr()
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
             call s:OrgIfExprResults(ifexpr,sparse_search)
@@ -2024,6 +2025,7 @@ function! s:MakeAgenda(date,count,...)
     call s:MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
+        call OrgMakeDict()
         call s:LocateFile(file)
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
@@ -2433,7 +2435,13 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     "let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
     "jllet locator = s:PrePad(index(s:filedict, expand("%:t") ),3,'0') . s:PrePad(line('.'),5,'0') . '  '
     let locator = s:PrePad(s:filenum,3,'0') . s:PrePad(line('.'),5,'0') . '  '
-    let filename = org#Pad(expand("%:t:r"), 13 )
+    "let filename = org#Pad(expand("%:t:r"), 13 )
+    let g:myline = s:OrgParentHead_l(line('.'))
+    if g:myline == 0
+        let filename = org#Pad(b:v.org_dict[g:myline].CATEGORY,13)
+    else
+        let filename = org#Pad(b:v.org_dict[g:myline].props.CATEGORY,13)
+    endif
     let line = getline(line("."))
     let date1 = a:date1
     let date2 = a:date2
