@@ -2973,7 +2973,7 @@ function! s:AgendaPutText(...)
             if g:text == getline(firstline, lastline)
                 echo "headings are identical"
             else
-                "if g:adict != {}
+                if g:adict != {}
                     let resp = confirm("Heading's text has changed, save changes?","&Save\n&Cancel",1)
                     if resp == 1
                         call s:SaveHeadline(file, newhead,getline(firstline,lastline))
@@ -2981,11 +2981,11 @@ function! s:AgendaPutText(...)
                     else
                         echo "Changes were _not_ saved."
                     endif
-                "else
-                 "   call confirm("Heading's text has changed, but saving is\n"
-                  "      \ . "temporarily disabled for date agenda views.\n"
-                   "     \ . "No changes are being made, buffer text remains as it was.")
-                "endif
+                else
+                    call confirm("Heading's text has changed, but saving is\n"
+                        \ . "temporarily disabled for date-based agenda views.\n"
+                        \ . "No changes are being saved, original buffer text remains as it was.")
+                endif
             endif
         endif
     else
