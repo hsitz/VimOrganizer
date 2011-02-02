@@ -1372,11 +1372,12 @@ function! s:GetProperties(hl,withtextinfo,...)
     let result1['line'] = hl
     let linetext = getline(hl)
     let result1['ITEM'] = linetext
-    let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
+    "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
+    "let result1['CATEGORY'] = b:v.org_dict.iCATEGORY(hl)
     "let result1['file']=expand("%:t:r")
-    let filematch = index(s:agenda_files_copy,expand("%:t"))
+    let filematch = index(g:agenda_files,expand("%:t"))
     if filematch == -1
-        let filematch = index(s:agenda_files_copy,expand("%:p"))
+        let filematch = index(g:agenda_files,expand("%:p"))
     endif
     let result1['file'] = filematch
     " get date on headline, if any
@@ -1572,13 +1573,14 @@ function! s:SetRandomTodo()
 endfunction
 
 function! s:UpdateHeadlineSums()
+    g/^\s*:TotalClockTime/d
     call OrgMakeDict()
     let g:tempdict = {}
-    g/\*\+ /let g:tempdict[line('.')] = b:v.org_dict.SumTime(line('.'),'ItemClockTime')
-    let items = sort(keys(g:tempdict))
+    g/^\*\+ /let g:tempdict[line('.')] = b:v.org_dict.SumTime(line('.'),'ItemClockTime')
+    let items = sort(map(copy(keys(g:tempdict)),"str2nr(v:val)"),'s:NumCompare')
     let i = len(items) - 1
     while i >= 0
-        if g:tempdict[items[i]] > 0
+        if g:tempdict[items[i]] != '0:00'
             call s:SetProp('TotalClockTime',g:tempdict[items[i]],items[i])
         endif
         let i = i-1
@@ -1586,7 +1588,16 @@ function! s:UpdateHeadlineSums()
 endfunction
 
 function! OrgMakeDictInherited()
-    let b:v.org_dict = {'0':{'CATEGORY':expand("%:t:r")}}
+    let b:v.org_dict = {'0':{'c':[],'CATEGORY':expand("%:t:r")}}
+    function! b:v.org_dict.iCATEGORY(ndx) dict
+        let ndx = a:ndx
+        let result = get(self[ndx] , 'CATEGORY','')
+        if (result == '') && (ndx != 0)
+            "recurse up through parents in tree
+            let result = b:v.org_dict.iCATEGORY(self[ndx].parent)
+        endif
+        return result
+    endfunction 
     function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
         let ndx = a:ndx
@@ -1604,19 +1615,22 @@ function! OrgMakeDictInherited()
    endif
    while next > 0
       execute next
-      let b:v.org_dict[line('.')] = {'c':[]}
+  "    let b:v.org_dict[line('.')] = {'c':[]}
       if getline(line('.'))[1] == ' '
           let parent = 0
       else
           let parent = s:OrgParentHead()
       endif
-      let b:v.org_dict[line('.')].parent = parent
-      if parent > 0
-          call add(b:v.org_dict[parent].c ,line('.'))
-      endif
+      let b:v.org_dict[line('.')] = {'parent': parent}
+  "    let b:v.org_dict[line('.')].parent = parent
+  "    if parent > 0
+  "        call add(b:v.org_dict[parent].c ,line('.'))
+  "    endif
       let next = s:OrgNextHead()
    endwhile 
-   g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line('.')),':CATEGORY:\s*\zs.*') 
+   " parent properties assigned above, now explicity record CATEGORY for 
+   " any headlines where CATEGORY won't be inherited
+   silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
 endfunction
 
 function! OrgMakeDict()
@@ -1624,7 +1638,7 @@ function! OrgMakeDict()
     call OrgMakeDictInherited()
     function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
-        let result = get(self[a:ndx].props , prop,'00:00')
+        let result = get(self[a:ndx].props , prop,'0:00')
         " now recursion down the subtree of children in c
         for item in self[a:ndx].c
             let result = s:AddTime(result,b:v.org_dict.SumTime(item,prop))
@@ -1649,10 +1663,11 @@ function! OrgMakeDict()
       execute next
       let b:v.org_dict[line('.')].c = []
       let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
-      let parent = s:OrgParentHead()
-      if parent > 0
+      "let parent = s:OrgParentHead()
+      let parent = b:v.org_dict[line('.')].parent
+      "if parent > 0
           call add(b:v.org_dict[parent].c ,line('.'))
-      endif
+      "endif
       let next = s:OrgNextHead()
    endwhile 
 endfunction
@@ -2025,8 +2040,8 @@ function! s:MakeAgenda(date,count,...)
     call s:MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
-        call OrgMakeDict()
         call s:LocateFile(file)
+        call OrgMakeDict()
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today > ''
@@ -2395,12 +2410,14 @@ function! s:GetDateHeads(date1,count,...)
     let date1 = a:date1
     let date2 = calutil#Jul2Cal(calutil#Cal2Jul(split(date1,'-')[0],split(date1,'-')[1],split(date1,'-')[2]) + a:count)
     execute 1
-    while search('\(\|[^-]\)[[<]\d\d\d\d-\d\d-\d\d','W') > 0
+    "while search('\(\|[^-]\)[[<]\d\d\d\d-\d\d-\d\d','W') > 0
+    while search('[^-][[<]\d\d\d\d-\d\d-\d\d','W') > 0
         let repeatlist = []
         let line = getline(line("."))
         let datematch = matchstr(line,'[[<]\d\d\d\d-\d\d-\d\d\ze')
         let repeatmatch = matchstr(line, '<\d\d\d\d-\d\d-\d\d.*+\d\+\S\+.*>\ze')
         if repeatmatch != ''
+            " if date has repeater then call once for each repeat in period
             let repeatlist = s:RepeatMatch(repeatmatch[1:],date1,date2)
             for dateitem in repeatlist
                 if a:0 == 1
@@ -2431,17 +2448,16 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     endif
     let datematch = a:datematch
     let rangedate = matchstr(getline(line(".")),'--<\zs\d\d\d\d-\d\d-\d\d')
-                    "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
-    "let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
-    "jllet locator = s:PrePad(index(s:filedict, expand("%:t") ),3,'0') . s:PrePad(line('.'),5,'0') . '  '
+
     let locator = s:PrePad(s:filenum,3,'0') . s:PrePad(line('.'),5,'0') . '  '
-    "let filename = org#Pad(expand("%:t:r"), 13 )
-    let g:myline = s:OrgParentHead_l(line('.'))
-    if g:myline == 0
-        let filename = org#Pad(b:v.org_dict[g:myline].CATEGORY,13)
-    else
-        let filename = org#Pad(b:v.org_dict[g:myline].props.CATEGORY,13)
-    endif
+    
+    let g:myline = s:OrgGetHead_l(line('.'))
+    "let g:myline = s:OrgParentHead_l(line('.'))
+    "if g:myline == 0
+    "    let filename = org#Pad(b:v.org_dict[g:myline].CATEGORY,13)
+    "else
+        let filename = org#Pad(b:v.org_dict.iprop(g:myline,'CATEGORY'),13)
+    "endif
     let line = getline(line("."))
     let date1 = a:date1
     let date2 = a:date2
@@ -2545,8 +2561,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
             let rangedate = calutil#cal(calutil#jul(rangedate) - 1)
             let i = i - 1
         endwhile
-        "endif
-        "past match to avoid double treatment
+        " go past match to avoid double treatment
         normal $
     endif
     if s:headline > 0
@@ -3820,6 +3835,9 @@ function! s:GetOpenClock()
             call s:LocateFile(file)
             let found_line = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
             let file = expand("%")
+            if found_line > 0
+                break
+            endif
         endfor
     endif
     return [file,found_line]
@@ -3870,6 +3888,7 @@ endfunction
 
 function! s:UpdateClockSums()
     let save_cursor = getpos(".")
+    g/^\s*:ItemClockTime/d
     call s:UpdateAllClocks()
     g/^\s*:CLOCK:/call s:SetProp('ItemClockTime', s:SumClockLines(line(".")))
     call setpos(".",save_cursor)
@@ -3891,7 +3910,13 @@ function! s:SumClockLines(line)
             let hours   += str2nr(split(time,':')[0])
             let minutes += str2nr(split(time,':')[1])
         endif
-        normal j
+
+        if line('.') == line('$')
+            break
+        else
+            execute line('.') + 1
+        endif
+        
     endwhile
     let totalminutes = (60 * hours) + minutes
     call setpos(".",save_cursor)
@@ -3910,11 +3935,12 @@ function! s:UpdateBlock()
     let mycommand = block_type.'()'
     execute "call append(line('.'),".mycommand.")"
 endfunction
-function! s:ClockTable()
+function! ClockTable()
     let save_cursor = getpos(".")
 
     call s:UpdateClockSums()
     call s:UpdateHeadlineSums()
+    call OrgMakeDict()
     let g:ctable_dict = {}
     let mycommand = "let g:ctable_dict[line('.')] = "
                 \ . "{'text':s:GetProperties(line('.'),0)['ITEM']"
@@ -3928,7 +3954,7 @@ function! s:ClockTable()
             let total = s:AddTime(total,g:ctable_dict[item].time)
         endif
     endfor
-    let result = ['Clock summary at ['.sorg#Timestamp().']','',
+    let result = ['Clock summary at ['.org#Timestamp().']','',
                 \ '|Lev| Heading               |  ClockTime',
                 \ '|---+-----------------------+-------+--------' ,
                 \ '|   |               *TOTAL* | '.total ]
@@ -4044,7 +4070,12 @@ function! s:SetProp(key, val,...)
     let key = a:key
     let val = a:val
     execute s:OrgGetHead() 
-    let block_end = s:GetProperties(line('.'),0)['block_end']
+    " block_end was end of properties block, but getting that 
+    " from GetProperties(line('.'),0) creates problems with 
+    " line numbers having changed from previous run of OrgMakeDict
+    " So, just use next head as end of block for now.
+    let block_end = s:OrgNextHead()
+    let block_end = (block_end == 0) ? line('$') : block_end
     if key =~ 'DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP'
         " it's one of the five date props
         " find existing date line if there is one
@@ -4082,11 +4113,12 @@ function! s:SetProp(key, val,...)
         " it's a regular key/val pair in properties drawer
         call OrgConfirmDrawer("PROPERTIES")
         while (getline(line(".")) !~ '^\s*:\s*' . key) && 
-                    \ (getline(line(".")) =~ s:remstring)
+                    \ (getline(line(".")) =~ s:remstring) &&
+                    \ (line('.') != line('$'))
             execute line(".") + 1
         endwhile
 
-        if getline(line(".")) =~ s:remstring
+        if (getline(line(".")) =~ s:remstring) && (getline(line('.')) !~ '^\s*:END:')
             call setline(line("."), matchstr(getline(line(".")),'^\s*:') .
                         \ key . ': ' . val)
         else
@@ -4631,7 +4663,7 @@ endfunction
 
 
 function! OrgFoldLevel(line)
-    " Determine the fold level of a line.
+    " called as foldexpr to determine the fold level of a line.
     if g:org_folds == 0
         return 0
     endif
@@ -4873,7 +4905,7 @@ function! s:CaptureBuffer()
     sp _Capture_
     normal ggVGd
     normal i** 
-    silent exec "normal o<".sorg#Timestamp().">"
+    silent exec "normal o<".org#Timestamp().">"
     call s:AgendaBufSetup()
     command! -buffer W :call s:ProcessCapture()
     normal gg$a
