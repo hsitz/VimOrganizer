@@ -1373,7 +1373,7 @@ function! s:GetProperties(hl,withtextinfo,...)
     let linetext = getline(hl)
     let result1['ITEM'] = linetext
     "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
-    "let result1['CATEGORY'] = b:v.org_dict.iCATEGORY(hl)
+    let result1['CATEGORY'] = b:v.org_dict.iCATEGORY(hl)
     "let result1['file']=expand("%:t:r")
     let filematch = index(g:agenda_files,expand("%:t"))
     if filematch == -1
