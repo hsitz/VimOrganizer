@@ -3966,7 +3966,7 @@ function! ClockTable()
                     \ . repeat('      | ',level-1)
                     \ . s:PrePad(g:ctable_dict[item].time,5) . ' |'
         if g:ctable_dict[item].text[0:1]=='* '
-            call add(result, '|---+-----------------------+-------+-------+' )
+            call add(result, '|---+------------------------------+-------+-------+' )
         endif
         call add(result, str)
     endfor
@@ -4371,15 +4371,13 @@ function! OrgFoldText(...)
     " get rid of header prefix
     let l:line = substitute(l:line,'^\*\+\s*','','g')
     let l:line = repeat(' ', s:Starcount(foldstart)+1) . l:line 
+    let line_count = v:foldend - v:foldstart
 
     if l:line =~ b:v.drawerMatch
         let v:foldhighlight = hlID('Title')
         let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
-        "elseif origline !~ b:v.headMatch
-        "   let v:foldhighlight = hlID('Normal')
-        "   let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
-        "           \ . '(TEXT)'
+        let line_count = line_count - 1
     elseif l:line[0] == '#'
         let v:foldhighlight = hlID('VisualNOS')
     else
@@ -4406,7 +4404,8 @@ function! OrgFoldText(...)
             \  . s:PrePad(l:txtmrk . (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
     elseif g:org_show_fold_lines && !b:v.columnview 
-        let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
+        "let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
+        let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (line_count) . ")",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
 
