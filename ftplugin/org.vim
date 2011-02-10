@@ -4394,8 +4394,7 @@ function! OrgFoldText(...)
             \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
     elseif g:org_show_fold_lines && !b:v.columnview 
-        "let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
-        let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (line_count) . ")",5),
+        let l:line .= s:PrePad("(" . s:PrePad( line_count . ")",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
 
