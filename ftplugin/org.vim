@@ -4358,16 +4358,6 @@ function! OrgFoldText(...)
 
     let v:foldhighlight = hlID(b:v.foldcolors[myind])
 
-    "if s:Ind(v:foldstart) == v:foldlevel - 3
-    "   let l:txtmrk = 'd-'
-    "elseif s:Ind(v:foldstart) == v:foldlevel - 2
-    "   let l:txtmrk = 't-'
-    "   if getline(v:foldstart + 1)  =~ '^\s*:'
-    "       let l:txtmrk = 'd' . l:txtmrk
-    "   endif
-    "else
-    let l:txtmrk = ''
-    "endif  
     " get rid of header prefix
     let l:line = substitute(l:line,'^\*\+\s*','','g')
     let l:line = repeat(' ', s:Starcount(foldstart)+1) . l:line 
@@ -4401,7 +4391,7 @@ function! OrgFoldText(...)
         let l:line .= s:PrePad(s:GetColumns(foldstart), winwidth(0)-len(l:line) - offset)
     elseif a:0 && (foldclosed(line('.')) > 0)
         let l:line .= s:PrePad("(" 
-            \  . s:PrePad(l:txtmrk . (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
+            \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
     elseif g:org_show_fold_lines && !b:v.columnview 
         "let l:line .= s:PrePad("(" . s:PrePad(l:txtmrk . (v:foldend - v:foldstart) . ")",5),
