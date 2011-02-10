@@ -3955,13 +3955,14 @@ function! ClockTable()
         endif
     endfor
     let result = ['Clock summary at ['.org#Timestamp().']','',
-                \ '|Lev| Heading               |  ClockTime',
-                \ '|---+-----------------------+-------+--------' ,
-                \ '|   |               *TOTAL* | '.total ]
+                \ '|Lev| Heading                      |  ClockTime',
+                \ '|---+------------------------------+-------+--------' ,
+                \ '|   |                      *TOTAL* | '.total ]
     for item in sort(keys(g:ctable_dict),'s:NumCompare')
         let level = len(matchstr(g:ctable_dict[item].text,'^\*\+')) 
+        let treesym = repeat('   ',level-2) . (level > 1 ? '\_ ' : '')
         let str = '| '.level.' | ' 
-                    \ . org#Pad(matchstr(g:ctable_dict[item].text,'^\*\+ \zs.*')[:20],21) . ' | '
+                    \ . org#Pad(treesym . matchstr(g:ctable_dict[item].text,'^\*\+ \zs.*')[:20],28) . ' | '
                     \ . repeat('      | ',level-1)
                     \ . s:PrePad(g:ctable_dict[item].time,5) . ' |'
         if g:ctable_dict[item].text[0:1]=='* '
@@ -4153,20 +4154,12 @@ function! s:LocateFile(filename)
     let filename = a:filename
     " but change to be full name if appropriate
     for item in g:agenda_files
-        if (item =~ a:filename) || (item == a:filename)
+        " match fullpathname or just filename w/o path
+        if (item == a:filename) || (item =~ matchstr(a:filename,'.*[/\\]\zs.*'))
             let filename = item
             break
         endif
     endfor
-    "if bufnr(filename) > -1
-    "    " file is open, so move to its tab and window
-    "    tabdo let myvar = bufwinnr(a:filename) > 0 ? tabpagenr() . ' ' . bufwinnr(a:filename) : myvar
-    "    if myvar > ''
-    "        silent execute split(myvar)[0] . "tabn"
-    "        silent execute split(myvar)[1] . "wincmd w"
-    "    endif
-    "else
-    "    "open the file in new tab
     if bufwinnr(filename) >= 0
         silent execute bufwinnr(filename)."wincmd w"
     else
