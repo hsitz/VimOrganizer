@@ -256,8 +256,11 @@ function! OrgTagsEdit(...)
         let line_file_str = ''
         let lineno=line('.')
         if bufname("%")==('__Agenda__')
-            let lineno = matchstr(getline(line('.')),'^\d\+')
-            let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+            "let lineno = matchstr(getline(line('.')),'^\d\+')
+            "let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+            " new file and lineno below to test with new line marker in agenda
+            let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+            let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
             let line_file_str = ','.lineno.',"'.file.'"'
             let filestr = ',"'.file.'"'
             let b:v.tagdict = getbufvar(file,'v').tagdict
@@ -530,6 +533,7 @@ endfunction
 function! <SID>GlobalConvertTags()
     let save_cursor = getpos(".")
     g/^\*\+\s/call s:ConvertTags(line("."))
+    call OrgProcessConfigLines()
     call setpos(".",save_cursor)
 endfunction
 function! s:GlobalFormatTags()
@@ -1373,13 +1377,18 @@ function! s:GetProperties(hl,withtextinfo,...)
     let linetext = getline(hl)
     let result1['ITEM'] = linetext
     "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
-    let result1['CATEGORY'] = b:v.org_dict.iCATEGORY(hl)
-    "let result1['file']=expand("%:t:r")
-    let filematch = index(g:agenda_files,expand("%:t"))
-    if filematch == -1
-        let filematch = index(g:agenda_files,expand("%:p"))
+    if exists('b:v.org_dict')
+        let result1['CATEGORY'] = b:v.org_dict.iCATEGORY(hl)
     endif
-    let result1['file'] = filematch
+    if exists('g:agenda_files')
+        let filematch = index(g:agenda_files,expand("%:t"))
+        if filematch == -1
+            let filematch = index(g:agenda_files,expand("%:p"))
+        endif
+        let result1['file'] = filematch
+    else
+        let result1['file']=expand("%:t:r")
+    endif
     " get date on headline, if any
     if linetext =~ b:v.dateMatch
         let result1['ld'] = matchlist(linetext,b:v.dateMatch)[1]
@@ -1399,19 +1408,20 @@ function! s:GetProperties(hl,withtextinfo,...)
         let ltext = getline(line)
         if ltext =~ b:v.propMatch
             let result = s:GetPropVals(line+1)        
-        elseif (ltext =~ b:v.dateMatch) && !datesdone
-            let dateresult = s:GetDateVals(line)
-            let datesdone = 1
-            " no break, go back around to check for props
-        elseif  ltext =~ '^\s*:\s*CLOCK'
+        elseif (ltext =~ '^\s*:\s*CLOCK')
             " do nothing
-        elseif  (ltext !~ s:block_line)
+        elseif  (ltext !~ s:block_line) || (ltext =~ b:v.headMatch)
             call extend(result, result1)
             if datesdone
                 call extend(result, dateresult)
             endif
             let result['block_end'] = line - 1
             break
+        elseif (ltext =~ b:v.dateMatch) && !datesdone
+            let dateresult = s:GetDateVals(line)
+            let datesdone = 1
+            " no break, go back around to check for props
+        "elseif  (ltext =~ '^\s*$') || (ltext =~ '^\s*:\s*CLOCK')
         endif
         let line += 1
     endwhile
@@ -2728,8 +2738,10 @@ function! s:PrePad(s,amt,...)
     return repeat(char,a:amt - len(a:s)) . a:s
 endfunction
 function! s:AgendaCompare(i0, i1)
-    "let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\%24c.\{11}\).*\(\*\+\)\s\(.*$\)'
-    let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\S.\{10}\).*\(\*\+\)\s\(.*$\)'
+    let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\%24c.\{11}\).*\(\*\+\)\s\(.*$\)'
+    " mymstr below would be better match string regex, but generic dates
+    " have no text at position 24 to match \S . . . "
+    "let mymstr = '^\(\d\+\)\s\+\(\S\+\)\s\+\(\S.\{10}\).*\(\*\+\)\s\(.*$\)'
     " [1] is lineno, [2] is file, [3] is scheduling, [4] is levelstarts, 
     " [5] is headtext
     let cp0 = matchlist(a:i0,mymstr)
@@ -4106,6 +4118,9 @@ function! s:SetProp(key, val,...)
         else
             call append(line('.'), a:val)
         endif
+        execute line('.') + 1
+        normal =$
+        execute line('.') - 1
     elseif key == 'CLOCKIN'
         call OrgClockIn()
     elseif key == 'CLOCKOUT'
