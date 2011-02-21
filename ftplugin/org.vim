@@ -17,6 +17,7 @@ let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 
+let b:v.buffer_category = ''
 let w:sparse_on = 0
 let b:v.columnview = 0
 let b:v.clock_to_logbook = 1
@@ -113,6 +114,7 @@ let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov
 let s:AgendaBufferName = "__Agenda__"
 
 function! OrgProcessConfigLines()
+    g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
     g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
     normal gg
 endfunction
@@ -267,11 +269,13 @@ function! OrgTagsEdit(...)
             let b:v.tags_order = getbufvar(file,'v').tags_order
         endif
     
-        execute "let heading_tags = get(s:GetProperties(lineno,0".filestr."),'tags','')"
+        "execute "let heading_tags = get(s:GetProperties(lineno,0".filestr."),'tags','')"
+        let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
     
     let new_heading_tags = s:TagMenu(heading_tags)
     if new_heading_tags != heading_tags
-            silent execute "call s:SetProp('tags'".",'".new_heading_tags."'".line_file_str .")"
+            "silent execute "call s:SetProp('tags'".",'".new_heading_tags."'".line_file_str .")"
+            silent call s:SetProp('tags',new_heading_tags,lineno, file)
     endif
 endfunction
 
@@ -1598,7 +1602,9 @@ function! s:UpdateHeadlineSums()
 endfunction
 
 function! OrgMakeDictInherited()
-    let b:v.org_dict = {'0':{'c':[],'CATEGORY':expand("%:t:r")}}
+    let b:v.org_dict = b:v.buffer_category == '' ?
+                  \   {'0':{'c':[],'CATEGORY':expand("%:t:r")}}
+                  \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category}}
     function! b:v.org_dict.iCATEGORY(ndx) dict
         let ndx = a:ndx
         let result = get(self[ndx] , 'CATEGORY','')
@@ -2970,6 +2976,8 @@ function! s:AgendaPutText(...)
             let lastline = s:OrgNextHead_l(newhead) - 1
             if lastline > newhead
                 let g:text = getline(newhead,lastline)
+            elseif lastline == -1
+                let g:text = getline(newhead,line('$'))
             else    
                 let g:text = []
             endif
@@ -3087,6 +3095,8 @@ function! OrgAgendaGetText(...)
                 let lastline = s:OrgNextHead_l(newhead) - 1
                 if lastline > newhead
                     let g:text = getline(newhead,lastline)
+                elseif lastline == -1 
+                    let g:text = getline(newhead,line('$'))
                 else    
                     let g:text = []
                 endif
@@ -3983,6 +3993,8 @@ function! ClockTable()
         call add(result, str)
     endfor
     call setpos(".",save_cursor)
+    
+    unlet b:v.org_dict
     return result
 
 endfunction
