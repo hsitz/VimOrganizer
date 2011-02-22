@@ -254,27 +254,20 @@ function! OrgTagSetup(tagspec)
 endfunction
 
 function! OrgTagsEdit(...)
-        let filestr = ''
         let line_file_str = ''
         let lineno=line('.')
         if bufname("%")==('__Agenda__')
-            "let lineno = matchstr(getline(line('.')),'^\d\+')
-            "let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
             " new file and lineno below to test with new line marker in agenda
             let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
             let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
-            let line_file_str = ','.lineno.',"'.file.'"'
-            let filestr = ',"'.file.'"'
             let b:v.tagdict = getbufvar(file,'v').tagdict
             let b:v.tags_order = getbufvar(file,'v').tags_order
         endif
     
-        "execute "let heading_tags = get(s:GetProperties(lineno,0".filestr."),'tags','')"
         let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
     
     let new_heading_tags = s:TagMenu(heading_tags)
     if new_heading_tags != heading_tags
-            "silent execute "call s:SetProp('tags'".",'".new_heading_tags."'".line_file_str .")"
             silent call s:SetProp('tags',new_heading_tags,lineno, file)
     endif
 endfunction
@@ -3358,15 +3351,16 @@ function! OrgDateEdit(type)
         let b:v.basetime=''
         let from_agenda=0
         let str = ''
-        let filestr = ''
         let lineno=line('.')
         let buffer_lineno = lineno
         let file = expand("%:t")
         let bufline = getline(lineno)
         if bufname("%")==('__Agenda__')
-            let lineno = matchstr(getline(line('.')),'^\d\+')
-            let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
-            let filestr = ',"'.file.'"'
+            " TODO change lineno and file to new format!xxx
+            let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+            let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+            "let lineno = matchstr(getline(line('.')),'^\d\+')
+            "let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
             let from_agenda=1
             let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
             let str = ',' . buffer_lineno . ',"' . file . '"'
@@ -3820,13 +3814,11 @@ function! s:GetClock()
 endfunction 
 function! OrgClockIn(...)
     let save_cursor=getpos(".")
-    let filestr = ''
     let lineno=line('.')
     if bufname("%")==('__Agenda__')
         let lineno = matchstr(getline(line('.')),'^\d\+')
         let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
         let str = ','.lineno.',"'.file.'"'
-        let filestr = ',"'.file.'"'
         call s:SetProp('CLOCKIN','',lineno,file)
     else
    
