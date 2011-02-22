@@ -1595,6 +1595,7 @@ function! s:UpdateHeadlineSums()
 endfunction
 
 function! OrgMakeDictInherited()
+    call OrgProcessConfigLines()
     let b:v.org_dict = b:v.buffer_category == '' ?
                   \   {'0':{'c':[],'CATEGORY':expand("%:t:r")}}
                   \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category}}
@@ -1624,17 +1625,12 @@ function! OrgMakeDictInherited()
    endif
    while next > 0
       execute next
-  "    let b:v.org_dict[line('.')] = {'c':[]}
       if getline(line('.'))[1] == ' '
           let parent = 0
       else
           let parent = s:OrgParentHead()
       endif
       let b:v.org_dict[line('.')] = {'parent': parent}
-  "    let b:v.org_dict[line('.')].parent = parent
-  "    if parent > 0
-  "        call add(b:v.org_dict[parent].c ,line('.'))
-  "    endif
       let next = s:OrgNextHead()
    endwhile 
    " parent properties assigned above, now explicity record CATEGORY for 
@@ -1672,11 +1668,8 @@ function! OrgMakeDict()
       execute next
       let b:v.org_dict[line('.')].c = []
       let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
-      "let parent = s:OrgParentHead()
       let parent = b:v.org_dict[line('.')].parent
-      "if parent > 0
-          call add(b:v.org_dict[parent].c ,line('.'))
-      "endif
+      call add(b:v.org_dict[parent].c ,line('.'))
       let next = s:OrgNextHead()
    endwhile 
 endfunction
