@@ -16,8 +16,10 @@ let b:v.effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
 let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
+let b:v.org_inherited_properties = ['CATEGORY','COLUMNS']
 
 let b:v.buffer_category = ''
+let b:v.buffer_columns = 'tags,30'
 let w:sparse_on = 0
 let b:v.columnview = 0
 let b:v.clock_to_logbook = 1
@@ -115,6 +117,7 @@ let s:AgendaBufferName = "__Agenda__"
 
 function! OrgProcessConfigLines()
     g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
+    g/^#+COLUMNS/execute "let b:v.buffer_columns = matchstr(getline(line('.')),'^#+COLUMNS:\\s*\\zs.*')"
     g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
     normal gg
 endfunction
@@ -256,6 +259,7 @@ endfunction
 function! OrgTagsEdit(...)
         let line_file_str = ''
         let lineno=line('.')
+        let file = expand("%")
         if bufname("%")==('__Agenda__')
             " new file and lineno below to test with new line marker in agenda
             let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
@@ -1375,7 +1379,11 @@ function! s:GetProperties(hl,withtextinfo,...)
     let result1['ITEM'] = linetext
     "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
     if exists('b:v.org_dict')
-        let result1['CATEGORY'] = b:v.org_dict.iCATEGORY(hl)
+        for item in b:v.org_inherited_properties
+            let result1[item] = b:v.org_dict.iprop(hl,item)
+            "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
+            "let result1['COLUMNS'] = b:v.org_dict.iprop(hl,'COLUMNS')
+        endfor
     endif
     if exists('g:agenda_files')
         let filematch = index(g:agenda_files,expand("%:t"))
@@ -1482,10 +1490,13 @@ function! s:GetPropVals(line)
         let ltext = getline(myline)
         if ltext =~ b:v.propvalMatch
             let mtch = matchlist(ltext, b:v.propvalMatch)
+            " mtch[1] is now property, mtch[2] is its value
+            if index(b:v.org_inherited_properties, mtch[1]) == -1
             try
-                let result[mtch[1]] = mtch[2]   
+                let result[toupper(mtch[1])] = mtch[2]   
             catch /^Vim\%((\a\+)\)\=:E/ 
             endtry
+            endif
         else
             break
         endif
@@ -1597,17 +1608,8 @@ endfunction
 function! OrgMakeDictInherited()
     call OrgProcessConfigLines()
     let b:v.org_dict = b:v.buffer_category == '' ?
-                  \   {'0':{'c':[],'CATEGORY':expand("%:t:r")}}
-                  \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category}}
-    function! b:v.org_dict.iCATEGORY(ndx) dict
-        let ndx = a:ndx
-        let result = get(self[ndx] , 'CATEGORY','')
-        if (result == '') && (ndx != 0)
-            "recurse up through parents in tree
-            let result = b:v.org_dict.iCATEGORY(self[ndx].parent)
-        endif
-        return result
-    endfunction 
+                  \   {'0':{'c':[],'CATEGORY':expand("%:t:r"), 'COLUMNS': b:v.buffer_columns}}
+                  \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category, 'COLUMNS': b:v.buffer_columns}}
     function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
         let ndx = a:ndx
@@ -1636,6 +1638,7 @@ function! OrgMakeDictInherited()
    " parent properties assigned above, now explicity record CATEGORY for 
    " any headlines where CATEGORY won't be inherited
    silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
+   silent execute 'g/^\s*:COLUMNS:/let b:v.org_dict[s:OrgGetHead()].COLUMNS = matchstr(getline(line(".")),":COLUMNS:\\s*\\zs.*")'
 endfunction
 
 function! OrgMakeDict()
@@ -3349,11 +3352,8 @@ function! OrgDateEdit(type)
         let file = expand("%:t")
         let bufline = getline(lineno)
         if bufname("%")==('__Agenda__')
-            " TODO change lineno and file to new format!xxx
             let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
             let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
-            "let lineno = matchstr(getline(line('.')),'^\d\+')
-            "let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
             let from_agenda=1
             let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
             let str = ',' . buffer_lineno . ',"' . file . '"'
@@ -3463,8 +3463,6 @@ function! OrgDateEdit(type)
                 let cue .= newchar
             endif
             let newdate = '<' . s:GetNewDate(cue,basedate,basetime)  . '>'
-            "let newdate = '<' . s:GetNewDate(cue,basedate) . ( newtime > '' ? ' ' . newtime : '') . '>'
-            "let newtime = s:GetNewTime(cue,basetime)
             if g:org_use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
                 let s:org_cal_date = newdate[1:10]
                 call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
@@ -4259,13 +4257,17 @@ function! s:GetColumns(line)
     let props = s:GetProperties(a:line,0)
     let result = ''
     let i = 0
+    " get column list for this line
+    if get(props,'COLUMNS') > ''
+        let g:org_colview_list=split(props['COLUMNS'],',')
+    else
+        let g:org_colview_list=[]
+    endif
+    " build text string with column values
     while i < len(g:org_colview_list)
         let result .= '|' . s:PrePad(get(props,g:org_colview_list[i],'') , g:org_colview_list[i+1]) . ' ' 
         let i += 2
     endwhile
-    if get(props,'Columns') > ''
-        let g:org_colview_list=split(props['Columns'],',')
-    endif
     return result[:-2]
 
 endfunction
