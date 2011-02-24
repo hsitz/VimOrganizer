@@ -16,7 +16,8 @@ let b:v.effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
 let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
-let b:v.org_inherited_properties = ['CATEGORY','COLUMNS']
+let b:v.org_inherited_properties = ['COLUMNS']
+let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'tags,30'}
 
 let b:v.buffer_category = ''
 let b:v.buffer_columns = 'tags,30'
@@ -117,7 +118,10 @@ let s:AgendaBufferName = "__Agenda__"
 
 function! OrgProcessConfigLines()
     g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
+    " get rid of b:v.buffer_category (and columns also) and just use o_i_d var???
+    let b:v.org_inherited_defaults['CATEGORY'] = b:v.buffer_category
     g/^#+COLUMNS/execute "let b:v.buffer_columns = matchstr(getline(line('.')),'^#+COLUMNS:\\s*\\zs.*')"
+    let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
     g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
     normal gg
 endfunction
@@ -986,7 +990,7 @@ function! s:NextLevelLine(line)
     if l:fend == -1
         let l:i = 1
         " go down to next non-text line
-        while s:IsText(a:line + l:i)
+        while s:IsText(a:line + l:i) 
             let l:i = l:i + 1
         endwhile    
         return a:line + l:i
@@ -999,15 +1003,22 @@ function! s:HasChild(line)
     " checks for whether heading line has
     " a sublevel
     " checks to see if heading has a non-text sublevel 
-    if s:IsText(a:line + 1) && 
-                \   (s:Ind(s:NextLevelLine(a:line+1)) > s:Ind(a:line))
-        return 1
-    elseif s:IsText(a:line + 1) == 0 && 
-                \   (s:Ind(s:NextLevelLine(a:line)) > s:Ind(a:line))
-        return 1
+    let nh = s:OrgNextHead_l(a:line)
+    if nh == 0 
+        return 0
     else
-        return 0    
-    endif   
+        return (s:Ind(nh) > s:Ind(a:line))
+    endif
+    
+"    if s:IsText(a:line + 1) && 
+"                \   (s:Ind(s:NextLevelLine(a:line+1)) > s:Ind(a:line))
+"        return 1
+"    elseif s:IsText(a:line + 1) == 0 && 
+"                \   (s:Ind(s:NextLevelLine(a:line)) > s:Ind(a:line))
+"        return 1
+"    else
+"        return 0    
+"    endif   
 endfunction
 
 function! s:DoFullCollapse(line) 
@@ -1377,14 +1388,6 @@ function! s:GetProperties(hl,withtextinfo,...)
     let result1['line'] = hl
     let linetext = getline(hl)
     let result1['ITEM'] = linetext
-    "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
-    if exists('b:v.org_dict')
-        for item in b:v.org_inherited_properties
-            let result1[item] = b:v.org_dict.iprop(hl,item)
-            "let result1['CATEGORY'] = b:v.org_dict.iprop(hl,'CATEGORY')
-            "let result1['COLUMNS'] = b:v.org_dict.iprop(hl,'COLUMNS')
-        endfor
-    endif
     if exists('g:agenda_files')
         let filematch = index(g:agenda_files,expand("%:t"))
         if filematch == -1
@@ -1430,6 +1433,13 @@ function! s:GetProperties(hl,withtextinfo,...)
         endif
         let line += 1
     endwhile
+    " get inherited properties
+    for item in b:v.org_inherited_properties
+        if index(keys(result), item) == -1
+            let result[item] = s:IProp(hl , item)
+        endif
+    endfor
+    " get last line
     if a:withtextinfo
         "let result['tbegin'] = line 
         let result['tend'] = s:OrgNextHead_l(hl) - 1
@@ -1491,12 +1501,10 @@ function! s:GetPropVals(line)
         if ltext =~ b:v.propvalMatch
             let mtch = matchlist(ltext, b:v.propvalMatch)
             " mtch[1] is now property, mtch[2] is its value
-            if index(b:v.org_inherited_properties, mtch[1]) == -1
             try
                 let result[toupper(mtch[1])] = mtch[2]   
             catch /^Vim\%((\a\+)\)\=:E/ 
             endtry
-            endif
         else
             break
         endif
@@ -1605,11 +1613,23 @@ function! s:UpdateHeadlineSums()
     endwhile
 endfunction
 
+function! s:IProp(headline,property)
+    let prop = a:property
+    let parent = s:OrgParentHead_l(a:headline)
+    if parent == 0 
+        return get(b:v.org_inherited_defaults,prop)
+    else
+        return s:GetProperties(parent,0)[prop]
+    endif
+endfunction 
+
 function! OrgMakeDictInherited()
     call OrgProcessConfigLines()
-    let b:v.org_dict = b:v.buffer_category == '' ?
-                  \   {'0':{'c':[],'CATEGORY':expand("%:t:r"), 'COLUMNS': b:v.buffer_columns}}
-                  \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category, 'COLUMNS': b:v.buffer_columns}}
+    let b:v.org_dict =  {'0':{'c':[],'CATEGORY':b:v.org_inherited_defaults['CATEGORY'] }}
+    "                    \  'COLUMNS': b:v.org_inherited_defaults['COLUMNS']}}
+    "let b:v.org_dict = b:v.buffer_category == '' ?
+    "              \   {'0':{'c':[],'CATEGORY':expand("%:t:r"), 'COLUMNS': b:v.buffer_columns}}
+    "              \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category, 'COLUMNS': b:v.buffer_columns}}
     function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
         let ndx = a:ndx
@@ -1638,7 +1658,7 @@ function! OrgMakeDictInherited()
    " parent properties assigned above, now explicity record CATEGORY for 
    " any headlines where CATEGORY won't be inherited
    silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
-   silent execute 'g/^\s*:COLUMNS:/let b:v.org_dict[s:OrgGetHead()].COLUMNS = matchstr(getline(line(".")),":COLUMNS:\\s*\\zs.*")'
+   "silent execute 'g/^\s*:COLUMNS:/let b:v.org_dict[s:OrgGetHead()].COLUMNS = matchstr(getline(line(".")),":COLUMNS:\\s*\\zs.*")'
 endfunction
 
 function! OrgMakeDict()
@@ -1952,6 +1972,9 @@ function! s:OrgIfExprResults(ifexpr,...)
                 endif
 
                 let g:adict[keyval]=lineprops
+                if !exists('g:adict[keyval].CATEGORY')
+                    let g:adict[keyval].CATEGORY = b:v.org_dict.iprop(headline,'CATEGORY')
+                endif
 
             endif
             normal l
@@ -4271,7 +4294,7 @@ function! s:GetColumns(line)
     return result[:-2]
 
 endfunction
-function! s:ToggleColumnView()
+function! ToggleColumnView()
 
     "au! BufEnter ColHeadBuffer call s:ColHeadBufferEnter()
     if b:v.columnview
@@ -4292,7 +4315,8 @@ function! <SID>ColumnStatusLine()
 endfunction
 function! s:AdjustItemLen()
     "if exists('b:v.columnview') && b:v.columnview 
-    let g:org_item_len = winwidth(0) - 10 - len(g:org_ColumnHead)
+    let g:org_item_len = winwidth(0) - 10 - 30
+    "let g:org_item_len = winwidth(0) - 10 - len(g:org_ColumnHead)
     "endif
 endfunction
 au VimResized * call s:AdjustItemLen()
