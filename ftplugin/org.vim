@@ -18,6 +18,7 @@ let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'tags,30'}
+let b:v.total_columns_width = 30
 
 let b:v.buffer_category = ''
 let b:v.buffer_columns = 'tags,30'
@@ -117,12 +118,15 @@ let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov
 let s:AgendaBufferName = "__Agenda__"
 
 function! OrgProcessConfigLines()
-    g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
+    silent g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
     " get rid of b:v.buffer_category (and columns also) and just use o_i_d var???
+    if b:v.buffer_category == ''
+        let b:v.buffer_category = expand("%:t:r")
+    endif
     let b:v.org_inherited_defaults['CATEGORY'] = b:v.buffer_category
-    g/^#+COLUMNS/execute "let b:v.buffer_columns = matchstr(getline(line('.')),'^#+COLUMNS:\\s*\\zs.*')"
+    silent g/^#+COLUMNS/execute "let b:v.buffer_columns = matchstr(getline(line('.')),'^#+COLUMNS:\\s*\\zs.*')"
     let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
-    g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
+    silent g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
     normal gg
 endfunction
 function! TodoTags(line)
@@ -377,14 +381,13 @@ function! s:TagMenu(heading_tags)
     return heading_tags
 endfunction
 
-
 function! s:GetBufferTags()
     let save_cursor = getpos(".") 
-    let b:v.tagdict = {}
+    let b:v.buftagdict = {}
     " call addtags for each headline in buffer
     g/^\*/call s:AddTagsToDict(line("."))
     call setpos('.',save_cursor)
-    return sort(keys(b:v.tagdict))
+    return sort(keys(b:v.buftagdict))
 endfunction
 inoremap <F5> <C-R>=OrgEffort()<CR>
 noremap <F5> A<C-R>=OrgEffort()<CR>
@@ -397,15 +400,10 @@ function! OrgEffort()
     return ''
 endfunction
 function! s:AddTagsToDict(line)
-    "call add(g:donelines,line('.'))
     let taglist = s:GetTagList(a:line)
     if !empty(taglist)
         for item in taglist
-            "if has_key(b:v.tagdict, item)
-            "execute "let b:v.tagdict['" . item . "'] += 1"
-            "else
-            execute "let b:v.tagdict['" . item . "'] = 1"
-            "endif
+            execute "let b:v.buftagdict['" . item . "'] = 1"
         endfor
     endif
 endfunction
@@ -1599,15 +1597,15 @@ function! s:SetRandomTodo()
 endfunction
 
 function! s:UpdateHeadlineSums()
-    g/^\s*:TotalClockTime/d
+    g/^\s*:TOTALCLOCKTIME/d
     call OrgMakeDict()
     let g:tempdict = {}
-    g/^\*\+ /let g:tempdict[line('.')] = b:v.org_dict.SumTime(line('.'),'ItemClockTime')
+    g/^\*\+ /let g:tempdict[line('.')] = b:v.org_dict.SumTime(line('.'),'ITEMCLOCKTIME')
     let items = sort(map(copy(keys(g:tempdict)),"str2nr(v:val)"),'s:NumCompare')
     let i = len(items) - 1
     while i >= 0
         if g:tempdict[items[i]] != '0:00'
-            call s:SetProp('TotalClockTime',g:tempdict[items[i]],items[i])
+            call s:SetProp('TOTALCLOCKTIME',g:tempdict[items[i]],items[i])
         endif
         let i = i-1
     endwhile
@@ -1626,10 +1624,6 @@ endfunction
 function! OrgMakeDictInherited()
     call OrgProcessConfigLines()
     let b:v.org_dict =  {'0':{'c':[],'CATEGORY':b:v.org_inherited_defaults['CATEGORY'] }}
-    "                    \  'COLUMNS': b:v.org_inherited_defaults['COLUMNS']}}
-    "let b:v.org_dict = b:v.buffer_category == '' ?
-    "              \   {'0':{'c':[],'CATEGORY':expand("%:t:r"), 'COLUMNS': b:v.buffer_columns}}
-    "              \   : {'0':{'c':[],'CATEGORY':b:v.buffer_category, 'COLUMNS': b:v.buffer_columns}}
     function! b:v.org_dict.iprop(ndx,property) dict
         let prop = a:property
         let ndx = a:ndx
@@ -1658,7 +1652,6 @@ function! OrgMakeDictInherited()
    " parent properties assigned above, now explicity record CATEGORY for 
    " any headlines where CATEGORY won't be inherited
    silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
-   "silent execute 'g/^\s*:COLUMNS:/let b:v.org_dict[s:OrgGetHead()].COLUMNS = matchstr(getline(line(".")),":COLUMNS:\\s*\\zs.*")'
 endfunction
 
 function! OrgMakeDict()
@@ -3952,6 +3945,7 @@ function! s:SumClockLines(line)
 
 endfunction
 function! s:UpdateBlock()
+    normal j
    ?^#+BEGIN:
     let block_type = matchstr(getline(line('.')),'\S\+\s\+\zs\S\+')
    if matchstr(getline(line('.')+1),'^#+END') == ''
@@ -3972,8 +3966,8 @@ function! ClockTable()
     let g:ctable_dict = {}
     let mycommand = "let g:ctable_dict[line('.')] = "
                 \ . "{'text':s:GetProperties(line('.'),0)['ITEM']"
-                \ . " , 'time':s:GetProperties(line('.'),0)['TotalClockTime']}"
-    g/:TotalClockTime/execute mycommand
+                \ . " , 'time':s:GetProperties(line('.'),0)['TOTALCLOCKTIME']}"
+    g/:TOTALCLOCKTIME/execute mycommand
     let total='00:00'
     for item in keys(g:ctable_dict)
         "let test = g:ctable_dict[item].text
@@ -4315,7 +4309,9 @@ function! <SID>ColumnStatusLine()
 endfunction
 function! s:AdjustItemLen()
     "if exists('b:v.columnview') && b:v.columnview 
-    let g:org_item_len = winwidth(0) - 10 - 30
+    " XXXX TODO get '30' in line below to be column width
+    " of sum of default columns -OR- user specified min"
+    let g:org_item_len = winwidth(0) - 10 - b:v.total_columns_width
     "let g:org_item_len = winwidth(0) - 10 - len(g:org_ColumnHead)
     "endif
 endfunction
@@ -4431,7 +4427,7 @@ function! OrgFoldText(...)
         let l:line .= s:PrePad("(" 
             \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
-    elseif g:org_show_fold_lines && !b:v.columnview 
+    elseif (g:org_show_fold_lines && !b:v.columnview) || (l:line =~ b:v.drawerMatch) 
         let l:line .= s:PrePad("(" . s:PrePad( line_count . ")",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
@@ -4645,7 +4641,7 @@ endfunction
 function! OrgDoSingleFold(line)
     if (foldclosed(a:line) == -1) "&& (getline(a:line+1) !~ b:v.headMatch)
         if (getline(a:line+1) !~ b:v.headMatch) || (s:Ind(a:line+1) > s:Ind(a:line))
-            while foldclosed(a:line) == -1
+            while (foldclosed(a:line) == -1) && (a:line != line('$'))
                 normal! zc
             endwhile
         endif
@@ -4731,7 +4727,7 @@ function! OrgFoldLevel(line)
             let b:v.lev = '>' . string(b:v.myAbsLevel + 4)
         elseif l:nexttext =~ s:remstring
             let b:v.lev = '>' . string(b:v.myAbsLevel + 6)
-        elseif l:nexttext !~ b:v.headMatch
+        elseif (l:nexttext !~ b:v.headMatch) && (a:line != line('$'))
             let b:v.lev = '>' . string(b:v.myAbsLevel + 3)
         elseif l:nextAbsLevel > b:v.myAbsLevel
             "let b:v.lev = '>20'
