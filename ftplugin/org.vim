@@ -848,7 +848,7 @@ function! s:OrgPrevHeadSameLevel_l(line)
     if foundline > 1
         return foundline
     else
-        if (s:Starcount(foundline) > 0) 
+        if (s:Starcount(foundline) > 0) && (a:line != 1)
             return 1
         else
             return 0
@@ -965,7 +965,7 @@ endfunction
 function! s:IsText(line)
     " checks for whether line is any kind of text block
     " test if line matches all-inclusive text block pattern
-    return getline(a:line) !~ b:v.headMatch
+    return (getline(a:line) !~ b:v.headMatch) && (a:line <= line('$')) 
 endfunction 
 
 function! s:NextLevelAbs(line)
@@ -1023,9 +1023,9 @@ function! s:DoFullCollapse(line)
     " make sure headline is not just 
     " text collapse
     " test if line matches all-inclusive text block pattern
-    if foldclosed(a:line) == -1 && (s:HasChild(a:line) || s:IsText(a:line+1))
+    while foldclosed(a:line) == -1 && (s:HasChild(a:line) || s:IsText(a:line+1))
         normal! zc
-    endif       
+    endwhile       
     if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
         normal! zc
         if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
@@ -1105,15 +1105,17 @@ function! s:ShowSubs(number,withtext)
 
     call s:DoFullCollapse(line("."))
     let l:start = foldclosed(line("."))
-    let l:end = foldclosedend(line("."))
-    exec "".l:start.",".l:end."foldc!"
-    exec "normal! zv"
-    if a:number >= 2 
-        let l:i = 2
-        while l:i <= a:number
-            exec "".l:start.",".l:end."foldo"
-            let l:i = l:i + 1
-        endwhile    
+    if l:start != -1
+        let l:end = foldclosedend(line("."))
+        exec l:start . "," . l:end . "foldc!"
+        exec "normal! zv"
+        if a:number >= 2 
+            let l:i = 2
+            while l:i <= a:number
+                exec "".l:start.",".l:end."foldo"
+                let l:i = l:i + 1
+            endwhile    
+        endif
     endif
     if a:withtext == 0
         call OrgSingleHeadingText('collapse')
