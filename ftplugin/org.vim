@@ -1020,21 +1020,29 @@ function! s:HasChild(line)
 endfunction
 
 function! s:DoFullCollapse(line) 
+    let lastline = s:OrgSubtreeLastLine_l(a:line)
+    if lastline == a:line 
+        return
+    else
+        while foldclosedend(a:line) < lastline
+            normal! zc
+        endwhile
+    endif
     " make sure headline is not just 
     " text collapse
     " test if line matches all-inclusive text block pattern
-    while foldclosed(a:line) == -1 && (s:HasChild(a:line) || s:IsText(a:line+1))
-        normal! zc
-    endwhile       
-    if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
-        normal! zc
-        if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
-            normal! zc
-            if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
-                normal! zc
-            endif
-        endif   
-    endif   
+ "   while foldclosed(a:line) == -1 && (s:HasChild(a:line) || s:IsText(a:line+1))
+ "       normal! zc
+ "   endwhile       
+ "   if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
+ "       normal! zc
+ "       if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
+ "           normal! zc
+ "           if s:IsTextOnlyFold(a:line) && s:HasChild(a:line)
+ "               normal! zc
+ "           endif
+ "       endif   
+ "   endif   
 endfunction
 
 function! s:IsTextOnlyFold(line)
