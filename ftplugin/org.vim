@@ -518,11 +518,13 @@ function! s:UnconvertTags(line)
 endfunction
 function! <SID>GlobalUnconvertTags(state)
     let g:save_cursor = getpos(".")
+    mkview
     normal A 
     g/^\*\+\s/call s:UnconvertTags(line("."))
 endfunction
 function! <SID>UndoUnconvertTags()
     undo
+    loadview
     call setpos(".",g:save_cursor)
 endfunction
 
