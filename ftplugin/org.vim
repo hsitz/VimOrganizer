@@ -3405,6 +3405,11 @@ function! OrgDateEdit(type)
 
         let b:v.mdate = matchstr(b:v.mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d-\d\d:\d\d\| \d\d:\d\d\|\)') 
         let replace_str = b:v.mdate
+        " if no date found insert in between empty <> 
+        " or subsistute >< or finally put at the end of the line
+        if replace_str == ""
+            let replace_str = '<\zs[^>]*\ze>\|><\|$'
+        end
         if b:v.mdate > ''
             let b:v.basedate = b:v.mdate[0:9]
             let b:v.baseday = b:v.mdate[11:13]
