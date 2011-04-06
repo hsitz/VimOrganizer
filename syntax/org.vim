@@ -34,9 +34,9 @@ syntax match OL9 +^\(*\)\{9}\s.*+ contains=stars
 
 
 syn match code '=\S.\{-}\S='
-syn match itals '/\zs\S.\{-}\S\ze/'
-syn match boldtext '*\zs\S.\{-}\S\ze\*'
-syn match undertext '_\zs\S.\{-}\S\ze_'
+syn match itals '\(\_^\|\W\)/\zs\S[^/]\{-}\S\ze/\_W'
+syn match boldtext '\(\_^\|\W\)\*\zs\S[^*]\{-}\S\ze\*\_W'
+syn match undertext '\(\_^\|\W\)_\zs\S[^_]\{-}\S\ze_\_W'
 syn match lnumber '^\t*\(\d\.\)*\s\s' contained
 
 
