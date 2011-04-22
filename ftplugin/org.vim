@@ -4065,6 +4065,9 @@ function! s:GetProp(key,...)
             break
         endif
         execute line(".") + 1
+        if line(".") == line("$")
+            break
+        endif
     endwhile
     if a:0 >= 2
         execute "tabnext ".curtab
