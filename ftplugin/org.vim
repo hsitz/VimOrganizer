@@ -222,7 +222,7 @@ function! OrgTodoSetup(todolist_str)
 
 endfunction
 function! s:CurfileAgenda()
-    exec "let g:agenda_files=['".expand("%")."']"
+    exec "let g:agenda_files=['".expand("%:p")."']"
 endfunction
 
 function! OrgTagSetup(tagspec)
