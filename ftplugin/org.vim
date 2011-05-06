@@ -20,6 +20,7 @@ let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'tags,30'}
 let b:v.total_columns_width = 30
 
+let b:v.buf_tags_static = []
 let b:v.buffer_category = ''
 let b:v.buffer_columns = 'tags,30'
 let w:sparse_on = 0
@@ -126,6 +127,12 @@ function! OrgProcessConfigLines()
     let b:v.org_inherited_defaults['CATEGORY'] = b:v.buffer_category
     silent g/^#+COLUMNS/execute "let b:v.buffer_columns = matchstr(getline(line('.')),'^#+COLUMNS:\\s*\\zs.*')"
     let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
+
+    " get read for todos and tags
+   let b:v.tagdict = {}
+   let b:v.buf_tags_static = []
+   let b:v.tagchars=''
+   let b:v.tags_order = []
     silent g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
     normal gg
 endfunction
@@ -227,9 +234,6 @@ endfunction
 
 function! OrgTagSetup(tagspec)
        let b:v.tags = split(tr(a:tagspec,'{}','  '),'\s\+') 
-       let b:v.tagdict={}
-       let b:v.tagchars=''
-       let b:v.tags_order = []
        for item in b:v.tags
             if item =~ '('
                    let char = matchstr(item,'(\zs.\ze)')
@@ -238,6 +242,7 @@ function! OrgTagSetup(tagspec)
                  let char = ''
                     let tag = item
             endif
+            call add (b:v.buf_tags_static, tag)
             let b:v.tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
             call add(b:v.tags_order,item)
             if char != ' '
@@ -381,6 +386,17 @@ function! s:TagMenu(heading_tags)
     return heading_tags
 endfunction
 
+function! s:GetDynamicBufferTags()
+    " get all buftags then remove those that are static
+    let result = []
+    let temp_dict = s:GetBufferTags()
+    for item in temp_dict
+        if index(b:v.buf_tags_static, item) < 0
+            call add(result,item)
+        endif
+    endfor
+    return result
+endfunction
 function! s:GetBufferTags()
     let save_cursor = getpos(".") 
     let b:v.buftagdict = {}

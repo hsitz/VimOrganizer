@@ -21,8 +21,9 @@ function! org#SetOrgFileType()
 	if !exists('g:org_tag_setup')
 		let g:org_tag_setup = '{home(h) work(w)}'
 	endif
-	call OrgTodoSetup(g:org_todo_setup)
-	call OrgTagSetup(g:org_tag_setup)
+	"call OrgTodoSetup(g:org_todo_setup)
+	"call OrgTagSetup(g:org_tag_setup)
+	call OrgProcessConfigLines()
         if !exists('g:in_agenda_search') && (&foldmethod!='expr')
                 setlocal foldmethod=expr
                 set foldlevel=1
