@@ -1,3 +1,4 @@
+"Section Setup
 "if !exists('g:v')
 "    let g:v={}
 "endif
@@ -118,6 +119,7 @@ let s:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct',
 let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 let s:AgendaBufferName = "__Agenda__"
 
+"Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
     silent g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
     " get rid of b:v.buffer_category (and columns also) and just use o_i_d var???
@@ -269,10 +271,21 @@ function! OrgTagSetup(tagspec)
         endwhile
 endfunction
 
+function! OrgUpdateTagDict(file)
+   let b:v.tagdict = {}
+   let b:v.tagchars=''
+   let b:v.tags_order = []
+    let tags = s:GetDynamicBufferTags()
+
+endfunction
+
 function! OrgTagsEdit(...)
         let line_file_str = ''
         let lineno=line('.')
         let file = expand("%")
+        if getbufvar(file,'v').dynamictags == 1
+            " call OrgUpdateTagDict(file)
+        endif
         if bufname("%")==('__Agenda__')
             " new file and lineno below to test with new line marker in agenda
             let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
@@ -692,6 +705,8 @@ function! s:ReplaceTodo(todoword,...)
     call setpos('.',save_cursor)
 endfunction
 
+"Section Navigation Funcs
+"
 function! s:OrgSubtreeLastLine()
     " Return the line number of the next head at same level, 0 for none
     return s:OrgSubtreeLastLine_l(line("."))
@@ -1568,6 +1583,8 @@ function! s:LoremIpsum()
     return split(lines[s:Random(3)-1],'\%70c\S*\zs \ze')
 endfunction
 
+"Section A New Section Here
+
 function! s:Random(range)
     "returns random integer from 1 to range
     return (Rndm() % a:range) + 1
@@ -2026,6 +2043,7 @@ function! s:MakeResults(search_spec,...)
         let ifexpr = s:OrgIfExpr()
         call s:OrgIfExprResults(ifexpr,sparse_search)
     else
+        let g:in_agenda_search = 1
         for file in g:agenda_files
             let mycommand = 'tab drop '. file
             execute mycommand
@@ -2035,11 +2053,20 @@ function! s:MakeResults(search_spec,...)
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
             call s:OrgIfExprResults(ifexpr,sparse_search)
         endfor
+        unlet g:in_agenda_search
         call s:LocateFile(curfile)
     endif
     call setpos(".",save_cursor)
 endfunction
-
+function OrgSaveLocation()
+    let g:location = [ expand('%:p') , getpos('.') ]
+endfunction
+function OrgRestoreLocation()
+    if expand('%:p') != g:location[0]
+        call s:LocateFile( g:location[0] )
+    endif
+    call setpos( '.', g:location[1] )
+endfunction
 function! s:DaysInMonth(date)
         let month = str2nr(a:date[5:6])
         let year = str2nr(a:date[0:3])
@@ -2081,7 +2108,6 @@ function! s:MakeAgenda(date,count,...)
         let g:org_agenda_days=a:count
     endif
     if a:count == 1 | let as_today = g:agenda_startdate | endif
-    "let myfiles=['newtest3.org','test3.org', 'test4.org', 'test5.org','test6.org', 'test7.org']
     let g:adict = {}
     let s:filedict = copy(g:agenda_files)
     let s:agenda_files_copy = copy(g:agenda_files)
@@ -3885,6 +3911,7 @@ function! s:GetOpenClock()
         call confirm("No agenda files defined, will search only this buffer for open clocks.")
         let found = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
     else
+        let g:in_agenda_search = 1
         for file in g:agenda_files
             call s:LocateFile(file)
             let found_line = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
@@ -3893,6 +3920,7 @@ function! s:GetOpenClock()
                 break
             endif
         endfor
+        unlet g:in_agenda_search
     endif
     return [file,found_line]
 endfunction
@@ -5207,7 +5235,7 @@ function! s:MailLookup()
     Utl openlink https://mail.google.com/mail/?hl=en&shva=1#search/after:2010-10-24+before:2010-10-26
     "https://mail.google.com/mail/?hl=en&shva=1#search/after%3A2010-10-24+before%3A2010-10-26
 endfunction
-function! Union(list1, list2)
+function! s:Union(list1, list2)
     " returns the union of two lists
     " (some algo ...)
     let rdict = {}
@@ -5270,6 +5298,7 @@ if !exists('b:v.todoitems')
     call OrgTodoSetup('TODO | DONE')
 endif
 
+"Section Mappings and Endstuff
 " below block of 10 or 15 maps are ones collected
 " from body of doc that weren't getting assigned for docs
 " oepened after initial org filetype doc
@@ -5398,4 +5427,44 @@ set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
 set fo=qtcwn
 let b:v.current_syntax = "org"
 
-" vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^func'?0\:1:
+function! OrgSetColors()
+" define foreground colors for ****UNfolded**** outline heading levels
+hi! default link OL1 Folded
+hi! default link OL2 WarningMsg
+hi! default link OL3 WildMenu
+hi! default link OL4 DiffAdd
+hi! default link OL5 DiffChange
+hi! default link OL6 Title
+hi! default link OL7 LineNr
+hi! default link OL8 PreProc
+hi! default link OL9 Type
+
+" define highlighting for ***FOLDED*** outline heading levels
+" 'Folded' is used for folded OL1
+hi! default link Folded Statement
+hi! default link WarningMsg Identifier
+hi! default link WildMenu Constant
+hi! default link DiffAdd Comment
+hi! default link DiffChange Special
+
+" various text item "highlightings" are below
+hi! default Properties guifg=pink ctermfg=lightred
+hi! default Tags guifg=pink ctermfg=lightred
+hi! default Dates guifg=magenta ctermfg=magenta
+hi! default stars guifg=#444444 ctermfg=darkgray
+hi! default Props guifg=#ffa0a0 ctermfg=lightred
+hi! default code guifg=orange gui=bold ctermfg=14
+hi! default itals gui=italic guifg=#aaaaaa ctermfg=lightgray
+hi! default boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray
+hi! default undertext gui=underline guifg=#aaaaaa ctermfg=lightgray
+hi! default lnumber guifg=#999999 ctermfg=gray
+
+hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
+hi! default CANCELED guifg=red guibg=NONE ctermfg=red ctermbg=NONE
+hi! default STARTED guifg=yellow guibg=NONE ctermfg=yellow ctermbg=NONE
+hi! default NEXT guifg=cyan guibg=NONE ctermfg=cyan ctermbg=NONE
+hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
+endfunction
+
+call OrgSetColors()
+" vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum)=~'^func'?1\:2:
