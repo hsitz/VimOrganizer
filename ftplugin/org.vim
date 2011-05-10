@@ -22,6 +22,7 @@ let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'tags,30'
 let b:v.total_columns_width = 30
 
 let b:v.buf_tags_static = []
+let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
 let b:v.buffer_columns = 'tags,30'
 let w:sparse_on = 0
@@ -133,6 +134,7 @@ function! OrgProcessConfigLines()
     " get read for todos and tags
    let b:v.tagdict = {}
    let b:v.buf_tags_static = []
+   let b:v.buf_tags_static_spec = ''
    let b:v.tagchars=''
    let b:v.tags_order = []
     silent g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
@@ -141,7 +143,9 @@ endfunction
 function! TodoTags(line)
     let line = a:line
     if line =~ '#+TAGS'
-        call OrgTagSetup(matchstr(line,'#+TAGS \zs.*'))
+        let newtags = matchstr( line, '#+TAGS \zs.*') 
+        let b:v.buf_tags_static_spec .= newtags . ' '
+        call OrgTagSetup( newtags )
     elseif line =~ '#+TODO'
         call OrgTodoSetup(matchstr(line,'#+TODO \zs.*'))
     endif
@@ -245,7 +249,7 @@ function! OrgTagSetup(tagspec)
                     let tag = item
             endif
             call add (b:v.buf_tags_static, tag)
-            let b:v.tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
+            let b:v.tagdict[item] = {'char':char, 'tag':tag, 'type': 'static', 'exclude':'', 'exgroup':0}
             call add(b:v.tags_order,item)
             if char != ' '
                 let b:v.tagchars .= char
@@ -255,19 +259,20 @@ function! OrgTagSetup(tagspec)
        let templist = a:tagspec
        let i = 1
         while templist =~ '{.\{}}'
-                let strikeout = matchstr(templist,'{.\{-}}')
-                let exclusive = matchstr(templist,'{\zs.\{-}\ze}')
-                let templist = substitute(templist,strikeout,'','')
-                let xlist = split(exclusive,'\s\+')
-                for item in xlist
-                    let b:v.tagdict[item].exgroup = i
-                    for x in xlist
-                            if x != item
-                                   let b:v.tagdict[item].exclude .= b:v.tagdict[x].char
-                            endif
-                    endfor
+            "cycle through groups and add exclude chars for any group members
+            let strikeout = matchstr(templist,'{.\{-}}')
+            let exclusive = matchstr(templist,'{\zs.\{-}\ze}')
+            let templist = substitute(templist,strikeout,'','')
+            let xlist = split(exclusive,'\s\+')
+            for item in xlist
+                let b:v.tagdict[item].exgroup = i
+                for x in xlist
+                    if x != item
+                           let b:v.tagdict[item].exclude .= b:v.tagdict[x].char
+                    endif
                 endfor
-                let i += 1
+            endfor
+            let i += 1
         endwhile
 endfunction
 
@@ -283,9 +288,6 @@ function! OrgTagsEdit(...)
         let line_file_str = ''
         let lineno=line('.')
         let file = expand("%")
-        if getbufvar(file,'v').dynamictags == 1
-            " call OrgUpdateTagDict(file)
-        endif
         if bufname("%")==('__Agenda__')
             " new file and lineno below to test with new line marker in agenda
             let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
@@ -304,6 +306,10 @@ endfunction
 
 function! s:TagMenu(heading_tags)
     let heading_tags = a:heading_tags
+    
+    if b:v.buf_tags_static_spec == ''
+        call s:SetDynamicTags()
+    endif
     let tagstring = ''
     let tagchars = ''
     for item in b:v.tags_order
@@ -410,6 +416,28 @@ function! s:GetDynamicBufferTags()
     endfor
     return result
 endfunction
+function! s:SetDynamicTags()
+    let taglist = s:GetBufferTags()
+    let chardict = {}
+    let b:v.tagdict = {}
+    let b:v.tags_order = []
+    for item in taglist
+        let newchar = ''
+        let i = 0
+        while i < len(item)
+            if !has_key(chardict, item[i])
+                let newchar = item[i]
+                let chardict[item[i]] = 1
+                break
+            endif
+            let i += 1
+        endwhile
+        "newchar of '' means no char found. . . 
+        let b:v.tagdict[item] = {'char':newchar, 'tag':item, 'type': 'dynamic', 'exclude':'', 'exgroup':0}
+        call add(b:v.tags_order, item)
+    endfor
+endfunction
+        
 function! s:GetBufferTags()
     let save_cursor = getpos(".") 
     let b:v.buftagdict = {}
@@ -5467,4 +5495,5 @@ hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
 endfunction
 
 call OrgSetColors()
+
 " vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum)=~'^func'?1\:2:
