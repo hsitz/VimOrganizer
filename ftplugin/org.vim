@@ -319,14 +319,15 @@ function! s:TagMenu(heading_tags)
         endif
     endfor
 
-        hi Cursor guibg=black
-        let cue = ''
+    hi Cursor guibg=black
+    let cue = ''
     set nomore
     while 1
         echo repeat('-',winwidth(0)-1)
         echohl Title | echo 'Choose tags:   ' | echohl None | echon '( <enter> to accept, <esc> to cancel )'
         echo '------------'
         let oldgroup = 0
+        let items_in_row = 1
         for item in b:v.tags_order
             if item == '\n'
                 continue
@@ -341,16 +342,18 @@ function! s:TagMenu(heading_tags)
                 echohl None
             endif
             "if (g:org_tag_group_arrange==0) || (newgroup != oldgroup) || (newgroup == 0 ) || (b:v.tags_order[curindex+1]=='\n')
-            if (curindex==0) || (b:v.tags_order[curindex-1]=='\n')
+            if (curindex==0) || (b:v.tags_order[curindex-1]=='\n') || (winwidth(0) - (items_in_row*20) < 20)
                 echo repeat(' ',3) . '[' | echohl Question | echon select | echohl None | echon '] ' 
                 echohl None | echon b:v.tagdict[item].tag | echohl Title | echon '('.b:v.tagdict[item].char.')' | echohl None
                 let nextindent = repeat(' ',12-len(b:v.tagdict[item].tag))
+                let items_in_row = 1
             else    
                 "echon repeat(' ',3) . 
                 echon nextindent
                 echon '[' | echohl Question | echon select | echohl None | echon '] ' 
                 echohl None | echon b:v.tagdict[item].tag | echohl Title | echon '('.b:v.tagdict[item].char.')' | echohl None
                 let nextindent = repeat(' ',12-len(b:v.tagdict[item].tag))
+                let items_in_row += 1
                 "echon repeat(' ', 12-len(b:v.tagdict[item]))
             endif
             let oldgroup = b:v.tagdict[item].exgroup
@@ -364,6 +367,8 @@ function! s:TagMenu(heading_tags)
                 let cue = cue[:-2]
             elseif nchar == "\<s-c-up>"
                 let cue = ((curdif-365>=0) ?'+':'').(curdif-365).'d'
+            elseif newchar == "\<s-cr>"
+                " add new tag . . . todo . . .
             elseif newchar == "\<cr>"
                 break
             elseif newchar == "\<Esc>"
