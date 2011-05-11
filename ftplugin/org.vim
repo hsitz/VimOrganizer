@@ -4498,7 +4498,7 @@ function! OrgFoldText(...)
     let l:nextline = getline(foldstart + 1)
     let myind = s:Ind(foldstart)
 
-    let v:foldhighlight = hlID(b:v.foldcolors[myind])
+    let level_highlight = hlID(b:v.foldcolors[myind])
 
     " get rid of header prefix
     let l:line = substitute(l:line,'^\*\+\s*','','g')
@@ -4506,12 +4506,12 @@ function! OrgFoldText(...)
     let line_count = v:foldend - v:foldstart
 
     if l:line =~ b:v.drawerMatch
-        let v:foldhighlight = hlID('Title')
+        let level_highlight = hlID('Title')
         let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
         let line_count = line_count - 1
     elseif l:line[0] == '#'
-        let v:foldhighlight = hlID('VisualNOS')
+        let level_highlight = hlID('VisualNOS')
     else
         let l = g:org_item_len
         let line = line[:l]
@@ -4522,7 +4522,7 @@ function! OrgFoldText(...)
         "if index(b:v.sparse_list,v:foldstart) > -1            "v:foldstart == 10
             let l:line = '* * * * * * * * * * * ' . (v:foldend - v:foldstart) . ' lines skipped here * * * * * * *'
             let l:line .= repeat(' ', winwidth(0)-len(l:line)-28) . 'SPARSETREE SKIP >>'
-            let v:foldhighlight = hlID('TabLineFill')
+            let level_highlight = hlID('TabLineFill')
         endif
     endif
     if g:org_show_fold_dots 
@@ -4539,7 +4539,9 @@ function! OrgFoldText(...)
         let l:line .= s:PrePad("(" . s:PrePad( line_count . ")",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
-
+    if exists('v:foldhighlight')
+        let v:foldhighlight = level_highlight
+    endif
     return l:line
 endfunction
 
