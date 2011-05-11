@@ -292,6 +292,12 @@ function! OrgTagsEdit(...)
             " new file and lineno below to test with new line marker in agenda
             let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
             let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+            if getbufvar(file,'v').buf_tags_static_spec == ''
+                call s:OrgSaveLocation()
+                call s:LocateFile(file)
+                call s:SetDynamicTags()
+                call s:OrgRestoreLocation()
+            endif
             let b:v.tagdict = getbufvar(file,'v').tagdict
             let b:v.tags_order = getbufvar(file,'v').tags_order
         endif
@@ -307,9 +313,9 @@ endfunction
 function! s:TagMenu(heading_tags)
     let heading_tags = a:heading_tags
     
-    if b:v.buf_tags_static_spec == ''
-        call s:SetDynamicTags()
-    endif
+    "if b:v.buf_tags_static_spec == ''
+    "    call s:SetDynamicTags()
+    "endif
     let tagstring = ''
     let tagchars = ''
     for item in b:v.tags_order
@@ -2091,10 +2097,11 @@ function! s:MakeResults(search_spec,...)
     endif
     call setpos(".",save_cursor)
 endfunction
-function OrgSaveLocation()
-    let g:location = [ expand('%:p') , getpos('.') ]
+function! s:OrgSaveLocation()
+    let file_loc = bufname('%')=='__Agenda__' ? '__Agenda__' : expand('%:p')
+    let g:location = [ file_loc , getpos('.') ]
 endfunction
-function OrgRestoreLocation()
+function! s:OrgRestoreLocation()
     if expand('%:p') != g:location[0]
         call s:LocateFile( g:location[0] )
     endif
@@ -4276,14 +4283,18 @@ function! s:LocateFile(filename)
     let myvar = ''
     " set filename
     let filename = a:filename
-    " but change to be full name if appropriate
-    for item in g:agenda_files
-        " match fullpathname or just filename w/o path
-        if (item == a:filename) || (item =~ matchstr(a:filename,'.*[/\\]\zs.*'))
-            let filename = item
-            break
-        endif
-    endfor
+
+    if filename != '__Agenda__'
+        " but change to be full name if appropriate
+        for item in g:agenda_files
+            " match fullpathname or just filename w/o path
+            if (item == a:filename) || (item =~ matchstr(a:filename,'.*[/\\]\zs.*'))
+                let filename = item
+                break
+            endif
+        endfor
+    endif
+
     if bufwinnr(filename) >= 0
         silent execute bufwinnr(filename)."wincmd w"
     else
