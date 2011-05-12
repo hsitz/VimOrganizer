@@ -585,15 +585,19 @@ function! s:UnconvertTags(line)
     endif
 endfunction
 function! <SID>GlobalUnconvertTags(state)
-    let g:save_cursor = getpos(".")
-    mkview
-    normal A 
-    g/^\*\+\s/call s:UnconvertTags(line("."))
+    if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
+        let g:save_cursor = getpos(".")
+        mkview
+        normal A 
+        g/^\*\+\s/call s:UnconvertTags(line("."))
+    endif
 endfunction
 function! <SID>UndoUnconvertTags()
-    undo
-    loadview
-    call setpos(".",g:save_cursor)
+    if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
+        undo
+        loadview
+        call setpos(".",g:save_cursor)
+    endif
 endfunction
 
 function! s:ConvertTags(line)
@@ -604,10 +608,12 @@ function! s:ConvertTags(line)
     endif
 endfunction
 function! <SID>GlobalConvertTags()
-    let save_cursor = getpos(".")
-    g/^\*\+\s/call s:ConvertTags(line("."))
-    call OrgProcessConfigLines()
-    call setpos(".",save_cursor)
+    if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
+        let save_cursor = getpos(".")
+        g/^\*\+\s/call s:ConvertTags(line("."))
+        call OrgProcessConfigLines()
+        call setpos(".",save_cursor)
+    endif
 endfunction
 function! s:GlobalFormatTags()
     let save_cursor = getpos(".")
