@@ -21,7 +21,6 @@ let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'tags,30'}
 let b:v.total_columns_width = 30
 
-let b:v.buf_tags_static = []
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
 let b:v.buffer_columns = 'tags,30'
@@ -70,9 +69,13 @@ let b:v.fold_list = []
 let b:v.suppress_indent=0
 let b:v.suppress_list_indent=0
 
-if !exists('g:org_agenda_dirs')
-    execute "let g:org_agenda_dirs =['".expand("%:p:h")."']"
+if !exists('g:org_tag_alist')
+    let g:org_tag_alist = ''
 endif
+
+"if !exists('g:org_agenda_dirs')
+"    let g:org_agenda_dirs = ['".expand("%:p:h")."']
+"endif
 
 if !exists('g:org_loaded')
 
@@ -133,7 +136,6 @@ function! OrgProcessConfigLines()
 
     " get read for todos and tags
    let b:v.tagdict = {}
-   let b:v.buf_tags_static = []
    let b:v.buf_tags_static_spec = ''
    let b:v.tagchars=''
    let b:v.tags_order = []
@@ -242,16 +244,27 @@ function! OrgTagSetup(tagspec)
        let b:v.tags = split(tr(a:tagspec,'{}','  '),'\s\+') 
        for item in b:v.tags
             if item =~ '('
-                   let char = matchstr(item,'(\zs.\ze)')
-                  let tag = matchstr(item,'.*\ze(')
+                let char = matchstr(item,'(\zs.\ze)')
+                let tag = matchstr(item,'.*\ze(')
             else
-                 let char = ''
-                    let tag = item
+                "find an unused character
+                let char = ''
+                let tag = item   
+                let i = 0
+                while i < len(item)
+                    "if !has_key(chardict, item[i])
+                    " find char that isn't in tagchars yet
+                    if b:v.tagchars !~ item[i]
+                        let char = item[i]
+                        "let chardict[item[i]] = 1
+                        break
+                    endif
+                    let i += 1
+                endwhile
             endif
-            call add (b:v.buf_tags_static, tag)
-            let b:v.tagdict[item] = {'char':char, 'tag':tag, 'type': 'static', 'exclude':'', 'exgroup':0}
+            let b:v.tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
             call add(b:v.tags_order,item)
-            if char != ' '
+            if char != ''
                 let b:v.tagchars .= char
             endif
         endfor
@@ -276,33 +289,31 @@ function! OrgTagSetup(tagspec)
         endwhile
 endfunction
 
-function! OrgUpdateTagDict(file)
-   let b:v.tagdict = {}
-   let b:v.tagchars=''
-   let b:v.tags_order = []
-    let tags = s:GetDynamicBufferTags()
-
-endfunction
 
 function! OrgTagsEdit(...)
-        let line_file_str = ''
-        let lineno=line('.')
-        let file = expand("%")
-        if bufname("%")==('__Agenda__')
-            " new file and lineno below to test with new line marker in agenda
-            let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
-            let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
-            if getbufvar(file,'v').buf_tags_static_spec == ''
-                call s:OrgSaveLocation()
-                call s:LocateFile(file)
-                call s:SetDynamicTags()
-                call s:OrgRestoreLocation()
-            endif
-            let b:v.tagdict = getbufvar(file,'v').tagdict
-            let b:v.tags_order = getbufvar(file,'v').tags_order
+    let line_file_str = ''
+    let lineno=line('.')
+    let file = expand("%")
+    if bufname("%")==('__Agenda__')
+        " new file and lineno below to test with new line marker in agenda
+        let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+        let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+        if getbufvar(file,'v').buf_tags_static_spec == ''
+            call s:OrgSaveLocation()
+            call s:LocateFile(file)
+            call s:SetDynamicTags()
+            call s:OrgRestoreLocation()
         endif
+        let b:v.tagdict = getbufvar(file,'v').tagdict
+        let b:v.tags_order = getbufvar(file,'v').tags_order
+    else
+        if getbufvar(file,'v').buf_tags_static_spec == ''
+            call s:SetDynamicTags()
+        endif
+    endif
+
     
-        let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
+    let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
     
     let new_heading_tags = s:TagMenu(heading_tags)
     if new_heading_tags != heading_tags
@@ -313,9 +324,6 @@ endfunction
 function! s:TagMenu(heading_tags)
     let heading_tags = a:heading_tags
     
-    "if b:v.buf_tags_static_spec == ''
-    "    call s:SetDynamicTags()
-    "endif
     let tagstring = ''
     let tagchars = ''
     for item in b:v.tags_order
@@ -416,37 +424,31 @@ function! s:TagMenu(heading_tags)
     return heading_tags
 endfunction
 
-function! s:GetDynamicBufferTags()
-    " get all buftags then remove those that are static
-    let result = []
-    let temp_dict = s:GetBufferTags()
-    for item in temp_dict
-        if index(b:v.buf_tags_static, item) < 0
-            call add(result,item)
-        endif
-    endfor
-    return result
-endfunction
 function! s:SetDynamicTags()
     let taglist = s:GetBufferTags()
     let chardict = {}
     let b:v.tagdict = {}
+    let b:v.tagchars = ''
     let b:v.tags_order = []
-    for item in taglist
-        let newchar = ''
-        let i = 0
-        while i < len(item)
-            if !has_key(chardict, item[i])
-                let newchar = item[i]
-                let chardict[item[i]] = 1
-                break
-            endif
-            let i += 1
-        endwhile
-        "newchar of '' means no char found. . . 
-        let b:v.tagdict[item] = {'char':newchar, 'tag':item, 'type': 'dynamic', 'exclude':'', 'exgroup':0}
-        call add(b:v.tags_order, item)
-    endfor
+
+    let setup_string =  g:org_tag_alist . ' ' . join(taglist) 
+    call OrgTagSetup( setup_string )
+
+    "for item in taglist
+    "    let newchar = ''
+    "    let i = 0
+    "    while i < len(item)
+    "        if !has_key(chardict, item[i])
+    "            let newchar = item[i]
+    "            let chardict[item[i]] = 1
+    "            break
+    "        endif
+    "        let i += 1
+    "    endwhile
+    "    "newchar of '' means no char found. . . 
+    "    let b:v.tagdict[item] = {'char':newchar, 'tag':item, 'type': 'dynamic', 'exclude':'', 'exgroup':0}
+    "    call add(b:v.tags_order, item)
+    "endfor
 endfunction
         
 function! s:GetBufferTags()
