@@ -125,32 +125,38 @@ let s:AgendaBufferName = "__Agenda__"
 
 "Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
-    silent g/^#+CATEGORY/execute "let b:v.buffer_category = matchstr(getline(line('.')),'^#+CATEGORY:\\s*\\zs.*')"
+    let b:v.org_config_lines = []
+    silent g/^#+/call add( b:v.org_config_lines, getline(line('.')) )
+    
+    " clear out for new tag settings
+    let b:v.tagdict = {}
+    let b:v.buf_tags_static_spec = ''
+    let b:v.tagchars=''
+    let b:v.tags_order = []
+    
+    for line in b:v.org_config_lines
+        if line =~ '^#+CATEGORY'
+            let b:v.buffer_category = matchstr( line ,'^#+CATEGORY:\\s*\\zs.*')
+            let b:v.org_inherited_defaults['CATEGORY'] = b:v.buffer_category
+        elseif line =~ '^#+COLUMNS'
+            let b:v.buffer_columns = matchstr( line ,'^#+COLUMNS:\\s*\\zs.*')
+            let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
+        elseif line =~ '#+TAGS'
+            let newtags = matchstr( line, '#+TAGS \zs.*') 
+            let b:v.buf_tags_static_spec .= newtags . '\n '
+        elseif line =~ '#+TODO'
+            call OrgTodoSetup(matchstr(line,'#+TODO \zs.*'))
+        endif
+    endfor
+
+    call OrgTagSetup( b:v.buf_tags_static_spec )
+
     " get rid of b:v.buffer_category (and columns also) and just use o_i_d var???
     if b:v.buffer_category == ''
         let b:v.buffer_category = expand("%:t:r")
     endif
-    let b:v.org_inherited_defaults['CATEGORY'] = b:v.buffer_category
-    silent g/^#+COLUMNS/execute "let b:v.buffer_columns = matchstr(getline(line('.')),'^#+COLUMNS:\\s*\\zs.*')"
-    let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
 
-    " get read for todos and tags
-   let b:v.tagdict = {}
-   let b:v.buf_tags_static_spec = ''
-   let b:v.tagchars=''
-   let b:v.tags_order = []
-    silent g/^#+\(TODO\|TAGS\)/execute "call TodoTags('".getline(line('.'))."')"
     normal gg
-endfunction
-function! TodoTags(line)
-    let line = a:line
-    if line =~ '#+TAGS'
-        let newtags = matchstr( line, '#+TAGS \zs.*') 
-        let b:v.buf_tags_static_spec .= newtags . ' '
-        call OrgTagSetup( newtags )
-    elseif line =~ '#+TODO'
-        call OrgTodoSetup(matchstr(line,'#+TODO \zs.*'))
-    endif
 endfunction
 
 function! OrgTodoConvert(orgtodo)
