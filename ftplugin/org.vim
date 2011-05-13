@@ -136,16 +136,21 @@ function! OrgProcessConfigLines()
     
     for line in b:v.org_config_lines
         if line =~ '^#+CATEGORY'
-            let b:v.buffer_category = matchstr( line ,'^#+CATEGORY:\\s*\\zs.*')
+            let b:v.buffer_category = matchstr( line ,'^#+CATEGORY:\s*\zs.*')
             let b:v.org_inherited_defaults['CATEGORY'] = b:v.buffer_category
         elseif line =~ '^#+COLUMNS'
-            let b:v.buffer_columns = matchstr( line ,'^#+COLUMNS:\\s*\\zs.*')
+            let b:v.buffer_columns = matchstr( line ,'^#+COLUMNS:\s*\zs.*')
             let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
-        elseif line =~ '#+TAGS'
-            let newtags = matchstr( line, '#+TAGS \zs.*') 
+        elseif line =~ '#+STARTUP:'
+            let startup_list = split(matchstr( line, '#+STARTUP:\s*\zs.*') )
+            for item in startup_list
+               silent! exec "let b:v." . item . "=1"
+            endfor
+        elseif line =~ '#+TAGS:'
+            let newtags = matchstr( line, '#+TAGS:\s*\zs.*') 
             let b:v.buf_tags_static_spec .= newtags . '\n '
-        elseif line =~ '#+TODO'
-            call OrgTodoSetup(matchstr(line,'#+TODO \zs.*'))
+        elseif line =~ '#+TODO:'
+            call OrgTodoSetup(matchstr(line,'#+TODO:\s*\zs.*'))
         endif
     endfor
 
@@ -304,19 +309,18 @@ function! OrgTagsEdit(...)
         " new file and lineno below to test with new line marker in agenda
         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
-        if getbufvar(file,'v').buf_tags_static_spec == ''
-            call s:OrgSaveLocation()
-            call s:LocateFile(file)
-            call s:SetDynamicTags()
-            call s:OrgRestoreLocation()
-        endif
+
+        call s:OrgSaveLocation()
+        call s:LocateFile(file)
+        call s:SetDynamicTags()
+        call s:OrgRestoreLocation()
+
         let b:v.tagdict = getbufvar(file,'v').tagdict
         let b:v.tags_order = getbufvar(file,'v').tags_order
     else
-        if getbufvar(file,'v').buf_tags_static_spec == ''
-            call s:SetDynamicTags()
-        endif
+        call s:SetDynamicTags()
     endif
+
 
     
     let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
@@ -437,24 +441,36 @@ function! s:SetDynamicTags()
     let b:v.tagchars = ''
     let b:v.tags_order = []
 
-    let setup_string =  g:org_tag_alist . ' ' . join(taglist) 
+    if b:v.buf_tags_static_spec == ''
+        let static_tags = g:org_tags_alist
+        if static_tags == ''
+            let b:v.dynamic_tags_only = 1
+        endif
+    else
+        let static_tags = b:v.buf_tags_static_spec
+    endif
+
+    if exists('b:v.dynamic_tags_only') && (b:v.dynamic_tags_only==1)
+        let setup_string = join(taglist)
+    elseif exists('b:v.dynamic_tags') && (b:v.dynamic_tags==1)
+        "first need to remove dups in dynamic taglist
+        let temp_list = split(static_tags)
+        for i in range(0,len(temp_list)-1)
+            if temp_list[i] =~ '(.)'
+               let temp_list[i] = matchstr(temp_list[i],'^.*\ze(')
+            endif
+        endfor
+        let dup_list = s:Intersect( temp_list, taglist )
+        for item in dup_list
+            call remove( taglist, index(taglist, item) )
+        endfor
+        let setup_string =  static_tags . ' ' . join(taglist) 
+    else
+        let setup_string = static_tags
+    endif
+
     call OrgTagSetup( setup_string )
 
-    "for item in taglist
-    "    let newchar = ''
-    "    let i = 0
-    "    while i < len(item)
-    "        if !has_key(chardict, item[i])
-    "            let newchar = item[i]
-    "            let chardict[item[i]] = 1
-    "            break
-    "        endif
-    "        let i += 1
-    "    endwhile
-    "    "newchar of '' means no char found. . . 
-    "    let b:v.tagdict[item] = {'char':newchar, 'tag':item, 'type': 'dynamic', 'exclude':'', 'exgroup':0}
-    "    call add(b:v.tags_order, item)
-    "endfor
 endfunction
         
 function! s:GetBufferTags()
