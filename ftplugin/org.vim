@@ -69,9 +69,6 @@ let b:v.fold_list = []
 let b:v.suppress_indent=0
 let b:v.suppress_list_indent=0
 
-if !exists('g:org_tag_alist')
-    let g:org_tag_alist = ''
-endif
 
 "if !exists('g:org_agenda_dirs')
 "    let g:org_agenda_dirs = ['".expand("%:p:h")."']
@@ -79,6 +76,12 @@ endif
 
 if !exists('g:org_loaded')
 
+if !exists('g:org_tags_persistent_alist')
+    let g:org_tags_persistent_alist = ''
+endif
+if !exists('g:org_tags_alist')
+    let g:org_tags_alist = ''
+endif
 let g:org_clock_history=[]
 let g:org_path_to_emacs='"c:\program files (x86)\emacs\emacs\bin\emacs.exe"'
 let s:org_headMatch = '^\*\+\s'
@@ -442,12 +445,14 @@ function! s:SetDynamicTags()
     let b:v.tags_order = []
 
     if b:v.buf_tags_static_spec == ''
-        let static_tags = g:org_tags_alist
+        let static_tags = g:org_tags_alist . ' ' . g:org_tags_persistent_alist
         if static_tags == ''
             let b:v.dynamic_tags_only = 1
         endif
-    else
+    elseif exists('b:v.noptags')
         let static_tags = b:v.buf_tags_static_spec
+    else
+        let static_tags = b:v.buf_tags_static_spec . ' ' . g:org_tags_persistent_alist
     endif
 
     if exists('b:v.dynamic_tags_only') && (b:v.dynamic_tags_only==1)
