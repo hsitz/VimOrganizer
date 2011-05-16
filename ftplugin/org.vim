@@ -208,6 +208,7 @@ function! OrgTodoSetup(todolist_str)
     let todolist = OrgTodoConvert(a:todolist_str)
     "set up list and patterns for use throughout
     let b:v.todoitems=[]
+    let b:v.todo_first_letters = ''
     let b:v.fulltodos=todolist
     let b:v.todocycle=[]
     let b:v.todoMatch=''
@@ -226,7 +227,8 @@ function! OrgTodoSetup(todolist_str)
             else
                 let b:v.todoDoneMatch .= newtodo . '\|'
             endif
-            else
+        else
+            "item is itself a list
             let j = 0
             while j < len(todolist[i])
                 call add(b:v.todoitems,todolist[i][j])
@@ -248,6 +250,13 @@ function! OrgTodoSetup(todolist_str)
     let b:v.todoMatch = '^\*\+\s*\('.b:v.todoMatch[:-2] . ')'
     let b:v.todoDoneMatch = '^\*\+\s*\('.b:v.todoDoneMatch[:-2] . ')'
     let b:v.todoNotDoneMatch = '^\*\+\s*\('.b:v.todoNotDoneMatch[:-2] . ')'
+    for item in b:v.todoitems
+        let item_char = tolower(item[0])
+        execute 'map <silent> <buffer> <localleader>t' . item_char . 
+                \  ' :call OrgSequenceTodo(line(''.''),''' . item_char . ''')<cr>'
+    endfor
+    map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
+    map <silent> <buffer> <localleader><space> :call OrgSequenceTodo(line('.'))<cr>
 
 endfunction
 function! s:CurfileAgenda()
@@ -2241,6 +2250,75 @@ function! OrgRunSearch(search_spec,...)
     call s:MakeResults(a:search_spec,sparse_search)
 
     if sparse_search
+        call s:ResultsToSparseTree()
+    else
+        call s:ResultsToAgenda()
+    endif
+
+    finally
+        "set mouseshape-=n:busy,v:busy,i:busy
+    endtry
+endfunction
+function! s:ResultsToAgenda()
+    " make agenda buf have its own todoitems, need
+    " to get rid of g:... so each agenda_file can have
+    " its own todoitems defined. . . "
+    let todos = b:v.todoitems
+    let todoNotDoneMatch = b:v.todoNotDoneMatch
+    let todoDoneMatch = b:v.todoDoneMatch
+    let todoMatch = b:v.todoMatch
+    let fulltodos = b:v.fulltodos
+    if bufnr('__Agenda__') >= 0
+        bwipeout __Agenda__
+    endif
+    :AAgenda
+    let b:v={}
+    let b:v.todoitems = todos
+    let b:v.todoNotDoneMatch = todoNotDoneMatch
+    let b:v.todoDoneMatch = todoDoneMatch
+    let b:v.todoMatch = todoMatch
+    let b:v.fulltodos = fulltodos
+    %d
+    set nowrap
+    map <buffer> <silent> <tab> :call OrgAgendaGetText()<CR>
+    map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
+    map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
+    map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
+    nmap <silent> <buffer> r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
+    nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
+    nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    call matchadd( 'OL1', '\s\+\*\{1}.*$' )
+    call matchadd( 'OL2', '\s\+\*\{2}.*$') 
+    call matchadd( 'OL3', '\s\+\*\{3}.*$' )
+    call matchadd( 'OL4', '\s\+\*\{4}.*$' )
+    call s:AgendaBufHighlight()
+    "wincmd J
+    let i = 0
+    call s:ADictPlaceSigns()
+    call setline(1, ["Headlines matching search spec: ".g:org_search_spec,''])
+    if exists("search_type") && (search_type=='agenda_todo')
+        let msg = "Press num to redo search: "
+        let numstr= ''
+        "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
+        let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + Union(g:org_todoitems,[])
+        for item in tlist
+            let num = index(tlist,item)
+            let numstr .= '('.num.')'.item.'  '
+            execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
+        endfor
+        call append(1,split(msg.numstr,'\%72c\S*\zs '))
+    endif
+    for key in sort(keys(g:adict))
+        call setline(line("$")+1, key . ' ' . 
+                    \ org#Pad(g:adict[key].CATEGORY,13)  . 
+                    \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
+                    \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
+                    "\ org#Pad(g:adict[key].file,13)  . 
+        let i += 1
+    endfor
+endfunction
+
+function! s:ResultsToSparseTree()
         "call s:ClearSparseTree()
         let w:sparse_on = 1
         let temp = []
@@ -2265,68 +2343,6 @@ function! OrgRunSearch(search_spec,...)
             "execute 'call matchadd("MatchGroup","\\%' . line(".") . 'l")'
         endfor
         execute 1
-    else
-        " make agenda buf have its own todoitems, need
-        " to get rid of g:... so each agenda_file can have
-        " its own todoitems defined. . . "
-        let todos = b:v.todoitems
-        let todoNotDoneMatch = b:v.todoNotDoneMatch
-        let todoDoneMatch = b:v.todoDoneMatch
-        let todoMatch = b:v.todoMatch
-        let fulltodos = b:v.fulltodos
-        if bufnr('__Agenda__') >= 0
-            bwipeout __Agenda__
-        endif
-        :AAgenda
-        let b:v={}
-        let b:v.todoitems = todos
-        let b:v.todoNotDoneMatch = todoNotDoneMatch
-        let b:v.todoDoneMatch = todoDoneMatch
-        let b:v.todoMatch = todoMatch
-        let b:v.fulltodos = fulltodos
-        %d
-        set nowrap
-        map <buffer> <silent> <tab> :call OrgAgendaGetText()<CR>
-        map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
-        map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-        map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-        nmap <silent> <buffer> r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
-        nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-        nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-        call matchadd( 'OL1', '\s\+\*\{1}.*$' )
-        call matchadd( 'OL2', '\s\+\*\{2}.*$') 
-        call matchadd( 'OL3', '\s\+\*\{3}.*$' )
-        call matchadd( 'OL4', '\s\+\*\{4}.*$' )
-        call s:AgendaBufHighlight()
-        "wincmd J
-        let i = 0
-        call s:ADictPlaceSigns()
-        call setline(1, ["Headlines matching search spec: ".g:org_search_spec,''])
-        if exists("search_type") && (search_type=='agenda_todo')
-            let msg = "Press num to redo search: "
-            let numstr= ''
-            "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
-            let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + Union(g:org_todoitems,[])
-            for item in tlist
-                let num = index(tlist,item)
-                let numstr .= '('.num.')'.item.'  '
-                execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
-            endfor
-            call append(1,split(msg.numstr,'\%72c\S*\zs '))
-        endif
-        for key in sort(keys(g:adict))
-            call setline(line("$")+1, key . ' ' . 
-                        \ org#Pad(g:adict[key].CATEGORY,13)  . 
-                        \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
-                        \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
-                        "\ org#Pad(g:adict[key].file,13)  . 
-            let i += 1
-        endfor
-    endif
-
-    finally
-        "set mouseshape-=n:busy,v:busy,i:busy
-    endtry
 endfunction
 
 function! s:TestTime()
@@ -5398,13 +5414,6 @@ map <silent> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'')<cr>
 map <silent> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+ALL_TODOS')<cr>
 map <silent> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+UNFINISHED_TODOS')<cr>
 map <silent> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+FINISHED_TODOS')<cr>
-map <silent> <buffer> <localleader>tt :call OrgSequenceTodo(line('.'),'t')<cr>
-map <silent> <buffer> <localleader>ts :call OrgSequenceTodo(line('.'),'s')<cr>
-map <silent> <buffer> <localleader>td :call OrgSequenceTodo(line('.'),'d')<cr>
-map <silent> <buffer> <localleader>tc :call OrgSequenceTodo(line('.'),'c')<cr>
-map <silent> <buffer> <localleader>tn :call OrgSequenceTodo(line('.'),'n')<cr>
-map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
-map <silent> <buffer> <localleader>nt :call OrgSequenceTodo(line('.'))<cr>
 map <silent> <localleader>ag :call OrgAgendaDashboard()<cr>
 command! -nargs=0 Agenda :call OrgAgendaDashboard()
 nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
@@ -5471,7 +5480,6 @@ nmap <silent> <buffer>   <localleader>,E    :call OrgBodyTextOperation(1,line("$
 nmap <silent> <buffer>   <localleader>,C    :call OrgBodyTextOperation(1,line("$"),"collapse")<CR>
 nmap <silent> <buffer>   <localleader>,c    :call OrgSingleHeadingText("collapse")<CR>
 nmap <silent> <buffer>   zc    :call OrgDoSingleFold(line("."))<CR>
-"map <buffer>             <localleader>tt    :call ToggleText(line("."))<CR>
 map <buffer>   <localleader>,,          :source $HOME/.vim/ftplugin/org.vim<CR>
 map! <buffer>  <localleader>w           <Esc>:w<CR>a
 
