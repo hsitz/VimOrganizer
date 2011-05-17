@@ -2063,26 +2063,7 @@ function! s:OrgIfExprResults(ifexpr,...)
             " next line is to fix for text area search
             " now that we can reference tbegin and tend
             let myifexpr = substitute(a:ifexpr,'tbegin,tend',get(lineprops,'tbegin') .','. get(lineprops,'tend'),"")
-            "let s:filedict={}
-            let s:filedict  = copy(g:agenda_files)
-"            let i = 1
-"            for item in g:agenda_files
-"               "let s:filedict[item]= s:PrePad(i,3,'0')
-"                if match(item,'c:\') >= 0
-"                   "execute "let s:filedict['".matchstr(item,'.*\\\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
-"                   "let s:filedict[ matchstr(item,'.*\\\zs\S\{}\ze.org$') ] = s:PrePad(i,3,'0')
-"                   let s:filedict[ s:PrePad(i,3,'0') ] = matchstr(item,'.*\\\zs\S\{}\ze.org$')
-"                elseif match(item,'/') >= 0
-"                    "execute "let s:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
-"                     "let s:filedict['".matchstr(item,'.*/\zs\S\{}\ze.org$')."']='".s:PrePad(i,3,'0')."'"
-"                    let s:filedict[ s:PrePad(i,3,'0')] = matchstr(item,'.matchstr(item,'.*/\zs\S\{}\ze.org$')
-"                else
-"                    "execute "let s:filedict['".matchstr(item,'.*\ze.org')."']='".s:PrePad(i,3,'0')."'"
-"                    let s:filedict[ s:PrePad(i,3,'0')] = matchstr(item,'.*\ze.org')
-"                endif
-"                let i +=1
-"            endfor
-"
+            "
             "********  eval() is what does it all ***************
             if eval(myifexpr)
                 if sparse_search
@@ -2128,9 +2109,7 @@ function! s:MakeResults(search_spec,...)
     else
         let g:in_agenda_search = 1
         for file in g:agenda_files
-            let mycommand = 'tab drop '. file
-            execute mycommand
-            "call OrgMakeDictInherited()
+            execute 'tab drop ' . file
             call OrgMakeDict()
             let ifexpr = s:OrgIfExpr()
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
