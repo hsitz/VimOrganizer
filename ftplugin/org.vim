@@ -2231,6 +2231,7 @@ function! OrgRunSearch(search_spec,...)
 
     let g:agenda_head_lookup={}
     let sparse_search = 0
+    let search_type = ''
     if a:0 > 0
         if a:1 == 1
             let sparse_search = a:1
@@ -2252,14 +2253,14 @@ function! OrgRunSearch(search_spec,...)
     if sparse_search
         call s:ResultsToSparseTree()
     else
-        call s:ResultsToAgenda()
+        call s:ResultsToAgenda( search_type )
     endif
 
     finally
         "set mouseshape-=n:busy,v:busy,i:busy
     endtry
 endfunction
-function! s:ResultsToAgenda()
+function! s:ResultsToAgenda( search_type )
     " make agenda buf have its own todoitems, need
     " to get rid of g:... so each agenda_file can have
     " its own todoitems defined. . . "
@@ -2296,7 +2297,7 @@ function! s:ResultsToAgenda()
     let i = 0
     call s:ADictPlaceSigns()
     call setline(1, ["Headlines matching search spec: ".g:org_search_spec,''])
-    if exists("search_type") && (search_type=='agenda_todo')
+    if a:search_type=='agenda_todo'
         let msg = "Press num to redo search: "
         let numstr= ''
         "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
