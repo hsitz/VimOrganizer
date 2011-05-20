@@ -5,10 +5,10 @@
 " generic non-VimOrganizer-related stuff used in
 " my Windows installation, comment out 3rd and 4th
 " lines below if not on Wndows. . . "
-set nocompatible
-source $VIMRUNTIME/vimrc_example.vim
-source $VIMRUNTIME/mswin.vim
-behave mswin
+"set nocompatible
+"source $VIMRUNTIME/vimrc_example.vim
+"source $VIMRUNTIME/mswin.vim
+"behave mswin
 "---------------------------gg----------------------------
 
 " stuff below here is necessary for VimOrganizer to work right

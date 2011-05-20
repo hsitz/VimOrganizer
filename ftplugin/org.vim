@@ -2088,6 +2088,7 @@ function! s:OrgIfExprResults(ifexpr,...)
 endfunction
 
 function! s:MakeResults(search_spec,...)
+    let s:filedict = copy(g:agenda_files)
     let sparse_search = 0
     if a:0 > 0
         let sparse_search = a:1
@@ -2155,8 +2156,11 @@ function! s:MakeAgenda(date,count,...)
     if a:0 >= 2
         let as_today = a:2
     endif
-    let save_cursor = getpos(".")
-    let curfile = expand("%:t")
+    "let save_cursor = getpos(".")
+    "let curfile = expand("%:t")
+    
+    call s:OrgSaveLocation()
+
     if a:count == 7
         let g:agenda_startdate = calutil#cal(calutil#jul(a:date) - calutil#dow(a:date))
         let g:org_agenda_days=7
@@ -2189,8 +2193,11 @@ function! s:MakeAgenda(date,count,...)
         endif
     endfor
     unlet g:in_agenda_search
-    call s:LocateFile(curfile)
-    call setpos(".",save_cursor)
+
+    call s:OrgRestoreLocation()
+
+    "call s:LocateFile(curfile)
+    "call setpos(".",save_cursor)
 endfunction
 
 function! s:NumCompare(i1, i2)
@@ -2199,6 +2206,10 @@ endfunc
 
 function! OrgRunSearch(search_spec,...)
         "set mouseshape-=n:busy,v:busy,i:busy
+    "let win = bufnr('Calendar')
+    if bufnr('Calendar') > 0 
+        execute 'bd' . bufnr('Calendar')
+    endif   
 
     try
     if bufname('%') == '__Agenda__'
