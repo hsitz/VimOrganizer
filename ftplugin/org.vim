@@ -129,6 +129,7 @@ let s:AgendaBufferName = "__Agenda__"
 "Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
     let b:v.org_config_lines = []
+    let b:v.todoitems = []
     silent g/^#+/call add( b:v.org_config_lines, getline(line('.')) )
     
     " clear out for new tag settings
@@ -156,6 +157,9 @@ function! OrgProcessConfigLines()
             call OrgTodoSetup(matchstr(line,'#+TODO:\s*\zs.*'))
         endif
     endfor
+    if empty(b:v.todoitems)
+        call OrgTodoSetup(g:org_todo_setup)
+    endif
 
     call OrgTagSetup( b:v.buf_tags_static_spec )
 
@@ -2291,7 +2295,7 @@ function! s:ResultsToAgenda( search_type )
         let msg = "Press num to redo search: "
         let numstr= ''
         "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
-        let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + Union(g:org_todoitems,[])
+        let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + s:Union(g:org_todoitems,[])
         for item in tlist
             let num = index(tlist,item)
             let numstr .= '('.num.')'.item.'  '
@@ -5385,6 +5389,16 @@ let g:org_loaded=1
 if !exists('b:v.todoitems')
     call OrgTodoSetup('TODO | DONE')
 endif
+
+"Menu stuff
+function! MenuCycle()
+    if foldclosed(line('.')) > -1
+        exec foldclosed(line('.'))
+    else
+        exec s:OrgGetHead()
+    endif
+    call OrgCycle()
+endfunction
 
 "Section Mappings and Endstuff
 " below block of 10 or 15 maps are ones collected
