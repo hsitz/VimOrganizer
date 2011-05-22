@@ -2175,8 +2175,6 @@ function! s:MakeAgenda(date,count,...)
     if a:0 >= 2
         let as_today = a:2
     endif
-    "let save_cursor = getpos(".")
-    "let curfile = expand("%:t")
     
     call s:OrgSaveLocation()
 
@@ -2186,11 +2184,9 @@ function! s:MakeAgenda(date,count,...)
         let g:agenda_startdate = calutil#cal(calutil#jul(a:date) - calutil#dow(a:date))
         let g:org_agenda_days=7
     elseif l:count == 'm'
-       " (a:count>=28) && (a:count<=31)
         let g:agenda_startdate = a:date[0:7].'01'
         let g:org_agenda_days = s:DaysInMonth(a:date)
     elseif l:count == 'y'
-       " (a:count > 360) 
         let g:agenda_startdate = a:date[0:3].'-01-01'
         let g:org_agenda_days = ( a:date[0:3] % 4 == 0 ) ? 366 : 365
     else
@@ -2211,18 +2207,14 @@ function! s:MakeAgenda(date,count,...)
         let t:agenda_date=a:date
         if as_today > ''
             call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days,as_today)
-            "call s:GetDateHeads(g:agenda_startdate,a:count,as_today)
         else 
             call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days)
-            "call s:GetDateHeads(g:agenda_startdate,a:count)
         endif
     endfor
     unlet g:in_agenda_search
 
     call s:OrgRestoreLocation()
 
-    "call s:LocateFile(curfile)
-    "call setpos(".",save_cursor)
 endfunction
 
 function! s:NumCompare(i1, i2)
