@@ -129,7 +129,17 @@ let s:AgendaBufferName = "__Agenda__"
 "testing stuff
 function CustomSearchesSetup()
     let g:custom_searches = [
-                             [ ]]
+                \    ['agenda', '+1w',7,'' ]
+                \           ]
+endfunction
+function RunCustom(searchnum)
+    let type = g:custom_searches[a:searchnum][0]
+    let date = g:custom_searches[a:searchnum][1]
+    let datecount = g:custom_searches[a:searchnum][2]
+    let search_spec = g:custom_searches[a:searchnum][3]
+    if type == 'agenda'
+        call OrgRunAgenda( DateCueResult( date, s:Today()), datecount)
+    endif
 endfunction
 "Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
@@ -2170,20 +2180,24 @@ function! s:MakeAgenda(date,count,...)
     
     call s:OrgSaveLocation()
 
-    if a:count == 7
+    let l:count = a:count
+    if l:count == 'd' | let l:count = 1 | endif
+    if l:count == 'w'
         let g:agenda_startdate = calutil#cal(calutil#jul(a:date) - calutil#dow(a:date))
         let g:org_agenda_days=7
-    elseif (a:count>=28) && (a:count<=31)
+    elseif l:count == 'm'
+       " (a:count>=28) && (a:count<=31)
         let g:agenda_startdate = a:date[0:7].'01'
         let g:org_agenda_days = s:DaysInMonth(a:date)
-    elseif (a:count > 360) 
+    elseif l:count == 'y'
+       " (a:count > 360) 
         let g:agenda_startdate = a:date[0:3].'-01-01'
-        let g:org_agenda_days = a:count
+        let g:org_agenda_days = ( a:date[0:3] % 4 == 0 ) ? 366 : 365
     else
         let g:agenda_startdate = a:date
-        let g:org_agenda_days=a:count
+        let g:org_agenda_days = l:count
     endif
-    if a:count == 1 | let as_today = g:agenda_startdate | endif
+    if count == 1 | let as_today = g:agenda_startdate | endif
     let g:adict = {}
     let s:filedict = copy(g:agenda_files)
     let s:agenda_files_copy = copy(g:agenda_files)
@@ -2196,9 +2210,11 @@ function! s:MakeAgenda(date,count,...)
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today > ''
-            call s:GetDateHeads(g:agenda_startdate,a:count,as_today)
+            call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days,as_today)
+            "call s:GetDateHeads(g:agenda_startdate,a:count,as_today)
         else 
-            call s:GetDateHeads(g:agenda_startdate,a:count)
+            call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days)
+            "call s:GetDateHeads(g:agenda_startdate,a:count)
         endif
     endfor
     unlet g:in_agenda_search
@@ -2526,11 +2542,11 @@ function! OrgRunAgenda(date,count,...)
     set nowrap
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    map <silent> <buffer> vt :call OrgRunAgenda(strftime("%Y-%m-%d"), 1,g:org_search_spec)<CR>
-    map <silent> <buffer> vd :call OrgRunAgenda(g:agenda_startdate, 1,g:org_search_spec,g:agenda_startdate)<CR>
-    map <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 7,g:org_search_spec)<CR>
-    map <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 30,g:org_search_spec)<CR>
-    map <silent> <buffer> vy :call OrgRunAgenda(g:agenda_startdate, 365,g:org_search_spec)<CR>
+    map <silent> <buffer> vt :call OrgRunAgenda(strftime("%Y-%m-%d"), 'd',g:org_search_spec)<CR>
+    map <silent> <buffer> vd :call OrgRunAgenda(g:agenda_startdate, 'd',g:org_search_spec,g:agenda_startdate)<CR>
+    map <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 'w',g:org_search_spec)<CR>
+    map <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 'm',g:org_search_spec)<CR>
+    map <silent> <buffer> vy :call OrgRunAgenda(g:agenda_startdate, 'y',g:org_search_spec)<CR>
     map <silent> <buffer> f :call OrgAgendaMove('forward')<cr>
     map <silent> <buffer> b :call OrgAgendaMove('backward')<cr>
     map <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
@@ -3688,8 +3704,7 @@ function! s:GetNewDate(cue,basedate,basetime)
             let timecue = ''
         endif
         let basedate = a:basedate
-        let newdate = a:basedate
-        let newdate = CueResult( cue , basedate )
+        let newdate = DateCueResult( cue , basedate )
         if timecue =~ '\d\d:\d\d'
             let mytime = ' '.timecue
         else
@@ -3698,7 +3713,7 @@ function! s:GetNewDate(cue,basedate,basetime)
         let mydow = calutil#dayname(newdate)
         return newdate . ' ' . mydow . mytime
 endfunction
-function! CueResult( cue, basedate)
+function! DateCueResult( cue, basedate)
         let cue = a:cue
         let basedate = a:basedate
         if cue =~ '^\(+\|++\|-\|--\)$'
@@ -5184,7 +5199,7 @@ function! OrgAgendaDashboard()
             silent execute "call OrgRunSearch('+ALL_TODOS','agenda_todo')"
         elseif key == 'a'
             redraw
-            silent execute "call OrgRunAgenda(s:Today(),7)"
+            silent execute "call OrgRunAgenda(s:Today(),'w')"
         elseif key == 'L'
             redraw
             silent execute "call s:Timeline()"
@@ -5427,10 +5442,10 @@ map <silent> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
 map <silent> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
 map <silent> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
 map <silent> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
-map <silent> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'')<cr>
-map <silent> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+ALL_TODOS')<cr>
-map <silent> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+UNFINISHED_TODOS')<cr>
-map <silent> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),7,'+FINISHED_TODOS')<cr>
+map <silent> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'')<cr>
+map <silent> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TODOS')<cr>
+map <silent> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
+map <silent> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
 map <silent> <localleader>ag :call OrgAgendaDashboard()<cr>
 command! -nargs=0 Agenda :call OrgAgendaDashboard()
 nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
