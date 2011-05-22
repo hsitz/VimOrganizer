@@ -126,6 +126,11 @@ let s:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct',
 let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 let s:AgendaBufferName = "__Agenda__"
 
+"testing stuff
+function CustomSearchesSetup()
+    let g:custom_searches = [
+                             [ ]]
+endfunction
 "Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
     let b:v.org_config_lines = []
@@ -2236,7 +2241,9 @@ function! OrgRunSearch(search_spec,...)
     let g:adict={}
     let g:agenda_date_dict={}
     if !exists("g:agenda_files") || (g:agenda_files==[])
-        call confirm("No agenda files defined.  Will add current file to agenda files.")
+        if has('dialog_con') || has('dialog_gui')
+            call confirm("No agenda files defined.  Will add current file to agenda files.")
+        endif
         call s:CurfileAgenda()
     endif
     if exists('b:v.sparse_list') && (len(b:v.sparse_list) > 0)
@@ -3682,6 +3689,18 @@ function! s:GetNewDate(cue,basedate,basetime)
         endif
         let basedate = a:basedate
         let newdate = a:basedate
+        let newdate = CueResult( cue , basedate )
+        if timecue =~ '\d\d:\d\d'
+            let mytime = ' '.timecue
+        else
+            let mytime = a:basetime > '' ? ' ' . a:basetime : ''
+        endif
+        let mydow = calutil#dayname(newdate)
+        return newdate . ' ' . mydow . mytime
+endfunction
+function! CueResult( cue, basedate)
+        let cue = a:cue
+        let basedate = a:basedate
         if cue =~ '^\(+\|++\|-\|--\)$'
             let cue = cue . '1d'
         elseif cue =~ '^\(+\|++\|-\|--\)\d\+$'
@@ -3817,15 +3836,8 @@ function! s:GetNewDate(cue,basedate,basetime)
         else
             return " ?? can't interpret your spec"
         endif
-        if timecue =~ '\d\d:\d\d'
-            let mytime = ' '.timecue
-        else
-            let mytime = a:basetime > '' ? ' ' . a:basetime : ''
-        endif
-        let mydow = calutil#dayname(newdate)
-        return newdate . ' ' . mydow . mytime
+        return newdate
 endfunction
-
 function! s:TimeInc(direction)
     let save_cursor = getpos(".")
     let i = 0
