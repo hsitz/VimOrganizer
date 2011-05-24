@@ -69,11 +69,6 @@ let b:v.fold_list = []
 let b:v.suppress_indent=0
 let b:v.suppress_list_indent=0
 
-
-"if !exists('g:org_agenda_dirs')
-"    let g:org_agenda_dirs = ['".expand("%:p:h")."']
-"endif
-
 if !exists('g:org_loaded')
 
 if !exists('g:org_tags_persistent_alist')
@@ -129,16 +124,17 @@ let s:AgendaBufferName = "__Agenda__"
 "testing stuff
 function CustomSearchesSetup()
     let g:custom_searches = [
-                \    ['agenda', '+1w',7,'' ]
+                \    { 'type':'agenda', 'agenda_date':'+1w','agenda_duration':'w'}
                 \           ]
+                "\     'search_spec':'+UNFINISHED_TODOS' }
 endfunction
 function RunCustom(searchnum)
-    let type = g:custom_searches[a:searchnum][0]
-    let date = g:custom_searches[a:searchnum][1]
-    let datecount = g:custom_searches[a:searchnum][2]
-    let search_spec = g:custom_searches[a:searchnum][3]
-    if type ==? 'agenda'
-        call OrgRunAgenda( DateCueResult( date, s:Today()), datecount)
+    let mydict = g:custom_searches[a:searchnum]
+    if mydict.type ==? 'agenda'
+        let spec = get(mydict,'search_spec','')
+        call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
+                        \  mydict.agenda_duration,
+                        \  spec  )
     endif
 endfunction
 "Section Tag and Todo Funcs
@@ -179,7 +175,7 @@ function! OrgProcessConfigLines()
     call OrgTagSetup( b:v.buf_tags_static_spec )
 
     " get rid of b:v.buffer_category (and columns also) and just use o_i_d var???
-    if b:v.buffer_category ==? ''
+    if b:v.buffer_category ==# ''
         let b:v.buffer_category = expand("%:t:r")
     endif
 
@@ -351,8 +347,6 @@ function! OrgTagsEdit(...)
     else
         call s:SetDynamicTags()
     endif
-
-
     
     let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
     
@@ -461,7 +455,7 @@ function! s:TagMenu(heading_tags)
             let heading_tags .= b:v.tagdict[item].tag . ':'
         endif
     endfor
-    if heading_tags > '' | let heading_tags = ':' . heading_tags | endif
+    if heading_tags ># '' | let heading_tags = ':' . heading_tags | endif
     return heading_tags
 endfunction
 
@@ -472,9 +466,9 @@ function! s:SetDynamicTags()
     let b:v.tagchars = ''
     let b:v.tags_order = []
 
-    if b:v.buf_tags_static_spec ==? ''
+    if b:v.buf_tags_static_spec ==# ''
         let static_tags = g:org_tags_alist . ' ' . g:org_tags_persistent_alist
-        if static_tags ==? ''
+        if static_tags ==# ''
             let b:v.dynamic_tags_only = 1
         endif
     elseif exists('b:v.noptags')
@@ -559,7 +553,7 @@ function! s:GetTags(line)
 endfunction
 function! s:AddTag(tag,line)
     if s:IsTagLine(a:line + 1)
-        if matchstr(getline(a:line+1),':'.a:tag.':') ==? ''
+        if matchstr(getline(a:line+1),':'.a:tag.':') ==# ''
             call setline(a:line+1,getline(a:line+1) . ':' .a:tag. ':')
         endif
     else
@@ -659,7 +653,7 @@ endfunction
 
 function! s:ConvertTags(line)
     let tags = matchstr(getline(a:line), '\(:\S*:\)\s*$')
-    if tags > ''
+    if tags ># ''
         s/\s\+:.*:\s*$//
         call append(a:line, repeat(' ',s:Starcount(a:line)+1) . tags)
     endif
@@ -771,11 +765,11 @@ function! s:ReplaceTodo(todoword,...)
     else
         let newtodo = s:NewTodo(todoword)
     endif
-    if newtodo > ''
+    if newtodo ># ''
         let newtodo .= ' '
     endif
     if (index(b:v.todoitems,todoword) >= 0) 
-        if newtodo > ''
+        if newtodo ># ''
             let newline = substitute(getline(line(".")),
                         \ '\* ' . a:todoword.' ',
                         \ '\* ' . newtodo,'g')
@@ -1664,7 +1658,7 @@ function! s:RedoTextIndent()
     let myindent = 0
     while line(".") < line("$")
         let line = getline(line("."))
-        if matchstr(line,'^\*\+') > ''
+        if matchstr(line,'^\*\+') ># ''
             let myindent = len(matchstr(line,'^\*\+')) + g:org_indent_from_head 
             normal j
         else 
@@ -1775,7 +1769,7 @@ function! OrgMakeDictInherited()
         let prop = a:property
         let ndx = a:ndx
         let result = get(self[ndx] , prop,'')
-        if (result ==? '') && (ndx != 0)
+        if (result ==# '') && (ndx != 0)
             "recurse up through parents in tree
             let result = b:v.org_dict.iprop(self[ndx].parent,prop)
         endif
@@ -2205,7 +2199,7 @@ function! s:MakeAgenda(date,count,...)
         call OrgMakeDict()
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
-        if as_today > ''
+        if as_today ># ''
             call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days,as_today)
         else 
             call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days)
@@ -2417,7 +2411,7 @@ function! s:DateDictToScreen()
     let message = ["Press <f> or <b> for next or previous period." ,
                 \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
                 \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
-    let search_spec = g:org_search_spec > '' ? g:org_search_spec : 'None - include all heads'
+    let search_spec = g:org_search_spec ># '' ? g:org_search_spec : 'None - include all heads'
     call add(message,"Agenda view for " . g:agenda_startdate 
                 \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
                 \ . ' with SearchSpec=' . search_spec  )
@@ -2579,7 +2573,7 @@ endfunction
 
 function! s:GetDateHeads(date1,count,...)
     let save_cursor=getpos(".")
-    if g:org_search_spec > ''
+    if g:org_search_spec ># ''
         let b:v.agenda_ifexpr = s:OrgIfExpr()
     endif
     let g:date1 = a:date1
@@ -2639,15 +2633,15 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     let date2 = a:date2
     let s:headline=0
     if (datematch >= date1) && (datematch < date2)
-                \ && ((g:org_search_spec ==? '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
+                \ && ((g:org_search_spec ==# '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
         let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\|CLOSED\)')
         call s:SetHeadInfo()
         if empty(mlist)
             " it's a regular date, first check for time parts
             let tmatch = matchstr(line,' \zs\d\d:\d\d\ze.*[[>]')
-            if tmatch > ''
+            if tmatch ># ''
                 let tmatch2 = matchstr(line,'<.\{-}-\zs\d\d:\d\d\ze.*>')
-                if tmatch2 > ''
+                if tmatch2 ># ''
                     let tmatch .= '-' . tmatch2
                 else
                     if match(line,':\s*CLOCK\s*:') >= 0
@@ -2690,7 +2684,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     " Now test for late and upcoming warnings if 'today' is in range
     if (today >= date1) && (today < date2)
         if (datematch < today) && (match(line,'\(DEADLINE\|SCHEDULED\)')>-1)
-                    \ && ((g:org_search_spec ==? '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
+                    \ && ((g:org_search_spec ==# '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
             let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\)')
             call s:SetHeadInfo()
             if !empty(mlist)
@@ -2704,7 +2698,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
             endif
             " also put in warning entry for deadlines when appropriate
         elseif (datematch > today) && (match(line,'DEADLINE')>-1)
-                    \ && ((g:org_search_spec ==? '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
+                    \ && ((g:org_search_spec ==# '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
             let mlist = matchlist(line,'DEADLINE')
             call s:SetHeadInfo()
             if !empty(mlist)
@@ -2719,7 +2713,7 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     endif
     " finally handle things for a range that began before date1
     if (rangedate != '')  && (datematch < date1)
-                \ && ((g:org_search_spec ==? '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
+                \ && ((g:org_search_spec ==# '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
         let days_in_range = calutil#jul(rangedate) - calutil#jul(datematch) + 1
         if rangedate >= date2
             let last_day_to_add = calutil#jul(date2) - calutil#jul(datematch) 
@@ -2925,7 +2919,7 @@ function! s:AgendaCompare(i0, i1)
                 let str_ord = 'ab000'
             endif
         elseif item[3][0] ==? 'I' 
-            if matchstr(item[3],'-') > ''
+            if matchstr(item[3],'-') ># ''
                 let str_ord = 'd-'.s:PrePad(1000-str2nr(matchstr(item[3],'\d\+')),3,'0')
             else
                 let str_ord = 'da'.s:PrePad(matchstr(item[3],'\d\+'),3,'0')
@@ -3499,7 +3493,7 @@ function! GetDateAtCursor()
         let &vb = orig_vb
         let &t_vb = orig_t_vb
 
-        if date > ''
+        if date ># ''
             return @x
         else
             return ''
@@ -3553,7 +3547,7 @@ function! OrgDateEdit(type)
         if replace_str ==? ""
             let replace_str = '<\zs[^>]*\ze>\|><\|$'
         end
-        if b:v.mdate > ''
+        if b:v.mdate ># ''
             let b:v.basedate = b:v.mdate[0:9]
             let b:v.baseday = b:v.mdate[11:13]
             if len(b:v.mdate) > 14
@@ -3570,7 +3564,7 @@ function! OrgDateEdit(type)
 "function! OrgDatePrompt(basedate, basetime)
         let basedate = b:v.basedate[0:9]
         let basetime = b:v.basetime
-        let newdate = '<' . b:v.mdate[0:13] . (b:v.basetime > '' ? ' ' . b:v.basetime : '') . '>'
+        let newdate = '<' . b:v.mdate[0:13] . (b:v.basetime ># '' ? ' ' . b:v.basetime : '') . '>'
         let newtime = b:v.basetime
 
         hi Cursor guibg=black
@@ -3625,14 +3619,14 @@ function! OrgDateEdit(type)
                 exe "normal " . v:mouse_col."|"
                 normal 
                 if g:cal_list != []
-                    if newtime > ''
+                    if newtime ># ''
                         let timespec = newtime
                     else
                         let timespec = matchstr(newdate,'\S\+:.*>')
                     endif
                     let newdate = '<'.g:cal_list[0].'-'.s:Pre0(g:cal_list[1]).'-'.s:Pre0(g:cal_list[2]) . ' '
                     let newdate .= calutil#dayname( g:cal_list[0].'-'.g:cal_list[1].'-'.g:cal_list[2])
-                    let newdate .=  timespec > '' ? ' ' . timespec : ''.'>'
+                    let newdate .=  timespec ># '' ? ' ' . timespec : ''.'>'
                     break
                 endif
             else
@@ -3700,7 +3694,7 @@ function! s:GetNewDate(cue,basedate,basetime)
         if timecue =~ '\d\d:\d\d'
             let mytime = ' '.timecue
         else
-            let mytime = a:basetime > '' ? ' ' . a:basetime : ''
+            let mytime = a:basetime ># '' ? ' ' . a:basetime : ''
         endif
         let mydow = calutil#dayname(newdate)
         return newdate . ' ' . mydow . mytime
@@ -3715,7 +3709,7 @@ function! DateCueResult( cue, basedate)
         endif
         if cue ==? '.'
             let newdate = strftime('%Y-%m-%d')
-        elseif cue ==? ''
+        elseif cue ==# ''
             let newdate = a:basedate
         elseif (cue =~ '^\d\+$') && (str2nr(cue) <= 31)
             " day of month string
@@ -4036,7 +4030,7 @@ function! OrgClockOut(...)
         execute a:1
     else
         let oc = s:GetOpenClock()
-        if oc[0] > '' 
+        if oc[0] ># '' 
            call s:LocateFile(oc[0])
            execute oc[1]
         endif
@@ -4093,7 +4087,7 @@ function! s:SumClockLines(line)
             break
         endif
         let time = matchstr(text,'CLOCK.*->\s*\zs\d\+:\d\+')
-        if time > ''
+        if time ># ''
             let hours   += str2nr(split(time,':')[0])
             let minutes += str2nr(split(time,':')[1])
         endif
@@ -4114,7 +4108,7 @@ function! s:UpdateBlock()
     normal j
    ?^#+BEGIN:
     let block_type = matchstr(getline(line('.')),'\S\+\s\+\zs\S\+')
-   if matchstr(getline(line('.')+1),'^#+END') ==? ''
+   if matchstr(getline(line('.')+1),'^#+END') ==# ''
         normal jV/^#+END/-1dk
     endif
     if block_type ==? 'clocktable'
@@ -4209,7 +4203,7 @@ function! s:GetProp(key,...)
             break
         endif
         let mymatch = matchstr(text,':\s*'.a:key.'\s*:')
-        if mymatch > ''
+        if mymatch ># ''
             let myval = matchstr(text,':\s*'.a:key.'\s*:\s*\zs.*$')
             break
         endif
@@ -4241,7 +4235,7 @@ function! s:SetDateProp(type,newdate,...)
             break
         endif
         let mymatch = matchstr(text,'\s*'.a:type.'\s*:')
-        if mymatch > ''
+        if mymatch ># ''
             execute 's/'.a:type.'.*$/'.a:type.':<'.a:newdate.'>/'
             break
         endif
@@ -4291,7 +4285,7 @@ function! s:SetProp(key, val,...)
                 execute line('.') + 1
             endif
             call append(line("."),org#Pad(' ',line_ind)
-                        \ .':'.key.(key ==? ''?'':':').a:val)
+                        \ .':'.key.(key ==# ''?'':':').a:val)
         endif
     elseif key ==? 'tags'
         if s:IsTagLine(line('.') + 1)
@@ -4410,14 +4404,14 @@ function! OrgMouseDate()
     let save_cursor = getpos(".")
     let found = ''
     let date = GetDateAtCursor()
-    if date > ''
+    if date ># ''
         let found='date'
         let date = date[0:9]
     else
         call setpos(".",save_cursor)
         " get area between colons, if any, in @x
         normal T:vt:"xy
-        if (matchstr(@x,'\S\+') > '') && (len(@x)<25)
+        if (matchstr(@x,'\S\+') ># '') && (len(@x)<25)
             let found = 'tag'
         endif
     endif
@@ -4448,7 +4442,7 @@ function! s:GetColumns(line)
     let result = ''
     let i = 0
     " get column list for this line
-    if get(props,'COLUMNS') > ''
+    if get(props,'COLUMNS') ># ''
         let g:org_colview_list=split(props['COLUMNS'],',')
     else
         let g:org_colview_list=[]
