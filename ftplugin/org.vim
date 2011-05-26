@@ -5388,17 +5388,16 @@ command! -nargs=0 AAgenda call s:AgendaBufferOpen(1)
 command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()
 function! s:ExportToPDF()
-    let mypath = '"c:\program files (x86)\emacs\emacs\bin\emacs.exe" -batch --load $HOME/.emacs --visit='
+    let command1 = g:org_path_to_emacs . ' -batch --load $HOME/.emacs --visit='
     let part2 = ' --funcall org-export-as-pdf'
-    silent execute '!' . mypath . expand("%") . part2
+    silent execute '!' . command1 . expand("%") . part2
     "call inputdialog("just waiting to go forward. . . ")
     silent execute '!'.expand("%:r").'.pdf'
 endfunction
 function! s:ExportToHTML()
-    "let mypath = '"c:\program files (x86)\emacs\emacs\bin\emacs.exe" -batch --visit='
-    let mypath = g:org_path_to_emacs .' -batch --visit='
+    let command1 = g:org_path_to_emacs .' -batch --visit='
     let part2 = ' --funcall org-export-as-html'
-    silent execute '!'.mypath.expand("%").part2
+    silent execute '!' . command1 . expand("%") . part2
     "call inputdialog("just waiting to go forward. . . ")
     silent execute '!'.expand("%:r").'.html'
 endfunction
