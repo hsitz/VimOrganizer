@@ -8,6 +8,7 @@ let maplocalleader = ","        " Org key mappings prepend single comma
 
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
+let b:v.taglineMatch = '^\s*:\S\+:\s*$'
 let b:v.headMatchLevel = '^\(\*\)\{level}\s'
 let b:v.propMatch = '^\s*:\s*\(PROPERTIES\)'
 let b:v.propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
@@ -84,7 +85,7 @@ let s:org_cal_date = '2000-01-01'
 let g:org_tag_group_arrange = 0
 let g:org_first_sparse=0
 let g:org_clocks_in_agenda = 0
-let s:remstring = '^\s*:'
+let s:remstring = '^\s*:\S'
 let s:block_line = '^\s*\(:\|DEADLINE\|SCHEDULED\|CLOSED\|<\d\d\d\d-\|[\d\d\d\d-\)'
 "let s:remstring = '^\s*\(:\|DEADLINE:\|SCHEDULED:\|CLOSED:\|<\d\d\d\d-\)'
 let g:org_use_calendar = 1
@@ -124,7 +125,10 @@ let s:AgendaBufferName = "__Agenda__"
 "testing stuff
 function CustomSearchesSetup()
     let g:custom_searches = [
-                \    { 'type':'agenda', 'agenda_date':'+1w','agenda_duration':'w'}
+                \    { 'name':"Next week's agenda", 'type':'agenda', 
+                \                'agenda_date':'+1w','agenda_duration':'w'}
+                \    , { 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
+                \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
                 \           ]
                 "\     'search_spec':'+UNFINISHED_TODOS' }
 endfunction
@@ -135,6 +139,10 @@ function RunCustom(searchnum)
         call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
                         \  mydict.agenda_duration,
                         \  spec  )
+    elseif mydict.type ==? 'sparse_tree'
+        call OrgRunSearch( mydict.spec, 1 )
+    elseif mydict.type ==? 'heading_list'
+        call OrgRunSearch( mydict.spec )
     endif
 endfunction
 "Section Tag and Todo Funcs
@@ -1374,6 +1382,33 @@ function! OrgNavigateLevels(direction)
     endif   
 endfunction
 
+function! OrgHeadingFirstText(headline)
+    exec a:headline + 1
+    let found = 0
+    while 1
+        let thisline = getline(line('.'))
+        if thisline =~ b:v.headMatch
+            break
+        else
+            if (thisline !~ s:remstring) && (thisline !~ b:v.dateMatch)
+                \ && (thisline !~ b:v.drawerMatch)
+                let found = line('.')
+                break
+            elseif line('.') == line('$')
+                break
+            endif
+        endif
+        exec line('.') + 1
+    endwhile
+    return found
+endfunction
+
+function! OrgUnfoldBodyText(headline)
+    if OrgHeadingFirstText(a:headline) > 0
+        normal zv
+    endif
+endfunction
+
 function! OrgExpandWithoutText(tolevel)
     " expand all headings but leave Body Text collapsed 
     " tolevel: number, 0 to 9, of level to expand to
@@ -1455,13 +1490,20 @@ function! OrgCycle()
     " position to center of screen with cursor in col 0
     normal! z.
 endfunction
+let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
     if (&foldlevel > 1) && (&foldlevel != b:v.global_cycle_levels_to_show)
         call OrgExpandWithoutText(1)
     elseif &foldlevel == 1
         call OrgExpandWithoutText(b:v.global_cycle_levels_to_show)
+    elseif (&foldlevel > 1) && ( s:orgskipthirdcycle == 0 ) 
+        let s = getpos('.')
+        g/^\*\+ /call OrgUnfoldBodyText(line('.'))
+        call setpos('.',s)
+        let s:orgskipthirdcycle = 1
     else
         set foldlevel=9999
+        let s:orgskipthirdcycle = 0
     endif
 endfunction
 function! s:LastTextLine(headingline)
@@ -2083,7 +2125,8 @@ function! s:OrgIfExprResults(ifexpr,...)
                     let keyval = headline
                 else
                     "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
-                    let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
+                    "let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
+                    let keyval = s:PrePad(s:filenum,3,'0') . s:PrePad(headline,5,'0')
                 endif
 
                 let g:adict[keyval]=lineprops
@@ -2118,12 +2161,14 @@ function! s:MakeResults(search_spec,...)
     "call map(s:agenda_files_copy, 'matchstr(v:val,"[\\/]") > "" ? matchstr(v:val,"[^/\\\\]*$") : v:val')
     if sparse_search 
         "execute 'let myfiles=["' . curfile . '"]'
+        call OrgMakeDict()
         let ifexpr = s:OrgIfExpr()
         call s:OrgIfExprResults(ifexpr,sparse_search)
     else
         let g:in_agenda_search = 1
         for file in g:agenda_files
             execute 'tab drop ' . file
+            let s:filenum = index(g:agenda_files,file)
             call OrgMakeDict()
             let ifexpr = s:OrgIfExpr()
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
@@ -4475,12 +4520,10 @@ function! <SID>ColumnStatusLine()
     return '      ITEM ' .  part2
 endfunction
 function! s:AdjustItemLen()
-    "if exists('b:v.columnview') && b:v.columnview 
-    " XXXX TODO get '30' in line below to be column width
-    " of sum of default columns -OR- user specified min"
-    let g:org_item_len = winwidth(0) - 10 - b:v.total_columns_width
-    "let g:org_item_len = winwidth(0) - 10 - len(g:org_ColumnHead)
-    "endif
+    " called on VimResized event, adjusts length of heading when folded
+    if expand('%') !~ '__Agenda__'
+        let g:org_item_len = winwidth(0) - 10 - b:v.total_columns_width
+    endif
 endfunction
 au VimResized * call s:AdjustItemLen()
 
@@ -5156,6 +5199,26 @@ endfunction
 function! s:Today()
     return strftime("%Y-%m-%d")
 endfunction
+
+function! OrgCustomSearchMenu()
+    if !exists('g:custom_searches') || empty(g:custom_searches)
+        echo "No custom searches defined."
+    else
+        echo " Press number to run custom search:"
+        echo " ----------------------------------"
+        let i = 1
+        for item in g:custom_searches
+            "echo '   (' . i . ') ' . item.name . '  ' . item.type 
+            echo printf(" (%d) %-25s %10s", i, item.name, item.type )
+            let i += 1
+        endfor
+        echo " "
+        let key = nr2char(getchar())
+        let itemnum = str2nr(key)
+        call RunCustom( itemnum - 1 )
+    endif
+endfunction
+
 function! OrgAgendaDashboard()
     if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
         " move agenda to cur tab if it exists and is on a different tab
@@ -5176,6 +5239,7 @@ function! OrgAgendaDashboard()
         echo " m   Match a TAGS/PROP/TODO query"
         echo " L   Timeline for current buffer"
         echo " s   Search for keywords"
+        echo " c   Show custom search menu"
         echo " "
         echo " f   Sparse tree of: " . g:org_search_spec
         echo " "
@@ -5189,6 +5253,9 @@ function! OrgAgendaDashboard()
         elseif key ==? 'L'
             redraw
             silent execute "call s:Timeline()"
+        elseif key ==? 'c'
+            redraw
+            execute "call OrgCustomSearchMenu()"
         elseif key ==? 'm'
             redraw
             let mysearch = input("Enter search string: ")
@@ -5433,6 +5500,7 @@ map <silent> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TO
 map <silent> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
 map <silent> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
 map <silent> <localleader>ag :call OrgAgendaDashboard()<cr>
+map <silent> <localleader>ac :call OrgCustomSearchMenu()<cr>
 command! -nargs=0 Agenda :call OrgAgendaDashboard()
 nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
 nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
