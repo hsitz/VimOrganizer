@@ -2352,6 +2352,7 @@ function! s:ResultsToAgenda( search_type )
         let msg = "Press num to redo search: "
         let numstr= ''
         "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
+        nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
         let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + s:Union(g:org_todoitems,[])
         for item in tlist
             let num = index(tlist,item)
@@ -3705,7 +3706,7 @@ function! OrgDateEdit(type)
                 call OrgSetLine(buffer_lineno,file,newdate)
             else
                 call setline(buffer_lineno,newdate)
-                normal f>
+                "normal f>
             endif
         endif
         let @/=''
