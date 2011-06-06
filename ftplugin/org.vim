@@ -79,6 +79,9 @@ if !exists('g:org_tags_alist')
     let g:org_tags_alist = ''
 endif
 let g:org_clock_history=[]
+let g:org_html_app=''
+let g:org_pdf_app=''
+let g:org_path_to_emacs='emacs'
 let g:org_path_to_emacs='"c:\program files (x86)\emacs\emacs\bin\emacs.exe"'
 let s:org_headMatch = '^\*\+\s'
 let s:org_cal_date = '2000-01-01'
@@ -3697,11 +3700,12 @@ function! OrgDateEdit(type)
         else
             " set the date at linenumber to new date
             "let newdate = substitute(bufline,'[[<]\zs\d\d\d\d-\d\d-\d\d.\{-}\ze[>\]]',newdate[1:-2],'')
-            let newdate = substitute(bufline,replace_str,newdate[1:-2] ,'')
+            let newdate = substitute(bufline,replace_str, newdate[1:-2]  ,'')
             if bufname("%") ==? ('__Agenda__')
                 call OrgSetLine(buffer_lineno,file,newdate)
             else
                 call setline(buffer_lineno,newdate)
+                normal f>
             endif
         endif
         let @/=''
@@ -5387,19 +5391,88 @@ command! -nargs=0 AAgenda call s:AgendaBufferOpen(1)
 
 command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()
+command! -nargs=0 OrgToAscii :call s:ExportToAscii()
+command! -nargs=0 OrgToDocBook :call s:ExportToDocBook()
 function! s:ExportToPDF()
     let command1 = g:org_path_to_emacs . ' -batch --load $HOME/.emacs --visit='
-    let part2 = ' --funcall org-export-as-pdf'
+    let part2 = ' --funcall org-export-as-pdf-and-open'
     silent execute '!' . command1 . expand("%") . part2
     "call inputdialog("just waiting to go forward. . . ")
-    silent execute '!'.expand("%:r").'.pdf'
+    "silent execute '!'.expand("%:r").'.pdf'
 endfunction
 function! s:ExportToHTML()
     let command1 = g:org_path_to_emacs .' -batch --visit='
-    let part2 = ' --funcall org-export-as-html'
+    let part2 = ' --funcall org-export-as-html-and-open'
     silent execute '!' . command1 . expand("%") . part2
     "call inputdialog("just waiting to go forward. . . ")
-    silent execute '!'.expand("%:r").'.html'
+    "silent execute '!'.expand("%:r").'.html'
+endfunction
+function! s:ExportToAscii()
+    let command1 = g:org_path_to_emacs .' -batch --visit='
+    let part2 = ' --funcall org-export-as-ascii'
+    silent execute '!' . command1 . expand("%") . part2
+    "call inputdialog("just waiting to go forward. . . ")
+endfunction
+function! s:ExportToDocBook()
+    let command1 = g:org_path_to_emacs .' -batch --visit='
+    let part2 = ' --funcall org-export-as-docbook'
+    silent execute '!' . command1 . expand("%") . part2
+    "call inputdialog("just waiting to go forward. . . ")
+endfunction
+function! OrgExport()
+    " show export dashboard
+    let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
+            \      'h':'html', 'b':'html-and-open', 'l':'latex', 
+            \      'p':'pdf', 'd':'pdf-and-open', 'D':'docbook' } 
+    echo " Press key for export operation:"
+    echo " --------------------------------"
+    echo " [t]   insert the export options template block"
+    echo " "
+    echo " [a/n/u]  export as ASCII/Latin-1/UTF-8"
+    echo " "
+    echo " [h] export as HTML"
+    echo " [b] export as HTML and open in browser"
+    echo " "
+    echo " [l] export as LaTeX"
+    echo " [p] export as LaTeX and process to PDF"
+    echo " [d] . . . and open PDF file"
+    echo " "
+    echo " [D] export as DocBook"
+    echo " [V] export as DocBook, process to PDF, and open"
+    echo " "
+    echo " [m] export as Freemind mind map"
+    echo " [x] export as XOXO"
+    echo " "
+    let key = nr2char(getchar())
+    for item in keys(mydict)
+        if (item ==# key) && (item !=# 't')
+            let command1 = g:org_path_to_emacs .' -batch --visit='
+            let command_part2 = ' --funcall org-export-as-' . mydict[key]
+            silent execute '!' . command1 . expand("%") . command_part2
+            break
+        endif
+    endfor
+    if key ==# 't' 
+        let template = [
+                    \ '#+TITLE:     ' . expand("%p")
+                    \ ,'#+AUTHOR:   '
+                    \ ,'#+EMAIL:    '
+                    \ ,'#+DATE:     ' . strftime("%Y %b %d %H:%M")
+                    \ ,'#+DESCRIPTION: '
+                    \ ,'#+KEYWORDS: '
+                    \ ,'#+LANGUAGE:  en'
+                    \ ,'#+OPTIONS:   H:3 num:t toc:t \n:nil @:t ::t |:t ^:t -:t f:t *:t <:t'
+                    \ ,'#+OPTIONS:   TeX:t LaTeX:t skip:nil d:nil todo:t pri:nil tags:not-in-toc'
+                    \ ,'#+INFOJS_OPT: view:nil toc:nil ltoc:t mouse:underline buttons:0 path:http://orgmode.org/org-info.js'
+                    \ ,'#+EXPORT_SELECT_TAGS: export'
+                    \ ,'#+EXPORT_EXCLUDE_TAGS: noexport'
+                    \ ,'#+LINK_UP:   '
+                    \ ,'#+LINK_HOME: '
+                    \ ,'#+XSLT: '
+                    \ ]
+        call append(line('.')-1,template)
+    endif
+
 endfunction
 
 function! s:MailLookup()
@@ -5570,24 +5643,50 @@ map! <buffer>  <localleader>w           <Esc>:w<CR>a
 
 
 " Org Menu Entries
-amenu &Org.Expand\ Level\ &1 :set foldlevel=0<cr>
-amenu &Org.Expand\ Level\ &2 :set foldlevel=1<cr>
-amenu &Org.Expand\ Level\ &3 :set foldlevel=2<cr>
-amenu &Org.Expand\ Level\ &4 :set foldlevel=3<cr>
-amenu &Org.Expand\ Level\ &5 :set foldlevel=4<cr>
-amenu &Org.Expand\ Level\ &6 :set foldlevel=5<cr>
-amenu &Org.Expand\ Level\ &7 :set foldlevel=6<cr>
-amenu &Org.Expand\ Level\ &8 :set foldlevel=7<cr>
-amenu &Org.Expand\ Level\ &9 :set foldlevel=8<cr>
-amenu &Org.Expand\ Level\ &All :set foldlevel=99999<cr>
+amenu &Org.&View.Expand\ Level\ &1 :set foldlevel=0<cr>
+amenu &Org.&View.Expand\ Level\ &2 :set foldlevel=1<cr>
+amenu &Org.&View.Expand\ Level\ &3 :set foldlevel=2<cr>
+amenu &Org.&View.Expand\ Level\ &4 :set foldlevel=3<cr>
+amenu &Org.&View.Expand\ Level\ &5 :set foldlevel=4<cr>
+amenu &Org.&View.Expand\ Level\ &6 :set foldlevel=5<cr>
+amenu &Org.&View.Expand\ Level\ &7 :set foldlevel=6<cr>
+amenu &Org.&View.Expand\ Level\ &8 :set foldlevel=7<cr>
+amenu &Org.&View.Expand\ Level\ &9 :set foldlevel=8<cr>
+amenu &Org.&View.Expand\ Level\ &All :set foldlevel=99999<cr>
 amenu &Org.-Sep1- :
-amenu &Org.Expand\ Level\ &1\ w/oText :call OrgExpandWithoutText(1)<cr>
-amenu &Org.Expand\ Level\ &2\ w/oText :call OrgExpandWithoutText(2)<cr>
-amenu &Org.Expand\ Level\ &3\ w/oText :call OrgExpandWithoutText(3)<cr>
-amenu &Org.Expand\ Level\ &4\ w/oText :call OrgExpandWithoutText(4)<cr>
-amenu &Org.Expand\ Level\ &5\ w/oText :call OrgExpandWithoutText(5)<cr>
-amenu &Org.Expand\ Level\ &6\ w/oText :call OrgExpandWithoutText(6)<cr>
-amenu &Org.-Sep1- :
+amenu &Org.&New\ Heading.New\ Head\ Same\ Level :call OrgNewHead('same')<cr>
+amenu &Org.&New\ Heading.New\ Subhead :call OrgNewHead('leveldown')<cr>
+amenu &Org.&New\ Heading.New\ Head\ Parent\ Level :call OrgNewHead('levelup')<cr>
+amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading :exec <SID>OrgParentHead()<cr>
+amenu &Org.&Navigate\ Headings.&First\ Child\ Heading :exec <SID>OrgFirstChildHead()<cr>
+amenu &Org.&Navigate\ Headings.&Last\ Child\ Heading :exec <SID>OrgLastChildHead()<cr>
+amenu &Org.&Navigate\ Headings.&Next\ Heading :exec <SID>OrgNextHead()<cr>
+amenu &Org.&Navigate\ Headings.&Previous\ Heading :exec <SID>OrgPrevHead()<cr>
+amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLevel()<cr>
+amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
+amenu &Org.&Navigate\ Headings.Next\ &Sibling :exec <SID>OrgNextSiblingHead()<cr>
+amenu &Org.&Navigate\ Headings.Previous\ Sibling :exec <SID>OrgPrevSiblingHead()<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Up :call OrgMoveLevel(line('.'),'up'<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Down :call OrgMoveLevel(line('.'),'down'<cr>
+amenu &Org.&Edit\ Structure.Promote\ Subtree :call OrgMoveLevel(line('.'),'left'<cr>
+amenu &Org.&Edit\ Structure.Demote\ Subtree :call OrgMoveLevel(line('.'),'right'<cr>
+amenu &Org.Editing :echo 'not implemented yet'<cr>
+amenu &Org.Archive :echo 'not implemented yet'<cr>
+amenu &Org.-Sep2- :
+amenu &Org.Hyperlinks :echo 'not implemented yet'<cr>
+amenu &Org.-Sep3- :
+amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
+amenu &Org.TAGS\ and\ Properties :echo 'not implemented yet'<cr>
+amenu &Org.Dates\ and\ Scheduling :echo 'not implemented yet'<cr>
+amenu &Org.Logging\ work.Clock\ in :call OrgClockIn(line('.'))<cr>
+amenu &Org.Logging\ work.Clock\ out :call OrgClockOut()<cr>
+amenu &Org.-Sep4- :
+amenu &Org.Agenda\ command :call OrgAgendaDashboard()<cr>
+amenu &Org.Set\ Restriction\ Lock :echo 'not implemented yet'<cr>
+amenu &Org.File\ List\ for\ Agenda :call EditAgendaFiles()<cr>
+amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
+amenu &Org.-Sep5- :
+amenu &Org.Export/Publish :call OrgExport()<cr>
 
 command! PreLoadTags :silent  call <SID>GlobalConvertTags()
 command! PreWriteTags :silent call <SID>GlobalUnconvertTags(changenr())
