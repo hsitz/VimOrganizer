@@ -196,8 +196,23 @@ endfunction
 function! OrgTodoConvert(orgtodo)
     let todolist = []
     let sublist = []
+    let b:v.tododict = {}
    " let templist = []
     let temp_list = split(a:orgtodo,' ')
+
+    for item in temp_list
+        if item == '|' 
+            continue
+        endif
+        let b:v.tododict[item] = {}
+        if matchstr(item,'.*(.)') ==# ''
+            let b:v.tododict[item].todotext = item
+            let b:v.tododict[item].todochar = ''
+        else
+            let b:v.tododict[item].todotext = matchstr(item,'.*\ze(.)')
+            let b:v.tododict[item].todochar = matchstr(item,'.*(\zs.\ze)')
+        endif
+    endfor
     " count '|' chars in list, if 0 or 1 then
     " it is like Org-mode format, otherwise
     " sublists are used in non-done slot"
@@ -235,7 +250,7 @@ function! OrgTodoSetup(todolist_str)
     "set up list and patterns for use throughout
     let b:v.todoitems=[]
     let b:v.todo_first_letters = ''
-    let b:v.fulltodos=todolist
+    "let b:v.fulltodos=todolist
     let b:v.todocycle=[]
     let b:v.todoMatch=''
     let b:v.todoNotDoneMatch=''
@@ -243,10 +258,14 @@ function! OrgTodoSetup(todolist_str)
     let i = 0
     while i < len(todolist) 
         if type(todolist[i]) == type('abc')
-            call add(b:v.todoitems,todolist[i])
-            call add(b:v.todocycle,todolist[i])
+            let thistodo = matchstr(todolist[i],'.*ze(.)')
+            let thistodo = b:v.tododict[todolist[i]].todotext
+            let todolist[i] = substitute(todolist[i],'(.)','','')
+            call add(b:v.todoitems,thistodo)
+            call add(b:v.todocycle,thistodo)
             " add to patterns
-            let newtodo = b:v.todoitems[len(b:v.todoitems)-1]
+            "let newtodo = b:v.todoitems[len(b:v.todoitems)-1]
+            let newtodo = thistodo
             let b:v.todoMatch .= newtodo . '\|'
             if i < len(todolist) - 1
                 let b:v.todoNotDoneMatch .= newtodo . '\|'
@@ -257,16 +276,18 @@ function! OrgTodoSetup(todolist_str)
             "item is itself a list
             let j = 0
             while j < len(todolist[i])
-                call add(b:v.todoitems,todolist[i][j])
+                let thisitem = b:v.tododict[todolist[i][j]].todotext
+                let todolist[i][j] = substitute(todolist[i][j],'(.)','','')
+                call add(b:v.todoitems,thisitem )
                 if j == 0
-                    call add(b:v.todocycle,todolist[i][0])
+                    call add(b:v.todocycle,thisitem)
                 endif
                 " add to patterns
-                let b:v.todoMatch .= todolist[i][j] . '\|'
+                let b:v.todoMatch .= thisitem . '\|'
                 if i < len(todolist) - 1
-                    let b:v.todoNotDoneMatch .= todolist[i][j] . '\|'
+                    let b:v.todoNotDoneMatch .= thisitem . '\|'
                 else
-                    let b:v.todoDoneMatch .= todolist[i][j] . '\|'
+                    let b:v.todoDoneMatch .= thisitem . '\|'
                 endif
                 let j += 1
             endwhile
@@ -276,8 +297,13 @@ function! OrgTodoSetup(todolist_str)
     let b:v.todoMatch = '^\*\+\s*\('.b:v.todoMatch[:-2] . ')'
     let b:v.todoDoneMatch = '^\*\+\s*\('.b:v.todoDoneMatch[:-2] . ')'
     let b:v.todoNotDoneMatch = '^\*\+\s*\('.b:v.todoNotDoneMatch[:-2] . ')'
-    for item in b:v.todoitems
-        let item_char = tolower(item[0])
+    let b:v.fulltodos = todolist
+
+    for item in keys( b:v.tododict )
+        let item_char = tolower( b:v.tododict[item].todochar)
+        if item_char ==# ''
+            let item_char = tolower(item[0])
+        endif
         execute 'map <silent> <buffer> <localleader>t' . item_char . 
                 \  ' :call OrgSequenceTodo(line(''.''),''' . item_char . ''')<cr>'
     endfor
@@ -1495,6 +1521,9 @@ function! OrgCycle()
 endfunction
 let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
+    if w:sparse_on
+        call s:ClearSparseTree()
+    endif
     if (&foldlevel > 1) && (&foldlevel != b:v.global_cycle_levels_to_show)
         call OrgExpandWithoutText(1)
     elseif &foldlevel == 1
@@ -2006,6 +2035,9 @@ function! s:OrgIfExpr()
     " items?
     while i < len(b:v.my_if_list)
         let item = b:v.my_if_list[i]
+        if item[0] !~ '+\|-'
+            let item = '+' . item
+        endif
         " Propmatch has '=' sign and something before and after
         if item[1:] =~ 'TEXT=\S.*'
             let mtch = matchlist(item[1:],'\(\S.*\)=\(\S.*\)')
@@ -5246,7 +5278,8 @@ function! OrgAgendaDashboard()
         echo " s   Search for keywords"
         echo " c   Show custom search menu"
         echo " "
-        echo " f   Sparse tree of: " . g:org_search_spec
+        echo " h   Headline-based sparse tree of: " . g:org_search_spec
+        echo " f   Freeform sparse tree of: " . g:org_search_spec
         echo " "
         let key = nr2char(getchar())
         if key ==? 't'
@@ -5265,13 +5298,20 @@ function! OrgAgendaDashboard()
             redraw
             let mysearch = input("Enter search string: ")
             silent execute "call OrgRunSearch(mysearch)"
-        elseif key ==? 'f'
+        elseif key ==? 'h'
             redraw
-            let mysearch = input("Enter search string: ",g:org_search_spec)
+            let g:org_sparse_spec = input("Enter search string: ")
             if bufname("%") ==? '__Agenda__'
                 :bd
             endif
-            silent execute "call OrgRunSearch(mysearch,1)"
+            silent execute "call OrgRunSearch(g:org_sparse_spec,1)"
+        elseif key ==? 'f'
+            redraw
+            let g:org_sparse_spec = input("Enter search string: ")
+            if bufname("%") ==? '__Agenda__'
+                :bd
+            endif
+            silent call s:SparseTreeRun(g:org_sparse_spec)
         endif
     endif
 endfunction
@@ -5667,13 +5707,14 @@ amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLeve
 amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
 amenu &Org.&Navigate\ Headings.Next\ &Sibling :exec <SID>OrgNextSiblingHead()<cr>
 amenu &Org.&Navigate\ Headings.Previous\ Sibling :exec <SID>OrgPrevSiblingHead()<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Up :call OrgMoveLevel(line('.'),'up'<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Down :call OrgMoveLevel(line('.'),'down'<cr>
-amenu &Org.&Edit\ Structure.Promote\ Subtree :call OrgMoveLevel(line('.'),'left'<cr>
-amenu &Org.&Edit\ Structure.Demote\ Subtree :call OrgMoveLevel(line('.'),'right'<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Up :call OrgMoveLevel(line('.'),'up')<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Down :call OrgMoveLevel(line('.'),'down')<cr>
+amenu &Org.&Edit\ Structure.Promote\ Subtree :call OrgMoveLevel(line('.'),'left')<cr>
+amenu &Org.&Edit\ Structure.Demote\ Subtree :call OrgMoveLevel(line('.'),'right')<cr>
 amenu &Org.Editing :echo 'not implemented yet'<cr>
 amenu &Org.Archive :echo 'not implemented yet'<cr>
 amenu &Org.-Sep2- :
+amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
 amenu &Org.Hyperlinks :echo 'not implemented yet'<cr>
 amenu &Org.-Sep3- :
 amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
