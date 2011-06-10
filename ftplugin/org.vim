@@ -675,14 +675,17 @@ endfunction
 function! <SID>GlobalUnconvertTags(state)
     if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
         let g:save_cursor = getpos(".")
+        let g:last_changenr = a:state
         mkview
         normal A 
         g/^\*\+\s/call s:UnconvertTags(line("."))
+        silent! %s/^\(\s*\):\(DEADLINE\|SCHEDULED\|CLOSED\|<\d\d\d\d-\d\d-\d\d\)/\1\2/
     endif
 endfunction
 function! <SID>UndoUnconvertTags()
     if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
-        undo
+        silent exec 'undo ' . g:last_changenr 
+        silent undo
         loadview
         call setpos(".",g:save_cursor)
     endif
@@ -699,7 +702,8 @@ function! <SID>GlobalConvertTags()
     if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
         let save_cursor = getpos(".")
         g/^\*\+\s/call s:ConvertTags(line("."))
-        call OrgProcessConfigLines()
+        "call OrgProcessConfigLines()
+        silent! %s/^\(\s*\)\(DEADLINE:\|SCHEDULED:\|CLOSED:\|<\d\d\d\d-\d\d-\d\d\)/\1:\2/
         call setpos(".",save_cursor)
     endif
 endfunction
@@ -5487,9 +5491,15 @@ function! OrgExport()
     let key = nr2char(getchar())
     for item in keys(mydict)
         if (item ==# key) && (item !=# 't')
+            let g:org_emacs_autoconvert = 1
+            call s:GlobalUnconvertTags(changenr())
+            let exportfile = expand('%:p:r') . '-export.org'
+            silent exec 'write! ' . exportfile
             let command1 = g:org_path_to_emacs .' -batch --visit='
             let command_part2 = ' --funcall org-export-as-' . mydict[key]
-            silent execute '!' . command1 . expand("%") . command_part2
+            silent execute '!' . command1 . exportfile . command_part2
+            call s:UndoUnconvertTags()
+            let g:org_emacs_autoconvert = 0
             break
         endif
     endfor
@@ -5684,33 +5694,33 @@ map! <buffer>  <localleader>w           <Esc>:w<CR>a
 
 
 " Org Menu Entries
-amenu &Org.&View.Expand\ Level\ &1 :set foldlevel=0<cr>
-amenu &Org.&View.Expand\ Level\ &2 :set foldlevel=1<cr>
-amenu &Org.&View.Expand\ Level\ &3 :set foldlevel=2<cr>
-amenu &Org.&View.Expand\ Level\ &4 :set foldlevel=3<cr>
-amenu &Org.&View.Expand\ Level\ &5 :set foldlevel=4<cr>
-amenu &Org.&View.Expand\ Level\ &6 :set foldlevel=5<cr>
-amenu &Org.&View.Expand\ Level\ &7 :set foldlevel=6<cr>
-amenu &Org.&View.Expand\ Level\ &8 :set foldlevel=7<cr>
-amenu &Org.&View.Expand\ Level\ &9 :set foldlevel=8<cr>
+amenu &Org.&View.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
+amenu &Org.&View.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
+amenu &Org.&View.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
+amenu &Org.&View.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
+amenu &Org.&View.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
+amenu &Org.&View.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
+amenu &Org.&View.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
+amenu &Org.&View.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
+amenu &Org.&View.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
 amenu &Org.&View.Expand\ Level\ &All :set foldlevel=99999<cr>
 amenu &Org.-Sep1- :
-amenu &Org.&New\ Heading.New\ Head\ Same\ Level :call OrgNewHead('same')<cr>
-amenu &Org.&New\ Heading.New\ Subhead :call OrgNewHead('leveldown')<cr>
-amenu &Org.&New\ Heading.New\ Head\ Parent\ Level :call OrgNewHead('levelup')<cr>
-amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading :exec <SID>OrgParentHead()<cr>
-amenu &Org.&Navigate\ Headings.&First\ Child\ Heading :exec <SID>OrgFirstChildHead()<cr>
+amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or <s-cr>) :call OrgNewHead('same')<cr>
+amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
+amenu &Org.&New\ Heading.New\ Head\ Parent\ Level<tab><s-c-cr> :call OrgNewHead('levelup')<cr>
+amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading<tab><a-left> :exec <SID>OrgParentHead()<cr>
+amenu &Org.&Navigate\ Headings.&First\ Child\ Heading<tab><a-right> :exec <SID>OrgFirstChildHead()<cr>
 amenu &Org.&Navigate\ Headings.&Last\ Child\ Heading :exec <SID>OrgLastChildHead()<cr>
 amenu &Org.&Navigate\ Headings.&Next\ Heading :exec <SID>OrgNextHead()<cr>
 amenu &Org.&Navigate\ Headings.&Previous\ Heading :exec <SID>OrgPrevHead()<cr>
 amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLevel()<cr>
 amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
-amenu &Org.&Navigate\ Headings.Next\ &Sibling :exec <SID>OrgNextSiblingHead()<cr>
-amenu &Org.&Navigate\ Headings.Previous\ Sibling :exec <SID>OrgPrevSiblingHead()<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Up :call OrgMoveLevel(line('.'),'up')<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Down :call OrgMoveLevel(line('.'),'down')<cr>
-amenu &Org.&Edit\ Structure.Promote\ Subtree :call OrgMoveLevel(line('.'),'left')<cr>
-amenu &Org.&Edit\ Structure.Demote\ Subtree :call OrgMoveLevel(line('.'),'right')<cr>
+amenu &Org.&Navigate\ Headings.Next\ &Sibling<tab><a-down> :exec <SID>OrgNextSiblingHead()<cr>
+amenu &Org.&Navigate\ Headings.Previous\ Sibling<tab><a-up> :exec <SID>OrgPrevSiblingHead()<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
+amenu &Org.&Edit\ Structure.Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
+amenu &Org.&Edit\ Structure.Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
 amenu &Org.Editing :echo 'not implemented yet'<cr>
 amenu &Org.Archive :echo 'not implemented yet'<cr>
 amenu &Org.-Sep2- :
@@ -5720,10 +5730,10 @@ amenu &Org.-Sep3- :
 amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
 amenu &Org.TAGS\ and\ Properties :echo 'not implemented yet'<cr>
 amenu &Org.Dates\ and\ Scheduling :echo 'not implemented yet'<cr>
-amenu &Org.Logging\ work.Clock\ in :call OrgClockIn(line('.'))<cr>
-amenu &Org.Logging\ work.Clock\ out :call OrgClockOut()<cr>
+amenu &Org.Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
+amenu &Org.Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
-amenu &Org.Agenda\ command :call OrgAgendaDashboard()<cr>
+amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
 amenu &Org.Set\ Restriction\ Lock :echo 'not implemented yet'<cr>
 amenu &Org.File\ List\ for\ Agenda :call EditAgendaFiles()<cr>
 amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
@@ -5762,12 +5772,19 @@ hi! default link WildMenu Constant
 hi! default link DiffAdd Comment
 hi! default link DiffChange Special
 
+"blank out foldcolumn
+hi! FoldColumn guifg=bg guibg=bg ctermfg=fg ctermbg=bg
+"show text on SignColumn
+hi! SignColumn guibg=fg guibg=bg ctermfg=fg ctermbg=bg
+
 " various text item "highlightings" are below
-hi! default Properties guifg=pink ctermfg=lightred
-hi! default Tags guifg=pink ctermfg=lightred
-hi! default Dates guifg=magenta ctermfg=magenta
+" change to suit your taste
+hi! default Drawers guifg=pink ctermfg=magenta
+hi! default Properties guifg=pink ctermfg=magenta
+hi! default Tags guifg=lightgreen ctermfg=blue
+hi! default Dates guifg=magenta ctermfg=magenta gui=underline cterm=underline
 hi! default stars guifg=#444444 ctermfg=darkgray
-hi! default Props guifg=#ffa0a0 ctermfg=lightred
+hi! default Props guifg=#ffa0a0 ctermfg=gray
 hi! default code guifg=orange gui=bold ctermfg=14
 hi! default itals gui=italic guifg=#aaaaaa ctermfg=lightgray
 hi! default boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray

@@ -12,9 +12,12 @@ function! s:SynStars(perlevel)
 endfunction
 command! ChangeSyn  call <SID>SynStars(b:levelstars)
 
-syntax match Properties +^\s*:\s*\S\{-1,}\s*:+
-syntax match Tags +\s*:\S*:\s*$+
-syntax match Dates +<\d\d\d\d-\d\d-\d\d.\{-1,}>+
+"syntax match Properties +^\s*:\s*\S\{-1,}\s*:+
+"syntax match Tags +\s*:\S*:\s*$+
+syntax match Properties +^\s*:\S*:\ze.*+
+syntax match Tags +\s*:\S*:$+
+syntax match Drawers +^\s*:\(PROPERTIES\|LOGBOOK\|END\):\ze.*+
+syntax match Dates +[<[]\d\d\d\d-\d\d-\d\d.\{-1,}[\]>]+
 syntax match stars +\*\+\*+me=e-1 contained
 syntax match NEXT '\* \zsNEXT' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match CANCELED '\* \zsCANCELED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
