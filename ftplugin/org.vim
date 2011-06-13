@@ -70,6 +70,10 @@ let b:v.fold_list = []
 let b:v.suppress_indent=0
 let b:v.suppress_list_indent=0
 
+" LINE BELOW IS MAJOR IF THAT ENCOMPASSES MOST OF org.vim
+" endif is near bottom of document
+" everything in between is executed only the first time an
+" org file is opened
 if !exists('g:org_loaded')
 
 if !exists('g:org_tags_persistent_alist')
@@ -77,6 +81,9 @@ if !exists('g:org_tags_persistent_alist')
 endif
 if !exists('g:org_tags_alist')
     let g:org_tags_alist = ''
+endif
+if !exists('g:org_confirm_babel_evaluate')
+    let g:org_confirm_babel_evaluate = 0
 endif
 let g:org_clock_history=[]
 let g:org_html_app=''
@@ -4484,6 +4491,43 @@ function! OrgConfirmDrawer(type,...)
     endif
 endfunction
 
+function! s:GetLink()
+    let savecursor = getpos('.')
+
+    let linkdict = {'link':'','desc':''}
+    let curpos = getpos('.')[2]
+    call search('\[\[','bc',line('.'))
+    let startpos = getpos('.')[2] - 1
+    call search(']]','ce',line('.'))
+    let endpos = getpos('.')[2] - 1
+    if (curpos >= startpos) && (curpos <= endpos)
+        let linktext = getline(line("."))[ startpos : endpos ]
+        if linktext =~ ']\['
+            let linkdict.link = matchstr(linktext,'\[\[\zs.*\ze]\[')
+            let linkdict.desc = matchstr(linktext,']\[\zs.*\ze]]')
+        else
+            let linkdict.link = matchstr(linktext,'\[\[\zs.*\ze]]')
+        endif
+    endif
+    call setpos('.',savecursor)
+    return linkdict
+endfunction
+function! EditLink()
+
+    let thislink = s:GetLink()
+
+    let link = input('Link: ', thislink.link)
+    let desc = input('Description: ', thislink.desc)
+    
+    if thislink.link !=# ''
+        "delete existing hyperlink
+        call search('\[\[','b',line('.'))
+        normal v/]]/exx
+    endif 
+
+    silent exec 'normal i[[' . link . ']' . (desc ># '' ? '[' . desc . ']' : '') . ']'
+    echo ''
+endfunction
 function! OrgMouseDate()
     let @x=''
     let date=''
@@ -5495,7 +5539,7 @@ function! OrgExport()
             call s:GlobalUnconvertTags(changenr())
             let exportfile = expand('%:p:r') . '-export.org'
             silent exec 'write! ' . exportfile
-            let command1 = g:org_path_to_emacs .' -batch --visit='
+            let command1 = g:org_path_to_emacs .' -batch -l c:\users\herbert\settings.el --visit='
             let command_part2 = ' --funcall org-export-as-' . mydict[key]
             silent execute '!' . command1 . exportfile . command_part2
             call s:UndoUnconvertTags()
