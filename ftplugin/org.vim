@@ -2,6 +2,8 @@
 "if !exists('g:v')
 "    let g:v={}
 "endif
+" Calendar plugin at:
+"http://www.vim.org/scripts/script.php?script_id=52
 let b:v={}
 let b:v.prevlev = 0
 let maplocalleader = ","        " Org key mappings prepend single comma
@@ -109,6 +111,9 @@ let g:org_log_todos=0
 let g:org_timegrid=[8,17,1]
 let g:org_colview_list = []
 let s:firsttext = ''
+let g:org_supported_link_types = '\(http\|file\|mailto\)'
+let g:org_unsupported_link_types = '\(vm\|wl\|mhe\|rmail\|gnus\|bbdb\|irc\|info\|shell\|elisp\)'
+
 
 let g:org_item_len=100
 let w:sparse_on = 0
@@ -3560,36 +3565,40 @@ function! OrgAgendaDateType()
 endfunction
 
 function! GetDateAtCursor()
-        " save visual bell settings so no bell
-        " when not found"
-        let orig_vb = &vb
-        let orig_t_vb = &t_vb
-        set vb t_vb=
+    let savecursor = getpos(".")
+    " save visual bell settings so no bell
+    " when not found"
+    let orig_vb = &vb
+    let orig_t_vb = &t_vb
+    set vb t_vb=
 
-        "  check for date string within brackets
-        normal! vi<
-        normal! "xy
-        if len(@x) < 7 
-            "normal! vi["xy
-            normal! vi[
-            normal! "xy
-        endif
+    "  check for date string within brackets
+    normal! vi<
+    silent! normal! "xy
+    call setpos('.',savecursor)
+    if len(@x) < 7 
+        "normal! vi["xy
+        normal! vi[
+        silent! normal! "xy
+    endif
 
-        if (len(@x)>=14) && (len(@x)<40)
-            let date = matchstr(@x,'^\d\d\d\d-\d\d-\d\d')
-        else
-            let date = ''
-        endif
+    if (len(@x)>=14) && (len(@x)<40)
+        let date = matchstr(@x,'^\d\d\d\d-\d\d-\d\d')
+    else
+        let date = ''
+    endif
 
-        " restore visual bell settings
-        let &vb = orig_vb
-        let &t_vb = orig_t_vb
+    " restore visual bell settings
+    let &vb = orig_vb
+    let &t_vb = orig_t_vb
 
-        if date ># ''
-            return @x
-        else
-            return ''
-        endif
+    if date ># ''
+        return @x
+    else
+        return ''
+    endif
+
+    call setpos(".", savecursor)
         
 endfunction
 
@@ -4512,8 +4521,91 @@ function! s:GetLink()
     call setpos('.',savecursor)
     return linkdict
 endfunction
-function! EditLink()
+function! FollowLink(ldict)
+    let ld = a:ldict
+    let ld.suffix = ''
+    "process things so org-compatible while still calling Utl
+    let prefix = matchstr(ld.link,'\S\{-1,}\ze:')
+    if exists(":Utl") == 0
+       echo "The Vim plugin Utl.vim must be installed to follow links."
+        echo "You can find a copy at:"
+        echo 'http://www.vim.org/scripts/script.php?script_id=293'
+        return
+    endif
+    if prefix =~ g:org_unsupported_link_types
+        echo 'Link type "' . prefix '" not supported in VimOrganizer.'
+        return
+    endif
+    " now have to translate from org format to Utl format
+    if ld.link[0] ==# '#'
+        let ld.link = '#tn=:CUSTOM_ID:\s\*' . ld.link[1:]
+        let prefix = '#'
+    elseif prefix ==? 'file' && (ld.link[5] ==# '.')  
+        " || ld.link[5:6] ==# '\S:') 
+        " take file prefix out b/c Utl can't handle relative file paths
+        let ld.link = ld.link[5:]
+    endif
 
+    if prefix ==? 'file' && (ld.link =~ '::')
+        let mylist = split(ld.link,'::')
+        let ld.link = mylist[0]
+        let ld.suffix = mylist[1]
+    endif
+
+    if (prefix ==# '') || ((prefix !~ g:org_supported_link_types) && (prefix != '#'))
+        " we have org text search that needs different treatment
+        call FollowTextLink(a:ldict.link)
+        "for search_type in ['dedicated', 'headline1', 'headline2', 'general']
+        "    let savecursor = getpos('.')
+        "    if search_type is 'dedicated'
+        "        let newlink = '#tn=<<' . a:ldict.link . '>>'
+        "    elseif search_type is 'headline1'
+        "        let newlink = '#tn=' . b:v.todoMatch . a:ldict.link 
+        "    elseif search_type is 'headline2'
+        "        let newlink = '#tn=^*\+ ' . a:ldict.link
+        "    else
+        "        let newlink = '#tn=' . a:ldict.link
+        "    endif
+
+        "    let newlink = substitute(newlink,' ','\\ ','g')
+        "    let g:newlink = newlink
+        "    silent! exec 'Utl o '. newlink . ' split'
+
+        "    if line('.') != savecursor[1] 
+        "        break
+        "    endif
+        "endfor
+    else
+        exec 'Utl o ' . ld.link . ' split'
+        if ld.suffix ># ''
+            call FollowTextLink(ld.suffix)
+        endif
+    end
+endfunction
+function! FollowTextLink(link)
+    for search_type in ['dedicated', 'headline1', 'headline2', 'general']
+        let savecursor = getpos('.')
+        if search_type is 'dedicated'
+            let newlink = '#tn=<<' . a:link . '>>'
+        elseif search_type is 'headline1'
+            let newlink = '#tn=' . b:v.todoMatch . a:link 
+        elseif search_type is 'headline2'
+            let newlink = '#tn=^*\+ ' . a:link
+        else
+            let newlink = '#tn=' . a:link
+        endif
+
+        let newlink = substitute(newlink,' ','\\ ','g')
+        let g:newlink = newlink
+        silent! exec 'Utl o '. newlink . ' split'
+
+        if line('.') != savecursor[1] 
+            break
+        endif
+    endfor
+endfunction
+function! EditLink()
+    "is this here: and is this there:
     let thislink = s:GetLink()
 
     let link = input('Link: ', thislink.link)
@@ -4533,10 +4625,14 @@ function! OrgMouseDate()
     let date=''
     let save_cursor = getpos(".")
     let found = ''
-    let date = GetDateAtCursor()
+    silent! let date = GetDateAtCursor()
+    call setpos('.',save_cursor)
+    let linkdict = s:GetLink()
     if date ># ''
         let found='date'
         let date = date[0:9]
+    elseif linkdict.link ># ''
+        let found= 'link'
     else
         call setpos(".",save_cursor)
         " get area between colons, if any, in @x
@@ -4549,6 +4645,8 @@ function! OrgMouseDate()
     if found ==? 'date'
         call OrgRunAgenda(date,1,'',date)
         execute 8
+    elseif found ==? 'link'
+        call FollowLink(linkdict)
     elseif found ==? 'tag'
         call OrgRunSearch('+'.@x)
     else
@@ -5537,13 +5635,15 @@ function! OrgExport()
         if (item ==# key) && (item !=# 't')
             let g:org_emacs_autoconvert = 1
             call s:GlobalUnconvertTags(changenr())
-            let exportfile = expand('%:p:r') . '-export.org'
-            silent exec 'write! ' . exportfile
+            let exportfile = expand('%:t') 
+            ". '-export.org'
+            silent exec 'write'
             let command1 = g:org_path_to_emacs .' -batch -l c:\users\herbert\settings.el --visit='
             let command_part2 = ' --funcall org-export-as-' . mydict[key]
             silent execute '!' . command1 . exportfile . command_part2
             call s:UndoUnconvertTags()
             let g:org_emacs_autoconvert = 0
+            silent exec 'write'
             break
         endif
     endfor
@@ -5834,12 +5934,18 @@ hi! default itals gui=italic guifg=#aaaaaa ctermfg=lightgray
 hi! default boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray
 hi! default undertext gui=underline guifg=#aaaaaa ctermfg=lightgray
 hi! default lnumber guifg=#999999 ctermfg=gray
+if has("conceal")
+    hi! default linkends guifg=blue ctermfg=blue
+    hi! FullLink guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+    hi! HalfLink guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+endif
 
 hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
 hi! default CANCELED guifg=red guibg=NONE ctermfg=red ctermbg=NONE
 hi! default STARTED guifg=yellow guibg=NONE ctermfg=yellow ctermbg=NONE
 hi! default NEXT guifg=cyan guibg=NONE ctermfg=cyan ctermbg=NONE
 hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
+
 endfunction
 
 call OrgSetColors()
