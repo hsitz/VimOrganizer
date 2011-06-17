@@ -43,8 +43,8 @@ syn match undertext '\(\_^\|\W\)_\zs\S[^_]\{-}\S\ze_\_W'
 syn match lnumber '^\t*\(\d\.\)*\s\s' contained
 
 if has("conceal")
-	syn region FullLink concealends matchgroup=linkends start='\[\[\(.\{-1,}]\)\[' end=']]'
 	syn region HalfLink concealends matchgroup=linkends start='\[\[' end=']]' contains=FullLink
+	syn region FullLink concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
 endif	
 " ***********************************************
 " section below is example for having subregions

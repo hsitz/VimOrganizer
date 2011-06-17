@@ -54,6 +54,10 @@ setlocal foldcolumn=1
 setlocal tabstop=4   
 setlocal shiftwidth=4
 setlocal formatlistpat=^\\s*\\d\\+\\.\\s\\+\\\|^\\s*\\-\\s\\+
+if has("conceal")
+    set conceallevel=3
+    set concealcursor=nc
+endif
 if !exists('g:in_agenda_search') "&& (&foldmethod!='expr')
         setlocal foldmethod=expr
         set foldlevel=1
@@ -78,6 +82,9 @@ let b:v.suppress_list_indent=0
 " org file is opened
 if !exists('g:org_loaded')
 
+if !exists('g:org_custom_colors')
+    let g:org_custom_colors=[]
+endif
 if !exists('g:org_tags_persistent_alist')
     let g:org_tags_persistent_alist = ''
 endif
@@ -4436,25 +4443,26 @@ function! s:SetProp(key, val,...)
 endfunction
 
 function! s:LocateFile(filename)
-    if !exists("g:agenda_files") || (g:agenda_files == [])
-        call confirm('You have no agenda files defined right now.\n'
-                    \ . 'Will assign current file to agenda files.')
-        call s:CurfileAgenda()
-    endif
-    let myvar = ''
-    " set filename
     let filename = a:filename
 
-    if filename != '__Agenda__'
-        " but change to be full name if appropriate
-        for item in g:agenda_files
-            " match fullpathname or just filename w/o path
-            if (item ==? a:filename) || (item =~ matchstr(a:filename,'.*[/\\]\zs.*'))
-                let filename = item
-                break
-            endif
-        endfor
-    endif
+    "if !exists("g:agenda_files") || (g:agenda_files == [])
+    "    call confirm('You have no agenda files defined right now.\n'
+    "                \ . 'Will assign current file to agenda files.')
+    "    call s:CurfileAgenda()
+    "endif
+    "let myvar = ''
+    "" set filename
+
+    "if filename != '__Agenda__'
+    "    " but change to be full name if appropriate
+    "    for item in g:agenda_files
+    "        " match fullpathname or just filename w/o path
+    "        if (item ==? a:filename) || (item =~ matchstr(a:filename,'.*[/\\]\zs.*'))
+    "            let filename = item
+    "            break
+    "        endif
+    "    endfor
+    "endif
 
     if bufwinnr(filename) >= 0
         silent execute bufwinnr(filename)."wincmd w"
@@ -5710,6 +5718,77 @@ function! s:Intersect(list1, list2)
 endfunc 
 
 
+function! OrgSetColors()
+    " define foreground colors for ****UNfolded**** outline heading levels
+    "hi! default link OL1 Folded
+    "hi! default link OL2 WarningMsg
+    "hi! default link OL3 WildMenu
+    "hi! default link OL4 DiffAdd
+    "hi! default link OL5 DiffChange
+    "hi! default link OL6 Title
+    "hi! default link OL7 LineNr
+    "hi! default link OL8 PreProc
+    "hi! default link OL9 Type
+    for pair in [ ['OL1','Statement'], ['OL2','Identifier'], ['OL3','Constant'],
+            \     ['OL4','Comment'],   ['OL5','Special'] ]
+        execute 'hi clear ' . pair[0]
+        execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
+        execute 'hi ' . pair[0] . ' gui=NONE'
+    endfor
+    for pair in [ ['Folded','Statement'], ['WarningMsg','Identifier'], ['WildMenu','Constant'],
+            \     ['DiffAdd','Comment'],   ['DiffChange','Special'] ]
+        execute 'hi clear ' . pair[0]
+        execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
+        execute 'hi ' . pair[0] . ' gui=bold'
+    endfor
+
+    " define highlighting for ***FOLDED*** outline heading levels
+    " 'Folded' is used for folded OL1
+    "hi! default link Folded Statement
+    "hi! default link WarningMsg Identifier
+    "hi! default link WildMenu Constant
+    "hi! default link DiffAdd Comment
+    "hi! default link DiffChange Special
+
+    "blank out foldcolumn
+    hi! FoldColumn guifg=bg guibg=bg ctermfg=fg ctermbg=bg
+    "show text on SignColumn
+    hi! SignColumn guibg=fg guibg=bg ctermfg=fg ctermbg=bg
+
+    " various text item "highlightings" are below
+    " change to suit your taste
+    hi! Drawers guifg=pink ctermfg=magenta
+    hi! Properties guifg=pink ctermfg=magenta
+    hi! Tags guifg=lightgreen ctermfg=blue
+    hi! Dates guifg=magenta ctermfg=magenta gui=underline cterm=underline
+    hi! stars guifg=#444444 ctermfg=darkgray
+    hi! Props guifg=#ffa0a0 ctermfg=gray
+    hi! code guifg=orange gui=bold ctermfg=14
+    hi! itals gui=italic guifg=#aaaaaa ctermfg=lightgray
+    hi! boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray
+    hi! undertext gui=underline guifg=#aaaaaa ctermfg=lightgray
+    hi! lnumber guifg=#999999 ctermfg=gray
+    if has("conceal")
+        hi! default linkends guifg=blue ctermfg=blue
+        hi! FullLink guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+        hi! HalfLink guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+    endif
+
+    hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
+    hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
+
+    "user can define colors in vimrc for above items, these will be executed
+    "here and override the defaults above.
+    " format for each item in list is simply text of vim highlight command, 
+    " minus the 'highlight', e.g., : 
+    " g:custom_colors = ['Dates guifg=green ctermfg=green']
+    for item in g:org_custom_colors
+        silent exe 'hi! ' . matchstr(item,'^\S\+')
+        silent exe 'hi! ' . item
+    endfor
+endfunction
+autocmd ColorScheme  * :silent! call OrgSetColors()
+call OrgSetColors()
 " This should be a setlocal but that doesn't work when switching to a new .otl file
 " within the same buffer. Using :e has demonstrates this.
 set foldtext=OrgFoldText()
@@ -5828,6 +5907,13 @@ map <silent> <buffer>   <a-up>                 :call OrgNavigateLevels("up")<CR>
 map <silent> <buffer>   <a-down>               :call OrgNavigateLevels("down")<CR>
 map <silent> <buffer>   <a-left>               :call OrgNavigateLevels("left")<CR>
 map <silent> <buffer>   <a-right>              :call OrgNavigateLevels("right")<CR>
+map <silent> <buffer> <localleader>le      :call EditLink()<cr>
+map <silent> <buffer> <localleader>lf      :call FollowLink(s:GetLink())<cr>
+map <silent> <buffer> <localleader>ln      :/]]<cr>
+map <silent> <buffer> <localleader>lp      :?]]<cr>
+map <silent> <buffer> <localleader>lc      :set conceallevel=3\|set concealcursor=nc<cr>
+map <silent> <buffer> <localleader>la      :set conceallevel=3\|set concealcursor=c<cr>
+map <silent> <buffer> <localleader>lx      :set conceallevel=0<cr>
 nmap <silent> <buffer>   <localleader>,e    :call OrgSingleHeadingText("expand")<CR>
 nmap <silent> <buffer>   <localleader>,E    :call OrgBodyTextOperation(1,line("$"),"expand")<CR>
 nmap <silent> <buffer>   <localleader>,C    :call OrgBodyTextOperation(1,line("$"),"collapse")<CR>
@@ -5869,7 +5955,13 @@ amenu &Org.Editing :echo 'not implemented yet'<cr>
 amenu &Org.Archive :echo 'not implemented yet'<cr>
 amenu &Org.-Sep2- :
 amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
-amenu &Org.Hyperlinks :echo 'not implemented yet'<cr>
+amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
+amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(s:GetLink())<cr>
+amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
+amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
+amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
+amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
+amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
 amenu &Org.-Sep3- :
 amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
 amenu &Org.TAGS\ and\ Properties :echo 'not implemented yet'<cr>
@@ -5896,58 +5988,5 @@ set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
 set fo=qtcwn
 let b:v.current_syntax = "org"
 
-function! OrgSetColors()
-" define foreground colors for ****UNfolded**** outline heading levels
-hi! default link OL1 Folded
-hi! default link OL2 WarningMsg
-hi! default link OL3 WildMenu
-hi! default link OL4 DiffAdd
-hi! default link OL5 DiffChange
-hi! default link OL6 Title
-hi! default link OL7 LineNr
-hi! default link OL8 PreProc
-hi! default link OL9 Type
-
-" define highlighting for ***FOLDED*** outline heading levels
-" 'Folded' is used for folded OL1
-hi! default link Folded Statement
-hi! default link WarningMsg Identifier
-hi! default link WildMenu Constant
-hi! default link DiffAdd Comment
-hi! default link DiffChange Special
-
-"blank out foldcolumn
-hi! FoldColumn guifg=bg guibg=bg ctermfg=fg ctermbg=bg
-"show text on SignColumn
-hi! SignColumn guibg=fg guibg=bg ctermfg=fg ctermbg=bg
-
-" various text item "highlightings" are below
-" change to suit your taste
-hi! default Drawers guifg=pink ctermfg=magenta
-hi! default Properties guifg=pink ctermfg=magenta
-hi! default Tags guifg=lightgreen ctermfg=blue
-hi! default Dates guifg=magenta ctermfg=magenta gui=underline cterm=underline
-hi! default stars guifg=#444444 ctermfg=darkgray
-hi! default Props guifg=#ffa0a0 ctermfg=gray
-hi! default code guifg=orange gui=bold ctermfg=14
-hi! default itals gui=italic guifg=#aaaaaa ctermfg=lightgray
-hi! default boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray
-hi! default undertext gui=underline guifg=#aaaaaa ctermfg=lightgray
-hi! default lnumber guifg=#999999 ctermfg=gray
-if has("conceal")
-    hi! default linkends guifg=blue ctermfg=blue
-    hi! FullLink guifg=cyan gui=underline ctermfg=lightblue cterm=underline
-    hi! HalfLink guifg=cyan gui=underline ctermfg=lightblue cterm=underline
-endif
-
-hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
-hi! default CANCELED guifg=red guibg=NONE ctermfg=red ctermbg=NONE
-hi! default STARTED guifg=yellow guibg=NONE ctermfg=yellow ctermbg=NONE
-hi! default NEXT guifg=cyan guibg=NONE ctermfg=cyan ctermbg=NONE
-hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
-
-endfunction
-
-call OrgSetColors()
 
 " vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum)=~'^func'?1\:2:
