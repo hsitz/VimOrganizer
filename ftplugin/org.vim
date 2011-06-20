@@ -1921,7 +1921,7 @@ function! OrgMakeDict()
    while next > 0
       execute next
       let b:v.org_dict[line('.')].c = []
-      let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
+      "let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
       let parent = b:v.org_dict[line('.')].parent
       call add(b:v.org_dict[parent].c ,line('.'))
       let next = s:OrgNextHead()
@@ -4441,7 +4441,26 @@ function! s:SetProp(key, val,...)
     endif
     call setpos(".",save_cursor)
 endfunction
-
+set wildmode=list:full
+let g:org_heading_temp=['','','','','','','','']
+function! OutlineHeads()
+    let level = s:Ind(line('.'))
+    let g:org_heading_temp[level-1] = matchstr(getline(line('.')),'^\*\+ \zs.*')
+    let result = g:org_heading_temp[0]
+    for item in g:org_heading_temp[1: level-1]
+        let result .= '/' . item
+    endfor
+    return result 
+endfunction
+" example g cmd to fillout g:myheadlist withe level1 and 2 heads:
+" g/^\{1,2} /call add(g:myheadlist,OutlineHeads())
+function! InputList(arghead,sd,gf)
+    let x = filter(copy(g:myheadlist),'v:val =~ a:arghead')
+    "echo join(x,"\n")
+    redraw!
+    return join(x,"\n")
+    "return join(g:myheadlist,"\n")
+endfunction
 function! s:LocateFile(filename)
     let filename = a:filename
 
@@ -4922,6 +4941,12 @@ command! MySynch call <SID>OrgShowMatch(0)
 command! MySynchCycle call <SID>OrgShowMatch(1)
 command! MyAgendaToBuf call <SID>OrgAgendaToBufTest()
 command! AgendaMoveToBuf call s:OrgAgendaToBuf()
+
+command -range CodeEval :call <SID>CodeEval
+
+function! CodeEval() range
+    
+endfunction
 
 function! s:OrgAgendaToBufTest()
     " this loads unfolded buffer into same window as Agenda
@@ -5588,6 +5613,45 @@ command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()
 command! -nargs=0 OrgToAscii :call s:ExportToAscii()
 command! -nargs=0 OrgToDocBook :call s:ExportToDocBook()
+function! OrgEvalTable()
+    let savecursor = getpos('.')
+    call search('^\s*$','b','')
+    "normal j
+    let start=line('.')
+    call search('^#+TBLFM','','')
+    call search('^\s*$','','')
+    "normal k
+    let end=line('.')
+    exe start . ',' . end . 'w! short-code.org'
+    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code3.el\^")^"'
+    silent exe '!' . g:orgpath
+    " line below doens't work, need to create shortcut to emacsclientw.exe and
+    " make it run minimized
+    "silent exe '!start /min /wait ' . g:orgpath
+    exe start .',' . end . 'read short-code.org'
+    exe start . ',' . end . 'd'
+    call setpos('.',savecursor)
+endfunction
+function! OrgEval()
+    let savecursor = getpos('.')
+    let g:t1 = strftime("%c")
+    call search('^#+begin_src','b','')
+    normal k
+    let start=line('.')
+    call search('^#+results','','')
+    call search('^\s*$','','')
+    normal k
+    let end=line('.')
+    exe start . ',' . end . 'w! short-code.org'
+    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code2.el\^")^"'
+    call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code2.el\^")^"',1)
+    " line below is for without xolox
+    "silent exe '!' . g:orgpath
+    exe start .',' . end . 'read short-code.org'
+    exe start . ',' . end . 'd'
+    call setpos('.',savecursor)
+    let g:t2 = strftime("%c")
+endfunction
 function! s:ExportToPDF()
     let command1 = g:org_path_to_emacs . ' -batch --load $HOME/.emacs --visit='
     let part2 = ' --funcall org-export-as-pdf-and-open'
@@ -5887,13 +5951,43 @@ map <silent> <buffer>   <localleader>,4           :call OrgSetLevel (1,4)<CR>
 map <silent> <buffer>   <localleader>,3           :call OrgSetLevel (1,3)<CR>
 map <silent> <buffer>   <localleader>,2           :call OrgSetLevel (1,2)<CR>
 map <silent> <buffer>   <localleader>,1           :call OrgSetLevel (1,1)<CR>
+" vimwiki table commands
+au InsertEnter *.org :call org#tbl#reset_tw(line("."))
+au InsertLeave *.org :call org#tbl#format(line("."))
+command! -buffer -nargs=* OrgTable call org#tbl#create(<f-args>)
+command! -buffer OrgTableAlignQ call org#tbl#align_or_cmd('gqq')
+command! -buffer OrgTableAlignW call org#tbl#align_or_cmd('gww')
+command! -buffer OrgTableMoveColumnLeft call org#tbl#move_column_left()
+command! -buffer OrgTableMoveColumnRight call org#tbl#move_column_right()
+
+" vimwiki table function mappings
+" -------------------------------------
+"function! s:CR() 
+"  let res = org#lst#kbd_cr()
+"  if res == "\<CR>" "&& g:vimwiki_table_auto_fmt
+"    let res = org#tbl#kbd_cr()
+"  endif
+"  return res
+"endfunction 
+inoremap <buffer> <expr> <CR> org#tbl#kbd_cr()
+inoremap <expr> <buffer> <Tab> org#tbl#kbd_tab()
+inoremap <expr> <buffer> <S-Tab> org#tbl#kbd_shift_tab()
+nnoremap <buffer> gqq :OrgTableAlignQ<CR>
+nnoremap <buffer> gww :OrgTableAlignW<CR>
+  "nmap <silent><buffer> <A-Left> <Plug>OrgTableMoveColumnLeft
+nnoremap <silent><script><buffer>
+      \ <Plug>OrgTableMoveColumnLeft :OrgTableMoveColumnLeft<CR>
+  "nmap <silent><buffer> <A-Right> <Plug>OrgTableMoveColumnRight
+nnoremap <silent><script><buffer>
+      \ <Plug>OrgTableMoveColumnRight :OrgTableMoveColumnRight<CR>
+" -------------------------------------
 
 imap <silent> <buffer>   <s-c-CR>               <c-r>=OrgNewHead('levelup',1)<CR>
 imap <silent> <buffer>   <c-CR>               <c-r>=OrgNewHead('leveldown',1)<CR>
 imap <silent> <buffer>   <s-CR>               <c-r>=OrgNewHead('same',1)<CR>
 nmap <silent> <buffer>   <s-c-CR>               :call OrgNewHead('levelup')<CR>
 nmap <silent> <buffer>   <c-CR>               :call OrgNewHead('leveldown')<CR>
-nmap <silent> <buffer>   <s-CR>               :call OrgNewHead('same')<CR>
+nmap <silent> <buffer>   <s-CR>               :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
 nmap <silent> <buffer>   <CR>               :call OrgNewHead('same')<CR>
 map <silent> <buffer>   <c-left>               :call OrgShowLess(line("."))<CR>
 map <silent> <buffer>   <c-right>            :call OrgShowMore(line("."))<CR>
