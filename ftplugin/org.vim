@@ -4441,26 +4441,6 @@ function! s:SetProp(key, val,...)
     endif
     call setpos(".",save_cursor)
 endfunction
-set wildmode=list:full
-let g:org_heading_temp=['','','','','','','','']
-function! OutlineHeads()
-    let level = s:Ind(line('.'))
-    let g:org_heading_temp[level-1] = matchstr(getline(line('.')),'^\*\+ \zs.*')
-    let result = g:org_heading_temp[0]
-    for item in g:org_heading_temp[1: level-1]
-        let result .= '/' . item
-    endfor
-    return result 
-endfunction
-" example g cmd to fillout g:myheadlist withe level1 and 2 heads:
-" g/^\{1,2} /call add(g:myheadlist,OutlineHeads())
-function! InputList(arghead,sd,gf)
-    let x = filter(copy(g:myheadlist),'v:val =~ a:arghead')
-    "echo join(x,"\n")
-    redraw!
-    return join(x,"\n")
-    "return join(g:myheadlist,"\n")
-endfunction
 function! s:LocateFile(filename)
     let filename = a:filename
 
@@ -4704,7 +4684,7 @@ function! s:GetColumns(line)
     endif
     " build text string with column values
     while i < len(g:org_colview_list)
-        let result .= '|' . s:PrePad(get(props,g:org_colview_list[i],'') , g:org_colview_list[i+1]) . ' ' 
+        let result .= '|' . s:PrePad(get(props,toupper(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
         let i += 2
     endwhile
     return result[:-2]
@@ -5616,18 +5596,13 @@ command! -nargs=0 OrgToDocBook :call s:ExportToDocBook()
 function! OrgEvalTable()
     let savecursor = getpos('.')
     call search('^\s*$','b','')
-    "normal j
     let start=line('.')
     call search('^#+TBLFM','','')
     call search('^\s*$','','')
-    "normal k
     let end=line('.')
     exe start . ',' . end . 'w! short-code.org'
     let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code3.el\^")^"'
     silent exe '!' . g:orgpath
-    " line below doens't work, need to create shortcut to emacsclientw.exe and
-    " make it run minimized
-    "silent exe '!start /min /wait ' . g:orgpath
     exe start .',' . end . 'read short-code.org'
     exe start . ',' . end . 'd'
     call setpos('.',savecursor)
@@ -5888,6 +5863,27 @@ function! MenuCycle()
         exec s:OrgGetHead()
     endif
     call OrgCycle()
+endfunction
+"Section for refile and archive funcs
+set wildmode=list:full
+let g:org_heading_temp=['','','','','','','','']
+function! OutlineHeads()
+    let level = s:Ind(line('.'))
+    let g:org_heading_temp[level-1] = matchstr(getline(line('.')),'^\*\+ \zs.*')
+    let result = g:org_heading_temp[0]
+    for item in g:org_heading_temp[1: level-1]
+        let result .= '/' . item
+    endfor
+    return result 
+endfunction
+" example g cmd to fillout g:myheadlist withe level1 and 2 heads:
+" g/^\{1,2} /call add(g:myheadlist,OutlineHeads())
+function! InputList(arghead,sd,gf)
+    let x = filter(copy(g:myheadlist),'v:val =~ a:arghead')
+    "echo join(x,"\n")
+    redraw!
+    return join(x,"\n")
+    "return join(g:myheadlist,"\n")
 endfunction
 
 "Section Mappings and Endstuff
