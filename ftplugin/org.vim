@@ -5832,6 +5832,55 @@ call OrgSetColors()
 " within the same buffer. Using :e has demonstrates this.
 set foldtext=OrgFoldText()
 
+"Section for refile and archive funcs
+set wildmode=list:full
+let g:org_heading_temp=['','','','','','','','']
+function! OutlineHeads()
+    let level = s:Ind(line('.'))
+    let g:org_heading_temp[level-1] = matchstr(getline(line('.')),'^\*\+ \zs.*')
+    " put level 1 head in result
+    let result = expand("%:t") .  g:org_heading_temp[0]
+    " now add full tree to level of current heading
+    for item in g:org_heading_temp[1: level-1]
+        let result .= '/' . item
+    endfor
+    return result 
+endfunction
+function! GetMyItems(arghead)
+    let arghead = a:arghead
+    let result = []
+    if a:arghead[-1:] == '*'
+        let arghead = arghead[:-2]
+    endif
+    let ilist = split(arghead,'/')
+    call s:OrgSaveLocation()
+    if expand("%:t") != ilist[0]
+        call s:LocateFile( g:myhead_dirs[index(g:myhead_dirs,ilist[0])] . ilist[0] )
+    endif
+    if a:arghead[-1:] == '*'
+        let tolevel = 3
+    else
+        let tolevel = len(ilist)
+    endif
+    exec 'g/^\*\{1,' . tolevel . '} /call add(result,OutlineHeads())'
+    call s:OrgRestoreLocation()
+    return result
+endfunction
+" example g cmd to fillout g:myheadlist withe level1 and 2 heads:
+" g/^\{1,2} /call add(g:myheadlist,OutlineHeads())
+function! InputList(arghead,sd,gf)
+    let arghead = a:arghead
+    if arghead ==# ''
+      let g:myheads = [ 'juggler.org' , 'myorgtest.org' ]
+      let g:myhead_dirs  = [ 'c:\users\herbert\Desktop\org_files\'
+                       \      , 'c:\users\herbert\Desktop\org_files\']
+    elseif arghead[-1:] =~ '/\|\*'
+        let g:myheads = GetMyItems(arghead)
+    endif
+    " let matches = filter( copy( g:myheads ),'v:val =~ a:arghead')
+    redraw!
+    return join( g:myheads, "\n" )
+endfunction
 setlocal fillchars=|, 
 
 "*********************************************************************
@@ -5863,27 +5912,6 @@ function! MenuCycle()
         exec s:OrgGetHead()
     endif
     call OrgCycle()
-endfunction
-"Section for refile and archive funcs
-set wildmode=list:full
-let g:org_heading_temp=['','','','','','','','']
-function! OutlineHeads()
-    let level = s:Ind(line('.'))
-    let g:org_heading_temp[level-1] = matchstr(getline(line('.')),'^\*\+ \zs.*')
-    let result = g:org_heading_temp[0]
-    for item in g:org_heading_temp[1: level-1]
-        let result .= '/' . item
-    endfor
-    return result 
-endfunction
-" example g cmd to fillout g:myheadlist withe level1 and 2 heads:
-" g/^\{1,2} /call add(g:myheadlist,OutlineHeads())
-function! InputList(arghead,sd,gf)
-    let x = filter(copy(g:myheadlist),'v:val =~ a:arghead')
-    "echo join(x,"\n")
-    redraw!
-    return join(x,"\n")
-    "return join(g:myheadlist,"\n")
 endfunction
 
 "Section Mappings and Endstuff
