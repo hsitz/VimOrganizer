@@ -24,10 +24,10 @@ function! org#SetOrgFileType()
 	"call OrgTodoSetup(g:org_todo_setup)
 	"call OrgTagSetup(g:org_tag_setup)
 	call OrgProcessConfigLines()
-        if !exists('g:in_agenda_search') && (&foldmethod!='expr')
-                setlocal foldmethod=expr
-                set foldlevel=1
-        endif
+        "if !exists('g:in_agenda_search') && (&foldmethod!='expr')
+        "        setlocal foldmethod=expr
+        "        set foldlevel=1
+        "endif
 endfunction     
 
 function! org#Pad(s,amt)

@@ -59,13 +59,6 @@ if has("conceal")
     set conceallevel=3
     set concealcursor=nc
 endif
-if !exists('g:in_agenda_search') "&& (&foldmethod!='expr')
-        setlocal foldmethod=expr
-        set foldlevel=1
-else
-    setlocal foldmethod=manual
-endif
-setlocal foldexpr=OrgFoldLevel(v:lnum)
 setlocal indentexpr=
 "setlocal iskeyword+=<
 setlocal nocindent
@@ -5911,6 +5904,12 @@ function! OrgRefile(target_file, target_head, ...)
 endfunction 
     
 
+command! PreLoadTags :silent  call <SID>GlobalConvertTags()
+command! PreWriteTags :silent call <SID>GlobalUnconvertTags(changenr())
+command! PostWriteTags :silent call <SID>UndoUnconvertTags()
+au BufRead *.org :PreLoadTags
+au BufWrite *.org :PreWriteTags
+au BufWritePost *.org :PostWriteTags
 
 setlocal fillchars=|, 
 
@@ -5931,6 +5930,13 @@ let g:org_loaded=1
 "*********************************************************************
 " below is default todo setup, anything different can be done
 " in vimrc (or in future using a config line in the org file itself)
+if !exists('g:in_agenda_search') "&& ( &foldmethod!= 'expr')
+    setlocal foldmethod=expr
+    setlocal foldexpr=OrgFoldLevel(v:lnum)
+    set foldlevel=1
+else
+    setlocal foldmethod=manual
+endif
 if !exists('b:v.todoitems')
     call OrgTodoSetup('TODO | DONE')
 endif
@@ -6125,9 +6131,6 @@ amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
 amenu &Org.-Sep5- :
 amenu &Org.Export/Publish :call OrgExport()<cr>
 
-command! PreLoadTags :silent  call <SID>GlobalConvertTags()
-command! PreWriteTags :silent call <SID>GlobalUnconvertTags(changenr())
-command! PostWriteTags :silent call <SID>UndoUnconvertTags()
 
 
 " below is autocmd to change tw for lines that have comments on them
