@@ -6,6 +6,7 @@
 "http://www.vim.org/scripts/script.php?script_id=52
 let b:v={}
 let b:v.prevlev = 0
+let b:v.lasttext_lev=''
 let maplocalleader = ","        " Org key mappings prepend single comma
 
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
@@ -5091,12 +5092,15 @@ function! OrgFoldLevel(line)
         return 0
     endif
     let l:text = getline(a:line)
+    let l:nexttext = getline(a:line + 1)
     "if l:text =~ b:v.headMatch
     if l:text[0] ==? '*'
         let b:v.myAbsLevel = s:Ind(a:line)
+    elseif (b:v.lasttext_lev ># '') && (l:nexttext[0] !=? '*') && (b:v.lastline == a:line - 1)
+        let b:v.lastline = a:line
+        return b:v.lasttext_lev
     endif
-    let l:nextAbsLevel = s:Ind(a:line+1)
-    let l:nexttext = getline(a:line + 1)
+    let l:nextAbsLevel = s:Ind(a:line + 1)
 
     " STUFF FOR SPARSE TREE LEVELS
     if exists('w:sparse_on') && w:sparse_on  
@@ -5128,7 +5132,7 @@ function! OrgFoldLevel(line)
     "if l:text =~ b:v.headMatch
     if l:text[0] ==? '*'
         " we're on a heading line
-
+        let b:v.lasttext_lev = ''
         " propmatch line is new (sep 27) need ot test having different
         " value for propmatch and deadline lines
         if l:nexttext =~ b:v.drawerMatch
@@ -5171,6 +5175,7 @@ function! OrgFoldLevel(line)
             endif
         elseif l:text[0] != '#'
             let b:v.lev = (b:v.prevlev + 2)
+            let b:v.lasttext_lev = b:v.lev
         elseif b:v.src_fold  
             if l:text =~ '^#+begin_src'
                 let b:v.lev = '>' . (b:v.prevlev + 2)
@@ -5185,6 +5190,7 @@ function! OrgFoldLevel(line)
         if l:nexttext[0] ==? '*'
             let b:v.lev = '<' . string(l:nextAbsLevel)
         endif
+
     endif   
     let b:v.lastline = a:line
     return b:v.lev    
@@ -5852,6 +5858,9 @@ function! GetMyItems(arghead)
     if a:arghead[-1:] == '*'
         let arghead = arghead[:-2]
     endif
+    if index(g:my_refile_files, arghead)
+        let arghead = fnamemodify(arghead,':t:')
+    endif
     let ilist = split(arghead,'/')
     call s:OrgSaveLocation()
     if expand("%:t") != ilist[0]
@@ -5866,14 +5875,14 @@ function! GetMyItems(arghead)
     call s:OrgRestoreLocation()
     return result
 endfunction
-" example g cmd to fillout g:myheadlist withe level1 and 2 heads:
-" g/^\{1,2} /call add(g:myheadlist,OutlineHeads())
 function! InputList(arghead,sd,gf)
     let arghead = a:arghead
     if arghead ==# ''
-      let g:myheads = [ 'juggler.org' , 'myorgtest.org' ]
-      let g:myhead_dirs  = [ 'c:\users\herbert\Desktop\org_files\'
-                       \      , 'c:\users\herbert\Desktop\org_files\']
+      "let g:myheads = [ 'juggler.org' , 'myorgtest.org' ]
+      let g:myheads  = [ '~\Desktop\org_files\juggler.org'
+                       \      , '~\Desktop\org_files\mytestorg.org']
+      let g:myhead_dirs  = [ '~\Desktop\org_files\'
+                       \      , '~\Desktop\org_files\']
     elseif arghead[-1:] =~ '/\|\*'
         let g:myheads = GetMyItems(arghead)
     endif
@@ -5881,6 +5890,28 @@ function! InputList(arghead,sd,gf)
     redraw!
     return join( g:myheads, "\n" )
 endfunction
+
+function! OrgRefile(target_file, target_head, ...)
+   " let head = (a:0 > 0) ? a:1 : line('.')
+    "let end_tree = s:OrgSubtreeLastLine_l(head)
+
+    "execute head . ',' . end_tree . 'delete x'
+    call s:LocateFile( a:target_file )
+    normal gg
+    let head_list = split(a:target_head,'/')
+    call search( '^\* ' . head_list[0], 'c', '')
+    let heading_line = line('.')
+    let last_subline = s:OrgSubtreeLastLine_l(line('.'))
+    let i = 1
+    while i < len(head_list)
+        let stars = repeat('\*', i + 1)
+        call search( '^' . stars . ' ' . head_list[i], '', last_subline)
+        let i += 1
+    endwhile
+endfunction 
+    
+
+
 setlocal fillchars=|, 
 
 "*********************************************************************
