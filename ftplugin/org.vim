@@ -5869,11 +5869,11 @@ function! GetMyItems(arghead)
     return result
 endfunction
 function! FileList(arghead,sd,gf)
-    let arghead = a:arghead
-    let g:myheads  = [ '~\Desktop\org_files\juggler.org'
-                       \      , '~\Desktop\org_files\mytestorg.org'
-                       \      , 'c:\users\herbert\Desktop\org_files\something.org']
-    let matches = filter( copy( g:myheads ),'v:val =~ a:arghead')
+    let arghead = substitute(a:arghead,'\~','\\\~','g')
+    let g:myheads  = [ '~/Desktop/org_files/juggler.org'
+                \     , '~/Desktop/org_files/mytestorg.org'
+                \            , 'c:/users/herbert/Desktop/org_files/something.org']
+    let matches = filter( copy( g:myheads ),'v:val =~ arghead')
     redraw!
     return join( matches, "\n" )
 endfunction
@@ -5887,39 +5887,29 @@ function! HeadingList(arghead,sd,gf)
 endfunction
 
 function! GetTarget()
+    " need to modify getcmdline to strip back on bs
+    cmap <c-BS> <C-\>egetcmdline()[-1:] == '/' ? matchstr(getcmdline()[:-2], '.*\ze/.*' ) . '/' : matchstr(getcmdline(), '.*\ze/.*') . '/'<CR>
     while 1
-        let file = input("Target file: ",'','custom,FileList')
+        let file = ''
+        let file = input("Target file: ","",'custom,FileList')
         if index(g:myheads,file) == -1
             break
         endif
         let heading = input('Outline heading: ', fnamemodify(file,':t:') . "\t",'custom,HeadingList')
-        if heading == '*'
+        if heading ==# ''
             let heading = ''
             continue
         else
             return [file,matchstr(heading,'.\{-}/\zs.*')]
         endif
     endwhile
+    cunmap <c-BS>
 endfunction
 function! OrgRefile(headline)
    " let head = (a:0 > 0) ? a:1 : line('.')
     let targ_list = GetTarget()
     if targ_list[1] !=# ''
         silent call DoRefile( targ_list, a:headline )
-        "call s:OrgSaveLocation()
-        "let refile_stars = s:Ind(line('.')) - 1
-        "silent execute a:headline . ',' . s:OrgSubtreeLastLine_l(a:headline) .  'yank x'
-        "call OrgGotoHeading(targ_list[0],targ_list[1])
-        "let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
-        "if refile_stars != target_stars
-        "    let x = ChangeLevel( @x, target_stars - refile_stars )
-        "else
-        "    let x = split( @x, "\n")
-        "endif
-        "exec s:OrgNextHead()
-        "silent call append(line('.') - 1, x)
-        "call s:OrgRestoreLocation()
-        "silent execute a:headline . ',' . s:OrgSubtreeLastLine_l(a:headline) . 'delete x'
         redraw!
         echo "Heading and its subtree refiled to: \n" . targ_list[0] . '/' . targ_list[1]
     else
