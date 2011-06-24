@@ -4678,7 +4678,7 @@ function! s:GetColumns(line)
     endif
     " build text string with column values
     while i < len(g:org_colview_list)
-        let result .= '|' . s:PrePad(get(props,toupper(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
+        let result .= '|' . s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
         let i += 2
     endwhile
     return result[:-2]
@@ -5851,13 +5851,13 @@ function! GetMyItems(arghead)
     if a:arghead[-1:] == '*'
         let arghead = arghead[:-2]
     endif
-    if index(g:my_refile_files, arghead)
-        let arghead = fnamemodify(arghead,':t:')
-    endif
     let ilist = split(arghead,'/')
     call s:OrgSaveLocation()
     if expand("%:t") != ilist[0]
-        call s:LocateFile( g:myhead_dirs[index(g:myhead_dirs,ilist[0])] . ilist[0] )
+        call s:LocateFile( '~\Desktop\org_files\' . ilist[0] )
+        if &ft != 'org'
+            set ft=org
+        endif
     endif
     if a:arghead[-1:] == '*'
         let tolevel = 3
@@ -5868,27 +5868,99 @@ function! GetMyItems(arghead)
     call s:OrgRestoreLocation()
     return result
 endfunction
-function! InputList(arghead,sd,gf)
+function! FileList(arghead,sd,gf)
     let arghead = a:arghead
-    if arghead ==# ''
-      "let g:myheads = [ 'juggler.org' , 'myorgtest.org' ]
-      let g:myheads  = [ '~\Desktop\org_files\juggler.org'
-                       \      , '~\Desktop\org_files\mytestorg.org']
-      let g:myhead_dirs  = [ '~\Desktop\org_files\'
-                       \      , '~\Desktop\org_files\']
-    elseif arghead[-1:] =~ '/\|\*'
-        let g:myheads = GetMyItems(arghead)
-    endif
-    " let matches = filter( copy( g:myheads ),'v:val =~ a:arghead')
+    let g:myheads  = [ '~\Desktop\org_files\juggler.org'
+                       \      , '~\Desktop\org_files\mytestorg.org'
+                       \      , 'c:\users\herbert\Desktop\org_files\something.org']
+    let matches = filter( copy( g:myheads ),'v:val =~ a:arghead')
     redraw!
-    return join( g:myheads, "\n" )
+    return join( matches, "\n" )
 endfunction
 
-function! OrgRefile(target_file, target_head, ...)
-   " let head = (a:0 > 0) ? a:1 : line('.')
-    "let end_tree = s:OrgSubtreeLastLine_l(head)
+function! HeadingList(arghead,sd,gf)
+    let arghead = a:arghead
+    let g:myheads = GetMyItems(arghead)
+    let matches = filter( copy( g:myheads ),'v:val =~ a:arghead')
+    redraw!
+    return join( matches, "\n" )
+endfunction
 
-    "execute head . ',' . end_tree . 'delete x'
+function! GetTarget()
+    while 1
+        let file = input("Target file: ",'','custom,FileList')
+        if index(g:myheads,file) == -1
+            break
+        endif
+        let heading = input('Outline heading: ', fnamemodify(file,':t:') . "\t",'custom,HeadingList')
+        if heading == '*'
+            let heading = ''
+            continue
+        else
+            return [file,matchstr(heading,'.\{-}/\zs.*')]
+        endif
+    endwhile
+endfunction
+function! OrgRefile(headline)
+   " let head = (a:0 > 0) ? a:1 : line('.')
+    let targ_list = GetTarget()
+    if targ_list[1] !=# ''
+        silent call DoRefile( targ_list, a:headline )
+        "call s:OrgSaveLocation()
+        "let refile_stars = s:Ind(line('.')) - 1
+        "silent execute a:headline . ',' . s:OrgSubtreeLastLine_l(a:headline) .  'yank x'
+        "call OrgGotoHeading(targ_list[0],targ_list[1])
+        "let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
+        "if refile_stars != target_stars
+        "    let x = ChangeLevel( @x, target_stars - refile_stars )
+        "else
+        "    let x = split( @x, "\n")
+        "endif
+        "exec s:OrgNextHead()
+        "silent call append(line('.') - 1, x)
+        "call s:OrgRestoreLocation()
+        "silent execute a:headline . ',' . s:OrgSubtreeLastLine_l(a:headline) . 'delete x'
+        redraw!
+        echo "Heading and its subtree refiled to: \n" . targ_list[0] . '/' . targ_list[1]
+    else
+        echo 'Refile aborted.'
+    endif
+endfunction
+function! ChangeLevel( text_lines, change_val )
+    let mylines = split( a:text_lines, "\n")
+    let change_val = a:change_val
+    let i = 0
+    while i < len(mylines)
+        if mylines[i][0] == '*'
+            if change_val > 0
+                let mylines[i] = repeat('*',change_val) . mylines[i]
+            else
+                let abs_change = -(change_val)
+                let mylines[i] = mylines[i][ abs_change :] 
+            endif
+        endif
+        let i += 1
+    endwhile
+    return mylines
+endfunction
+function! DoRefile(targ_list,headline)
+    let targ_list = a:targ_list
+    let headline = a:headline
+    call s:OrgSaveLocation()
+    let refile_stars = s:Ind(headline) - 1
+    silent execute headline . ',' . s:OrgSubtreeLastLine_l(headline) .  'delete x'
+    call OrgGotoHeading(targ_list[0],targ_list[1])
+    let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
+    if refile_stars != target_stars
+        let x = ChangeLevel( @x, target_stars - refile_stars )
+    else
+        let x = split( @x, "\n")
+    endif
+    exec s:OrgNextHead()
+    silent call append(line('.') - 1, x)
+    call s:OrgRestoreLocation()
+endfunction
+function! OrgGotoHeading(target_file, target_head, ...)
     call s:LocateFile( a:target_file )
     normal gg
     let head_list = split(a:target_head,'/')
@@ -5930,13 +6002,14 @@ let g:org_loaded=1
 "*********************************************************************
 " below is default todo setup, anything different can be done
 " in vimrc (or in future using a config line in the org file itself)
-if !exists('g:in_agenda_search') "&& ( &foldmethod!= 'expr')
+if !exists('g:in_agenda_search') && ( &foldmethod!= 'expr') && !exists('b:v.bufloaded')
     setlocal foldmethod=expr
     setlocal foldexpr=OrgFoldLevel(v:lnum)
     set foldlevel=1
 else
     setlocal foldmethod=manual
 endif
+let b:v.bufloaded=1
 if !exists('b:v.todoitems')
     call OrgTodoSetup('TODO | DONE')
 endif
