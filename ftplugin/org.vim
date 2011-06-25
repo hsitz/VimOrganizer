@@ -89,6 +89,7 @@ if !exists('g:org_confirm_babel_evaluate')
     let g:org_confirm_babel_evaluate = 0
 endif
 let g:org_clock_history=[]
+let g:org_reverse_note_order = 0
 let g:org_html_app=''
 let g:org_pdf_app=''
 let g:org_path_to_emacs='emacs'
@@ -5656,6 +5657,7 @@ function! OrgExport()
     " show export dashboard
     let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
             \      'h':'html', 'b':'html-and-open', 'l':'latex', 
+            \      'F':'current-file', 'P':'current-project', 'E':'all', 
             \      'p':'pdf', 'd':'pdf-and-open', 'D':'docbook' } 
     echo " Press key for export operation:"
     echo " --------------------------------"
@@ -5676,16 +5678,23 @@ function! OrgExport()
     echo " [m] export as Freemind mind map"
     echo " [x] export as XOXO"
     echo " "
+    echo " [F] publish current file"
+    echo " [P] publish current project"
+    echo " [E] publish all projects"
+    echo " "
     let key = nr2char(getchar())
     for item in keys(mydict)
         if (item ==# key) && (item !=# 't')
             let g:org_emacs_autoconvert = 1
             call s:GlobalUnconvertTags(changenr())
             let exportfile = expand('%:t') 
-            ". '-export.org'
             silent exec 'write'
             let command1 = g:org_path_to_emacs .' -batch -l c:\users\herbert\settings.el --visit='
-            let command_part2 = ' --funcall org-export-as-' . mydict[key]
+            if item =~ 'F\|P\|E'
+                let command_part2 = ' --funcall org-publish-' . mydict[key]
+            else
+                let command_part2 = ' --funcall org-export-as-' . mydict[key]
+            endif
             silent execute '!' . command1 . exportfile . command_part2
             call s:UndoUnconvertTags()
             let g:org_emacs_autoconvert = 0
@@ -5854,7 +5863,8 @@ function! GetMyItems(arghead)
     let ilist = split(arghead,'/')
     call s:OrgSaveLocation()
     if expand("%:t") != ilist[0]
-        call s:LocateFile( '~\Desktop\org_files\' . ilist[0] )
+        "call s:LocateFile( '~\Desktop\org_files\' . ilist[0] )
+        call s:LocateFile( fnamemodify(s:refile_file,":p:h:") . '/' . ilist[0] )
         if &ft != 'org'
             set ft=org
         endif
@@ -5872,7 +5882,7 @@ function! FileList(arghead,sd,gf)
     let arghead = substitute(a:arghead,'\~','\\\~','g')
     let g:myheads  = [ '~/Desktop/org_files/juggler.org'
                 \     , '~/Desktop/org_files/mytestorg.org'
-                \            , 'c:/users/herbert/Desktop/org_files/something.org']
+                \            , '~/Desktop/org-mode.org']
     let matches = filter( copy( g:myheads ),'v:val =~ arghead')
     redraw!
     return join( matches, "\n" )
@@ -5890,20 +5900,37 @@ function! GetTarget()
     " need to modify getcmdline to strip back on bs
     cmap <c-BS> <C-\>egetcmdline()[-1:] == '/' ? matchstr(getcmdline()[:-2], '.*\ze/.*' ) . '/' : matchstr(getcmdline(), '.*\ze/.*') . '/'<CR>
     while 1
-        let file = ''
-        let file = input("Target file: ","",'custom,FileList')
-        if index(g:myheads,file) == -1
+        let s:refile_file = ''
+        let s:refile_file = input("Target file: ","",'custom,FileList')
+        if index(g:myheads,s:refile_file) == -1
             break
         endif
-        let heading = input('Outline heading: ', fnamemodify(file,':t:') . "\t",'custom,HeadingList')
+        let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom,HeadingList')
         if heading ==# ''
             let heading = ''
             continue
         else
-            return [file,matchstr(heading,'.\{-}/\zs.*')]
+            return [ s:refile_file, matchstr(heading,'.\{-}/\zs.*')]
         endif
     endwhile
     cunmap <c-BS>
+endfunction
+function! OrgJumpToRefilePoint()
+    let s:perm_refile_point = GetTarget()
+    call OrgGotoHeading( s:perm_refile_point[0], s:perm_refile_point[1] )
+    normal zv
+endfunction
+function! OrgSetRefilePoint()
+    let s:persistent_refile_point = GetTarget()
+endfunction
+function! OrgRefileToPermPoint(headline)
+    if s:persistent_refile_point[1] !=# ''
+        silent call DoRefile( s:perm_refile_point, a:headline )
+        redraw!
+        echo "Heading and its subtree refiled to: \n" . s:persistent_refile_point[0] . '/' . s:persistent_refile_point[1]
+    else
+        echo 'Refile aborted.'
+    endif
 endfunction
 function! OrgRefile(headline)
    " let head = (a:0 > 0) ? a:1 : line('.')
@@ -5946,8 +5973,12 @@ function! DoRefile(targ_list,headline)
     else
         let x = split( @x, "\n")
     endif
-    exec s:OrgNextHead()
-    silent call append(line('.') - 1, x)
+    if g:org_reverse_note_order
+        exec (s:OrgNextHead() - 1)
+    else
+        exec s:OrgSubtreeLastLine()
+    endif
+    silent call append(line('.') , x)
     call s:OrgRestoreLocation()
 endfunction
 function! OrgGotoHeading(target_file, target_head, ...)
