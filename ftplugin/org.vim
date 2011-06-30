@@ -6,6 +6,7 @@
 "http://www.vim.org/scripts/script.php?script_id=52
 let b:v={}
 let b:v.prevlev = 0
+let b:v.org_loaded=0
 let b:v.lasttext_lev=''
 let maplocalleader = ","        " Org key mappings prepend single comma
 
@@ -92,8 +93,8 @@ let g:org_clock_history=[]
 let g:org_reverse_note_order = 0
 let g:org_html_app=''
 let g:org_pdf_app=''
-let g:org_path_to_emacs='emacs'
-let g:org_path_to_emacs='"c:\program files (x86)\emacs\emacs\bin\emacs.exe"'
+let g:org_path_to_emacs='emacsclient'
+let g:org_path_to_emacs='"c:\program files (x86)\emacs\emacs\bin\emacsclientw.exe"'
 let s:org_headMatch = '^\*\+\s'
 let s:org_cal_date = '2000-01-01'
 let g:org_tag_group_arrange = 0
@@ -4751,7 +4752,7 @@ function! s:CompleteOrg(findstart, base)
         " locate the start of the word
         let line = getline('.')
         let start = col('.') - 1
-        while start > 0 && line[start - 1] =~ '\a'
+        while (start > 0) && (line[start - 1] =~ '\a')
             let start -= 1
         endwhile
         return start
@@ -4769,7 +4770,7 @@ function! s:CompleteOrg(findstart, base)
         return res
     endif
 endfunction
-set completefunc=CompleteOrg
+"set completefunc=CompleteOrg
 
 
 function! OrgFoldText(...)
@@ -5653,6 +5654,14 @@ function! s:ExportToDocBook()
     silent execute '!' . command1 . expand("%") . part2
     "call inputdialog("just waiting to go forward. . . ")
 endfunction
+function! MyExpTest()
+    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
+    let g:myfilename = substitute(expand("%:p"),'\','/','g')
+    let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
+    let g:myvar = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"' . g:myfilename . '\^' . '"' . ') (org-export-as-html-and-open 3) (kill-buffer) ))'
+    let g:myc =  '!' . g:orgpath . '^"' . g:myvar . '^"' 
+    silent exec g:myc
+endfunction
 function! OrgExport()
     " show export dashboard
     let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
@@ -5689,7 +5698,18 @@ function! OrgExport()
             call s:GlobalUnconvertTags(changenr())
             let exportfile = expand('%:t') 
             silent exec 'write'
-            let command1 = g:org_path_to_emacs .' -batch -l c:\users\herbert\settings.el --visit='
+        "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code2.el\^")^"'
+            "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
+                        \   '^"(find-file ' .oad-file \^"run-code2.el\^")^"'
+            "let command1 = g:org_path_to_emacs .' -batch -l c:\users\herbert\settings.el --visit='
+            "let command1 = g:org_path_to_emacs .' --visit='
+            let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
+            let p1 = g:org_path_to_emacs . ' --eval '
+            let g:myfilename = substitute(expand("%:p"),'\','/','g')
+            let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
+            let g:myvar = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"' . g:myfilename . '\^' . '"' . ') (org-export-as-html-and-open 3) (kill-buffer) ))'
+            let g:myc =  '!' . g:orgpath . '^"' . g:myvar . '^"' 
+            silent exec g:myc
             if item =~ 'F\|P\|E'
                 let command_part2 = ' --funcall org-publish-' . mydict[key]
             else
@@ -5841,7 +5861,6 @@ call OrgSetColors()
 set foldtext=OrgFoldText()
 
 "Section for refile and archive funcs
-set wildmode=list:full
 let g:org_heading_temp=['','','','','','','','']
 function! OutlineHeads()
     let level = s:Ind(line('.'))
@@ -5897,6 +5916,8 @@ function! HeadingList(arghead,sd,gf)
 endfunction
 
 function! GetTarget()
+    let orig_wildmode = &wildmode
+    set wildmode=list:full
     " need to modify getcmdline to strip back on bs
     cmap <c-BS> <C-\>egetcmdline()[-1:] == '/' ? matchstr(getcmdline()[:-2], '.*\ze/.*' ) . '/' : matchstr(getcmdline(), '.*\ze/.*') . '/'<CR>
     while 1
@@ -5913,6 +5934,7 @@ function! GetTarget()
             return [ s:refile_file, matchstr(heading,'.\{-}/\zs.*')]
         endif
     endwhile
+    let &wildmode = orig_wildmode
     cunmap <c-BS>
 endfunction
 function! OrgJumpToRefilePoint()
@@ -5961,6 +5983,7 @@ function! ChangeLevel( text_lines, change_val )
     return mylines
 endfunction
 function! DoRefile(targ_list,headline)
+
     let targ_list = a:targ_list
     let headline = a:headline
     call s:OrgSaveLocation()
@@ -6006,6 +6029,59 @@ au BufWritePost *.org :PostWriteTags
 
 setlocal fillchars=|, 
 
+" Org Menu Entries
+amenu &Org.&View.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
+amenu &Org.&View.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
+amenu &Org.&View.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
+amenu &Org.&View.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
+amenu &Org.&View.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
+amenu &Org.&View.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
+amenu &Org.&View.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
+amenu &Org.&View.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
+amenu &Org.&View.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
+amenu &Org.&View.Expand\ Level\ &All :set foldlevel=99999<cr>
+amenu &Org.-Sep1- :
+amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or <s-cr>) :call OrgNewHead('same')<cr>
+amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
+amenu &Org.&New\ Heading.New\ Head\ Parent\ Level<tab><s-c-cr> :call OrgNewHead('levelup')<cr>
+amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading<tab><a-left> :exec <SID>OrgParentHead()<cr>
+amenu &Org.&Navigate\ Headings.&First\ Child\ Heading<tab><a-right> :exec <SID>OrgFirstChildHead()<cr>
+amenu &Org.&Navigate\ Headings.&Last\ Child\ Heading :exec <SID>OrgLastChildHead()<cr>
+amenu &Org.&Navigate\ Headings.&Next\ Heading :exec <SID>OrgNextHead()<cr>
+amenu &Org.&Navigate\ Headings.&Previous\ Heading :exec <SID>OrgPrevHead()<cr>
+amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLevel()<cr>
+amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
+amenu &Org.&Navigate\ Headings.Next\ &Sibling<tab><a-down> :exec <SID>OrgNextSiblingHead()<cr>
+amenu &Org.&Navigate\ Headings.Previous\ Sibling<tab><a-up> :exec <SID>OrgPrevSiblingHead()<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
+amenu &Org.&Edit\ Structure.Move\ Subtree\ Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
+amenu &Org.&Edit\ Structure.Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
+amenu &Org.&Edit\ Structure.Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
+amenu &Org.Editing :echo 'not implemented yet'<cr>
+amenu &Org.Archive :echo 'not implemented yet'<cr>
+amenu &Org.-Sep2- :
+amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
+amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
+amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(s:GetLink())<cr>
+amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
+amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
+amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
+amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
+amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
+amenu &Org.-Sep3- :
+amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
+amenu &Org.TAGS\ and\ Properties :echo 'not implemented yet'<cr>
+amenu &Org.Dates\ and\ Scheduling :echo 'not implemented yet'<cr>
+amenu &Org.Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
+amenu &Org.Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
+amenu &Org.-Sep4- :
+amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
+amenu &Org.Set\ Restriction\ Lock :echo 'not implemented yet'<cr>
+amenu &Org.File\ List\ for\ Agenda :call EditAgendaFiles()<cr>
+amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
+amenu &Org.-Sep5- :
+amenu &Org.Export/Publish :call OrgExport()<cr>
+
 "*********************************************************************
 "*********************************************************************
 "  'endif' below is special 'endif' closing the 'if !exists(org_loaded)
@@ -6017,6 +6093,7 @@ setlocal fillchars=|,
 "*********************************************************************
 endif
 let g:org_loaded=1
+let b:v.org_loaded=1
 "*********************************************************************
 "*********************************************************************
 "*********************************************************************
@@ -6027,10 +6104,10 @@ if !exists('g:in_agenda_search') && ( &foldmethod!= 'expr') && !exists('b:v.bufl
     setlocal foldmethod=expr
     setlocal foldexpr=OrgFoldLevel(v:lnum)
     set foldlevel=1
+    let b:v.bufloaded=1
 else
     setlocal foldmethod=manual
 endif
-let b:v.bufloaded=1
 if !exists('b:v.todoitems')
     call OrgTodoSetup('TODO | DONE')
 endif
@@ -6055,17 +6132,17 @@ nmap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
 nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 "cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
 " dl is for the date on the current line
-map <silent> <localleader>de :call OrgDateEdit('')<cr>
-map <silent> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
-map <silent> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
-map <silent> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
-map <silent> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
-map <silent> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'')<cr>
-map <silent> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TODOS')<cr>
-map <silent> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
-map <silent> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
-map <silent> <localleader>ag :call OrgAgendaDashboard()<cr>
-map <silent> <localleader>ac :call OrgCustomSearchMenu()<cr>
+map <silent> <buffer> <localleader>de :call OrgDateEdit('')<cr>
+map <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
+map <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
+map <silent> <buffer> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
+map <silent> <buffer> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
+map <silent> <buffer> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'')<cr>
+map <silent> <buffer> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TODOS')<cr>
+map <silent> <buffer> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
+map <silent> <buffer> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
+map <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
+map <silent> <buffer> <localleader>ac :call OrgCustomSearchMenu()<cr>
 command! -nargs=0 Agenda :call OrgAgendaDashboard()
 nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
 nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
@@ -6172,58 +6249,6 @@ map <buffer>   <localleader>,,          :source $HOME/.vim/ftplugin/org.vim<CR>
 map! <buffer>  <localleader>w           <Esc>:w<CR>a
 
 
-" Org Menu Entries
-amenu &Org.&View.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
-amenu &Org.&View.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
-amenu &Org.&View.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
-amenu &Org.&View.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
-amenu &Org.&View.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
-amenu &Org.&View.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
-amenu &Org.&View.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
-amenu &Org.&View.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
-amenu &Org.&View.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
-amenu &Org.&View.Expand\ Level\ &All :set foldlevel=99999<cr>
-amenu &Org.-Sep1- :
-amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or <s-cr>) :call OrgNewHead('same')<cr>
-amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
-amenu &Org.&New\ Heading.New\ Head\ Parent\ Level<tab><s-c-cr> :call OrgNewHead('levelup')<cr>
-amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading<tab><a-left> :exec <SID>OrgParentHead()<cr>
-amenu &Org.&Navigate\ Headings.&First\ Child\ Heading<tab><a-right> :exec <SID>OrgFirstChildHead()<cr>
-amenu &Org.&Navigate\ Headings.&Last\ Child\ Heading :exec <SID>OrgLastChildHead()<cr>
-amenu &Org.&Navigate\ Headings.&Next\ Heading :exec <SID>OrgNextHead()<cr>
-amenu &Org.&Navigate\ Headings.&Previous\ Heading :exec <SID>OrgPrevHead()<cr>
-amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLevel()<cr>
-amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
-amenu &Org.&Navigate\ Headings.Next\ &Sibling<tab><a-down> :exec <SID>OrgNextSiblingHead()<cr>
-amenu &Org.&Navigate\ Headings.Previous\ Sibling<tab><a-up> :exec <SID>OrgPrevSiblingHead()<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
-amenu &Org.&Edit\ Structure.Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
-amenu &Org.&Edit\ Structure.Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
-amenu &Org.Editing :echo 'not implemented yet'<cr>
-amenu &Org.Archive :echo 'not implemented yet'<cr>
-amenu &Org.-Sep2- :
-amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
-amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
-amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(s:GetLink())<cr>
-amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
-amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
-amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
-amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
-amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
-amenu &Org.-Sep3- :
-amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
-amenu &Org.TAGS\ and\ Properties :echo 'not implemented yet'<cr>
-amenu &Org.Dates\ and\ Scheduling :echo 'not implemented yet'<cr>
-amenu &Org.Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
-amenu &Org.Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
-amenu &Org.-Sep4- :
-amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
-amenu &Org.Set\ Restriction\ Lock :echo 'not implemented yet'<cr>
-amenu &Org.File\ List\ for\ Agenda :call EditAgendaFiles()<cr>
-amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
-amenu &Org.-Sep5- :
-amenu &Org.Export/Publish :call OrgExport()<cr>
 
 
 

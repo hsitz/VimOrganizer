@@ -11,19 +11,31 @@ let g:org_autoload_funcs=1
 
 function! org#SetOrgFileType()
         if expand("%:e") == 'org'
+		"call input("you reached bufenter func!")
+		"call input("did_ft . . . " . did_filetype())
                 if &filetype != 'org'
+		    	call input("you reached bufenter func!")
+			call input("did_ft before set. . . " . did_filetype())
                         execute "set filetype=org"
+			call input("did_ft after set. . . " . did_filetype())
+			if !exists('g:org_todo_setup')
+				let g:org_todo_setup = 'TODO | DONE'
+			endif
+			if !exists('g:org_tag_setup')
+				let g:org_tag_setup = '{home(h) work(w)}'
+			endif
+			"call OrgTodoSetup(g:org_todo_setup)
+			"call OrgTagSetup(g:org_tag_setup)
+			call OrgProcessConfigLines()
+			"let g:ft_ignore_pat = '\.org'
+			":let g:ft_ignore_pat = '\.\(Z\|gz\|bz2\|zip\|tgz\)$'
                 endif
+		call input("you reached bufenter func!")
+		syntax on
+		if &fdm!='expr'
+			set fdm=expr
+		endif
         endif
-	if !exists('g:org_todo_setup')
-		let g:org_todo_setup = 'TODO | DONE'
-	endif
-	if !exists('g:org_tag_setup')
-		let g:org_tag_setup = '{home(h) work(w)}'
-	endif
-	"call OrgTodoSetup(g:org_todo_setup)
-	"call OrgTagSetup(g:org_tag_setup)
-	call OrgProcessConfigLines()
         "if !exists('g:in_agenda_search') && (&foldmethod!='expr')
         "        setlocal foldmethod=expr
         "        set foldlevel=1
