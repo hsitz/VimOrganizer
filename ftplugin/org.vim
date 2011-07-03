@@ -142,7 +142,7 @@ let s:AgendaBufferName = "__Agenda__"
 
 "testing stuff
 function CustomSearchesSetup()
-    let g:custom_searches = [
+    let g:org_custom_searches = [
                 \    { 'name':"Next week's agenda", 'type':'agenda', 
                 \                'agenda_date':'+1w','agenda_duration':'w'}
                 \    , { 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
@@ -151,7 +151,7 @@ function CustomSearchesSetup()
                 "\     'search_spec':'+UNFINISHED_TODOS' }
 endfunction
 function RunCustom(searchnum)
-    let mydict = g:custom_searches[a:searchnum]
+    let mydict = g:org_custom_searches[a:searchnum]
     if mydict.type ==? 'agenda'
         let spec = get(mydict,'search_spec','')
         call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
@@ -5399,13 +5399,13 @@ function! s:Today()
 endfunction
 
 function! OrgCustomSearchMenu()
-    if !exists('g:custom_searches') || empty(g:custom_searches)
+    if !exists('g:org_custom_searches') || empty(g:org_custom_searches)
         echo "No custom searches defined."
     else
         echo " Press number to run custom search:"
         echo " ----------------------------------"
         let i = 1
-        for item in g:custom_searches
+        for item in g:org_custom_searches
             "echo '   (' . i . ') ' . item.name . '  ' . item.type 
             echo printf(" (%d) %-25s %10s", i, item.name, item.type )
             let i += 1
@@ -5511,12 +5511,7 @@ function! s:AgendaBufHighlight()
     call matchadd('NEXT', '^.*\* \zsNEXT')
     call matchadd('CANCELED', '^.*\* \zsCANCELED')
 
-    map <silent> <buffer> <localleader>tt :call OrgAgendaGetText(1,'TODO')<cr>
-    map <silent> <buffer> <localleader>ts :call OrgAgendaGetText(1,'STARTED')<cr>
-    map <silent> <buffer> <localleader>td :call OrgAgendaGetText(1,'DONE')<cr>
-    map <silent> <buffer> <localleader>tc :call OrgAgendaGetText(1,'CANCELED')<cr>
-    map <silent> <buffer> <localleader>tn :call OrgAgendaGetText(1,'NEXT')<cr>
-    map <silent> <buffer> <localleader>tx :call OrgAgendaGetText(1,'')<cr>
+    nmap <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
     nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
     nmap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
     nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
