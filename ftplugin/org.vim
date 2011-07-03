@@ -1123,6 +1123,16 @@ function! s:FoldStatus(line)
     return l:status
 endfunction 
 
+function s:EnterFunc()
+    let syn_items = synstack(line('.'),col('.'))
+    call map(syn_items, "synIDattr(v:val,'name')")
+    if index(syn_items,'FullLink') >= 0
+        call FollowLink( s:GetLink() )
+    else
+        call OrgNewHead('same')
+    endif
+endfunction
+        
 function! OrgNewHead(type,...)
     " adds new heading or text level depending on type
     if a:0 == 1
@@ -6250,7 +6260,7 @@ imap <silent> <buffer>   <s-CR>               <c-r>=OrgNewHead('same',1)<CR>
 nmap <silent> <buffer>   <s-c-CR>               :call OrgNewHead('levelup')<CR>
 nmap <silent> <buffer>   <c-CR>               :call OrgNewHead('leveldown')<CR>
 nmap <silent> <buffer>   <s-CR>               :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
-nmap <silent> <buffer>   <CR>               :call OrgNewHead('same')<CR>
+nmap <silent> <buffer>   <CR>               :call <SID>EnterFunc()<CR>
 map <silent> <buffer>   <c-left>               :call OrgShowLess(line("."))<CR>
 map <silent> <buffer>   <c-right>            :call OrgShowMore(line("."))<CR>
 map <silent> <buffer>   <c-a-left>               :call OrgMoveLevel(line("."),'left')<CR>
