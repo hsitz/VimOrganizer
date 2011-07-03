@@ -2414,7 +2414,7 @@ function! s:ResultsToAgenda( search_type )
     endif
     for key in sort(keys(g:adict))
         call setline(line("$")+1, key . ' ' . 
-                    \ org#Pad(g:adict[key].CATEGORY,13)  . 
+                    \ printf("%-12.12s",g:adict[key].CATEGORY ) . ' ' .
                     \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
                     \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
                     "\ org#Pad(g:adict[key].file,13)  . 
