@@ -2726,7 +2726,8 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
     "if g:myline == 0
     "    let filename = org#Pad(b:v.org_dict[g:myline].CATEGORY,13)
     "else
-        let filename = org#Pad(b:v.org_dict.iprop(g:myline,'CATEGORY'),13)
+        "let filename = org#Pad(b:v.org_dict.iprop(g:myline,'CATEGORY'),12) . ' '
+        let filename = printf("%-12.12s",b:v.org_dict.iprop(g:myline,'CATEGORY')) . ' '
     "endif
     let line = getline(line("."))
     let date1 = a:date1
@@ -5601,10 +5602,10 @@ function! OrgEvalTable()
     call search('^#+TBLFM','','')
     call search('^\s*$','','')
     let end=line('.')
-    exe start . ',' . end . 'w! short-code.org'
-    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code3.el\^")^"'
+    exe start . ',' . end . 'w! ~/org-tbl-block.org'
+    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code3.el\^")^"'
     silent exe '!' . g:orgpath
-    exe start .',' . end . 'read short-code.org'
+    exe start .',' . end . 'read ~/org-tbl-block.org'
     exe start . ',' . end . 'd'
     call setpos('.',savecursor)
 endfunction
@@ -5618,12 +5619,14 @@ function! OrgEval()
     call search('^\s*$','','')
     normal k
     let end=line('.')
-    exe start . ',' . end . 'w! short-code.org'
-    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code2.el\^")^"'
-    call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code2.el\^")^"',1)
+    exe start . ',' . end . 'w! ~/org-src-block.org'
+    "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code2.el\^")^"'
+    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"'
+    call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"',1)
+    "call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code2.el\^")^"',1)
     " line below is for without xolox
     "silent exe '!' . g:orgpath
-    exe start .',' . end . 'read short-code.org'
+    exe start .',' . end . 'read ~/org-src-block.org'
     exe start . ',' . end . 'd'
     call setpos('.',savecursor)
     let g:t2 = strftime("%c")
@@ -5684,7 +5687,6 @@ function! OrgExport()
     echo " [D] export as DocBook"
     echo " [V] export as DocBook, process to PDF, and open"
     echo " "
-    echo " [m] export as Freemind mind map"
     echo " [x] export as XOXO"
     echo " "
     echo " [F] publish current file"
@@ -5698,24 +5700,20 @@ function! OrgExport()
             call s:GlobalUnconvertTags(changenr())
             let exportfile = expand('%:t') 
             silent exec 'write'
-        "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"run-code2.el\^")^"'
-            "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
-                        \   '^"(find-file ' .oad-file \^"run-code2.el\^")^"'
-            "let command1 = g:org_path_to_emacs .' -batch -l c:\users\herbert\settings.el --visit='
-            "let command1 = g:org_path_to_emacs .' --visit='
+
             let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
             let p1 = g:org_path_to_emacs . ' --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
-            let g:myvar = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"' . g:myfilename . '\^' . '"' . ') (org-export-as-html-and-open 3) (kill-buffer) ))'
-            let g:myc =  '!' . g:orgpath . '^"' . g:myvar . '^"' 
-            silent exec g:myc
+            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \^' . '"' . g:myfilename . '\^' . '"' . '))) (progn  (' 
+            let g:mypart3 = ' nil ) (kill-buffer buf) ))'
             if item =~ 'F\|P\|E'
-                let command_part2 = ' --funcall org-publish-' . mydict[key]
+                let command_part2 = ' org-publish-' . mydict[key]
             else
-                let command_part2 = ' --funcall org-export-as-' . mydict[key]
+                let command_part2 = ' org-export-as-' . mydict[key]
             endif
-            silent execute '!' . command1 . exportfile . command_part2
+            let g:mainpart =  'silent !' . g:orgpath . '^"' . g:mypart1 
+            silent execute g:mainpart . command_part2 . g:mypart3 . '^"'
             call s:UndoUnconvertTags()
             let g:org_emacs_autoconvert = 0
             silent exec 'write'
@@ -6029,6 +6027,39 @@ au BufWritePost *.org :PostWriteTags
 
 setlocal fillchars=|, 
 
+"Section Narrow Region
+let g:nrrw_rgn_vert=1
+function! NarrowOutline(line)
+    let start = s:OrgGetHead_l(a:line)
+    let end = s:OrgSubtreeLastLine_l(start)
+    execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
+    " then set ftype in new buffer
+    set ft=org
+    set winwidth=80
+endfunction
+
+function! NarrowCodeBlock(line)
+    execute a:line
+    call search('^#+begin_src','b','')
+    let start=line('.') + 1
+    let language = matchstr(getline(line('.')), '^#+begin_src \zs\S\+')
+    if language == 'emacs-lisp'
+        let language = 'lisp'
+    endif
+    call search('^#+end_src','','')
+    let end=line('.') - 1
+    execute start ',' . end . 'call nrrwrgn#NrrwRgn()'
+    if filereadable($VIMRUNTIME . '/ftplugin/' . language . '.vim')
+        execute 'set ft=' . language
+    endif
+    if filereadable($VIMRUNTIME. '/syntax/' . language . '.vim')
+        execute 'set syntax=' . language
+    endif
+
+    set winwidth=80
+
+    
+endfunction
 " Org Menu Entries
 amenu &Org.&View.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
 amenu &Org.&View.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
@@ -6122,6 +6153,7 @@ function! MenuCycle()
     call OrgCycle()
 endfunction
 
+
 "Section Mappings and Endstuff
 " below block of 10 or 15 maps are ones collected
 " from body of doc that weren't getting assigned for docs
@@ -6183,6 +6215,9 @@ map <silent> <buffer>   <localleader>,4           :call OrgSetLevel (1,4)<CR>
 map <silent> <buffer>   <localleader>,3           :call OrgSetLevel (1,3)<CR>
 map <silent> <buffer>   <localleader>,2           :call OrgSetLevel (1,2)<CR>
 map <silent> <buffer>   <localleader>,1           :call OrgSetLevel (1,1)<CR>
+
+nmap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
+nmap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
 " vimwiki table commands
 au InsertEnter *.org :call org#tbl#reset_tw(line("."))
 au InsertLeave *.org :call org#tbl#format(line("."))

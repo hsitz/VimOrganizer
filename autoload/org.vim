@@ -14,10 +14,10 @@ function! org#SetOrgFileType()
 		"call input("you reached bufenter func!")
 		"call input("did_ft . . . " . did_filetype())
                 if &filetype != 'org'
-		    	call input("you reached bufenter func!")
-			call input("did_ft before set. . . " . did_filetype())
+		    	"call input("you reached bufenter func!")
+			"call input("did_ft before set. . . " . did_filetype())
                         execute "set filetype=org"
-			call input("did_ft after set. . . " . did_filetype())
+			"call input("did_ft after set. . . " . did_filetype())
 			if !exists('g:org_todo_setup')
 				let g:org_todo_setup = 'TODO | DONE'
 			endif
@@ -30,7 +30,7 @@ function! org#SetOrgFileType()
 			"let g:ft_ignore_pat = '\.org'
 			":let g:ft_ignore_pat = '\.\(Z\|gz\|bz2\|zip\|tgz\)$'
                 endif
-		call input("you reached bufenter func!")
+		"call input("you reached bufenter func!")
 		syntax on
 		if &fdm!='expr'
 			set fdm=expr
