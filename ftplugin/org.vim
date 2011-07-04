@@ -1123,7 +1123,7 @@ function! s:FoldStatus(line)
     return l:status
 endfunction 
 
-function s:EnterFunc()
+function s:OrgEnterFunc()
     let syn_items = synstack(line('.'),col('.'))
     call map(syn_items, "synIDattr(v:val,'name')")
     if index(syn_items,'FullLink') >= 0
@@ -5521,12 +5521,13 @@ function! s:AgendaBufHighlight()
     call matchadd('NEXT', '^.*\* \zsNEXT')
     call matchadd('CANCELED', '^.*\* \zsCANCELED')
 
-    nmap <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
-    nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
-    nmap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
-    nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
-    nmap <silent> <buffer> q  :quit<cr>
-    nmap <silent> <buffer> <c-tab>  :wincmd k<cr>
+    execute "source " . expand("<sfile>:p:h") . '/vimorg-agenda-mappings.vim'
+    "nmap <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
+    "nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
+    "nmap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
+    "nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
+    "nmap <silent> <buffer> q  :quit<cr>
+    "nmap <silent> <buffer> <c-tab>  :wincmd k<cr>
 endfunction
 function! s:AgendaHighlight()
     if g:org_gray_agenda
@@ -5859,9 +5860,6 @@ function! OrgSetColors()
 endfunction
 autocmd ColorScheme  * :silent! call OrgSetColors()
 call OrgSetColors()
-" This should be a setlocal but that doesn't work when switching to a new .otl file
-" within the same buffer. Using :e has demonstrates this.
-set foldtext=OrgFoldText()
 
 "Section for refile and archive funcs
 let g:org_heading_temp=['','','','','','','','']
@@ -6158,135 +6156,135 @@ function! MenuCycle()
     call OrgCycle()
 endfunction
 
-
+execute "source " . expand("<sfile>:p:h") . '/vimorg-main-mappings.vim'
 "Section Mappings and Endstuff
 " below block of 10 or 15 maps are ones collected
 " from body of doc that weren't getting assigned for docs
 " oepened after initial org filetype doc
-nmap <silent> <buffer> <tab> :call OrgCycle()<cr>
-nmap <silent> <buffer> <s-tab> :call OrgGlobalCycle()<cr>
-nmap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
-nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
-"cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
-" dl is for the date on the current line
-map <silent> <buffer> <localleader>de :call OrgDateEdit('')<cr>
-map <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
-map <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
-map <silent> <buffer> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
-map <silent> <buffer> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
-map <silent> <buffer> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'')<cr>
-map <silent> <buffer> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TODOS')<cr>
-map <silent> <buffer> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
-map <silent> <buffer> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
-map <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
-map <silent> <buffer> <localleader>ac :call OrgCustomSearchMenu()<cr>
-command! -nargs=0 Agenda :call OrgAgendaDashboard()
-nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-nnoremap <silent> <buffer> <2-LeftMouse> :call OrgMouseDate()<CR>
-nmap <localleader>pl :call s:MyPopup()<cr>
-inoremap <expr> <Esc>      pumvisible() ? "\<C-e>" : "\<Esc>"
-inoremap <expr> <CR>       pumvisible() ? "\<C-y>" : "\<CR>"
-inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
-inoremap <expr> <Up>       pumvisible() ? "\<C-p>" : "\<Up>"
-inoremap <expr> <PageDown> pumvisible() ? "\<PageDown>\<C-p>\<C-n>" : "\<PageDown>"
-inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
-map <silent> <localleader>b  :call ShowBottomCal()<cr> 
-
-nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
-
-" clear search matching
-nmap <silent> <buffer> <localleader>cs :let @/=''<cr>
-
-map <buffer>   <C-K>         <C-]>
-map <buffer>   <C-N>         <C-T>
-map <silent> <buffer>   <localleader>0          :call OrgExpandWithoutText(99999)<CR>
-map <silent> <buffer>   <localleader>9          :call OrgExpandWithoutText(9)<CR>
-map <silent> <buffer>   <localleader>8          :call OrgExpandWithoutText(8)<CR>
-map <silent> <buffer>   <localleader>7          :call OrgExpandWithoutText(7)<CR>
-map <silent> <buffer>   <localleader>6          :call OrgExpandWithoutText(6)<CR>
-map <silent> <buffer>   <localleader>5          :call OrgExpandWithoutText(5)<CR>
-map <silent> <buffer>   <localleader>4          :call OrgExpandWithoutText(4)<CR>
-map <silent> <buffer>   <localleader>3          :call OrgExpandWithoutText(3)<CR>
-map <silent> <buffer>   <localleader>2          :call OrgExpandWithoutText(2)<CR>
-map <silent> <buffer>   <localleader>1          :call OrgExpandWithoutText(1)<CR>
-map <silent> <buffer>   <localleader>,0           :set foldlevel=99999<CR>
-map <silent> <buffer>   <localleader>,9           :call OrgSetLevel (1,9)<CR>
-map <silent> <buffer>   <localleader>,8           :call OrgSetLevel (1,8)<CR>
-map <silent> <buffer>   <localleader>,7           :call OrgSetLevel (1,7)<CR>
-map <silent> <buffer>   <localleader>,6           :call OrgSetLevel (1,6)<CR>
-map <silent> <buffer>   <localleader>,5           :call OrgSetLevel (1,5)<CR>
-map <silent> <buffer>   <localleader>,4           :call OrgSetLevel (1,4)<CR>
-map <silent> <buffer>   <localleader>,3           :call OrgSetLevel (1,3)<CR>
-map <silent> <buffer>   <localleader>,2           :call OrgSetLevel (1,2)<CR>
-map <silent> <buffer>   <localleader>,1           :call OrgSetLevel (1,1)<CR>
-
-nmap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
-nmap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
-" vimwiki table commands
-au InsertEnter *.org :call org#tbl#reset_tw(line("."))
-au InsertLeave *.org :call org#tbl#format(line("."))
-command! -buffer -nargs=* OrgTable call org#tbl#create(<f-args>)
-command! -buffer OrgTableAlignQ call org#tbl#align_or_cmd('gqq')
-command! -buffer OrgTableAlignW call org#tbl#align_or_cmd('gww')
-command! -buffer OrgTableMoveColumnLeft call org#tbl#move_column_left()
-command! -buffer OrgTableMoveColumnRight call org#tbl#move_column_right()
-
-" vimwiki table function mappings
-" -------------------------------------
-"function! s:CR() 
-"  let res = org#lst#kbd_cr()
-"  if res == "\<CR>" "&& g:vimwiki_table_auto_fmt
-"    let res = org#tbl#kbd_cr()
-"  endif
-"  return res
-"endfunction 
-inoremap <buffer> <expr> <CR> org#tbl#kbd_cr()
-inoremap <expr> <buffer> <Tab> org#tbl#kbd_tab()
-inoremap <expr> <buffer> <S-Tab> org#tbl#kbd_shift_tab()
-nnoremap <buffer> gqq :OrgTableAlignQ<CR>
-nnoremap <buffer> gww :OrgTableAlignW<CR>
-  "nmap <silent><buffer> <A-Left> <Plug>OrgTableMoveColumnLeft
-nnoremap <silent><script><buffer>
-      \ <Plug>OrgTableMoveColumnLeft :OrgTableMoveColumnLeft<CR>
-  "nmap <silent><buffer> <A-Right> <Plug>OrgTableMoveColumnRight
-nnoremap <silent><script><buffer>
-      \ <Plug>OrgTableMoveColumnRight :OrgTableMoveColumnRight<CR>
-" -------------------------------------
-
-imap <silent> <buffer>   <s-c-CR>               <c-r>=OrgNewHead('levelup',1)<CR>
-imap <silent> <buffer>   <c-CR>               <c-r>=OrgNewHead('leveldown',1)<CR>
-imap <silent> <buffer>   <s-CR>               <c-r>=OrgNewHead('same',1)<CR>
-nmap <silent> <buffer>   <s-c-CR>               :call OrgNewHead('levelup')<CR>
-nmap <silent> <buffer>   <c-CR>               :call OrgNewHead('leveldown')<CR>
-nmap <silent> <buffer>   <s-CR>               :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
-nmap <silent> <buffer>   <CR>               :call <SID>EnterFunc()<CR>
-map <silent> <buffer>   <c-left>               :call OrgShowLess(line("."))<CR>
-map <silent> <buffer>   <c-right>            :call OrgShowMore(line("."))<CR>
-map <silent> <buffer>   <c-a-left>               :call OrgMoveLevel(line("."),'left')<CR>
-map <silent> <buffer>   <c-a-right>             :call OrgMoveLevel(line("."),'right')<CR>
-map <silent> <buffer>   <c-a-up>               :call OrgMoveLevel(line("."),'up')<CR>
-map <silent> <buffer>   <c-a-down>             :call OrgMoveLevel(line("."),'down')<CR>
-map <silent> <buffer>   <a-end>                 :call OrgNavigateLevels("end")<CR>
-map <silent> <buffer>   <a-home>                 :call OrgNavigateLevels("home")<CR>
-map <silent> <buffer>   <a-up>                 :call OrgNavigateLevels("up")<CR>
-map <silent> <buffer>   <a-down>               :call OrgNavigateLevels("down")<CR>
-map <silent> <buffer>   <a-left>               :call OrgNavigateLevels("left")<CR>
-map <silent> <buffer>   <a-right>              :call OrgNavigateLevels("right")<CR>
-map <silent> <buffer> <localleader>le      :call EditLink()<cr>
-map <silent> <buffer> <localleader>lf      :call FollowLink(s:GetLink())<cr>
-map <silent> <buffer> <localleader>ln      :/]]<cr>
-map <silent> <buffer> <localleader>lp      :?]]<cr>
-map <silent> <buffer> <localleader>lc      :set conceallevel=3\|set concealcursor=nc<cr>
-map <silent> <buffer> <localleader>la      :set conceallevel=3\|set concealcursor=c<cr>
-map <silent> <buffer> <localleader>lx      :set conceallevel=0<cr>
-nmap <silent> <buffer>   <localleader>,e    :call OrgSingleHeadingText("expand")<CR>
-nmap <silent> <buffer>   <localleader>,E    :call OrgBodyTextOperation(1,line("$"),"expand")<CR>
-nmap <silent> <buffer>   <localleader>,C    :call OrgBodyTextOperation(1,line("$"),"collapse")<CR>
-nmap <silent> <buffer>   <localleader>,c    :call OrgSingleHeadingText("collapse")<CR>
-nmap <silent> <buffer>   zc    :call OrgDoSingleFold(line("."))<CR>
-map <buffer>   <localleader>,,          :source $HOME/.vim/ftplugin/org.vim<CR>
-map! <buffer>  <localleader>w           <Esc>:w<CR>a
+"nmap <silent> <buffer> <tab> :call OrgCycle()<cr>
+"nmap <silent> <buffer> <s-tab> :call OrgGlobalCycle()<cr>
+"nmap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
+"nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
+""cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
+"" dl is for the date on the current line
+"map <silent> <buffer> <localleader>de :call OrgDateEdit('')<cr>
+"map <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
+"map <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
+"map <silent> <buffer> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
+"map <silent> <buffer> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
+"map <silent> <buffer> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'')<cr>
+"map <silent> <buffer> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TODOS')<cr>
+"map <silent> <buffer> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
+"map <silent> <buffer> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
+"map <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
+"map <silent> <buffer> <localleader>ac :call OrgCustomSearchMenu()<cr>
+"command! -nargs=0 Agenda :call OrgAgendaDashboard()
+"nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
+"nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+"nnoremap <silent> <buffer> <2-LeftMouse> :call OrgMouseDate()<CR>
+"nmap <localleader>pl :call s:MyPopup()<cr>
+"inoremap <expr> <Esc>      pumvisible() ? "\<C-e>" : "\<Esc>"
+"inoremap <expr> <CR>       pumvisible() ? "\<C-y>" : "\<CR>"
+"inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
+"inoremap <expr> <Up>       pumvisible() ? "\<C-p>" : "\<Up>"
+"inoremap <expr> <PageDown> pumvisible() ? "\<PageDown>\<C-p>\<C-n>" : "\<PageDown>"
+"inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
+"map <silent> <localleader>b  :call ShowBottomCal()<cr> 
+"
+"nmap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
+"
+"" clear search matching
+"nmap <silent> <buffer> <localleader>cs :let @/=''<cr>
+"
+"map <buffer>   <C-K>         <C-]>
+"map <buffer>   <C-N>         <C-T>
+"map <silent> <buffer>   <localleader>0          :call OrgExpandWithoutText(99999)<CR>
+"map <silent> <buffer>   <localleader>9          :call OrgExpandWithoutText(9)<CR>
+"map <silent> <buffer>   <localleader>8          :call OrgExpandWithoutText(8)<CR>
+"map <silent> <buffer>   <localleader>7          :call OrgExpandWithoutText(7)<CR>
+"map <silent> <buffer>   <localleader>6          :call OrgExpandWithoutText(6)<CR>
+"map <silent> <buffer>   <localleader>5          :call OrgExpandWithoutText(5)<CR>
+"map <silent> <buffer>   <localleader>4          :call OrgExpandWithoutText(4)<CR>
+"map <silent> <buffer>   <localleader>3          :call OrgExpandWithoutText(3)<CR>
+"map <silent> <buffer>   <localleader>2          :call OrgExpandWithoutText(2)<CR>
+"map <silent> <buffer>   <localleader>1          :call OrgExpandWithoutText(1)<CR>
+"map <silent> <buffer>   <localleader>,0           :set foldlevel=99999<CR>
+"map <silent> <buffer>   <localleader>,9           :call OrgSetLevel (1,9)<CR>
+"map <silent> <buffer>   <localleader>,8           :call OrgSetLevel (1,8)<CR>
+"map <silent> <buffer>   <localleader>,7           :call OrgSetLevel (1,7)<CR>
+"map <silent> <buffer>   <localleader>,6           :call OrgSetLevel (1,6)<CR>
+"map <silent> <buffer>   <localleader>,5           :call OrgSetLevel (1,5)<CR>
+"map <silent> <buffer>   <localleader>,4           :call OrgSetLevel (1,4)<CR>
+"map <silent> <buffer>   <localleader>,3           :call OrgSetLevel (1,3)<CR>
+"map <silent> <buffer>   <localleader>,2           :call OrgSetLevel (1,2)<CR>
+"map <silent> <buffer>   <localleader>,1           :call OrgSetLevel (1,1)<CR>
+"
+"nmap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
+"nmap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
+"" vimwiki table commands
+"au InsertEnter *.org :call org#tbl#reset_tw(line("."))
+"au InsertLeave *.org :call org#tbl#format(line("."))
+"command! -buffer -nargs=* OrgTable call org#tbl#create(<f-args>)
+"command! -buffer OrgTableAlignQ call org#tbl#align_or_cmd('gqq')
+"command! -buffer OrgTableAlignW call org#tbl#align_or_cmd('gww')
+"command! -buffer OrgTableMoveColumnLeft call org#tbl#move_column_left()
+"command! -buffer OrgTableMoveColumnRight call org#tbl#move_column_right()
+"
+"" vimwiki table function mappings
+"" -------------------------------------
+""function! s:CR() 
+""  let res = org#lst#kbd_cr()
+""  if res == "\<CR>" "&& g:vimwiki_table_auto_fmt
+""    let res = org#tbl#kbd_cr()
+""  endif
+""  return res
+""endfunction 
+"inoremap <buffer> <expr> <CR> org#tbl#kbd_cr()
+"inoremap <expr> <buffer> <Tab> org#tbl#kbd_tab()
+"inoremap <expr> <buffer> <S-Tab> org#tbl#kbd_shift_tab()
+"nnoremap <buffer> gqq :OrgTableAlignQ<CR>
+"nnoremap <buffer> gww :OrgTableAlignW<CR>
+"  "nmap <silent><buffer> <A-Left> <Plug>OrgTableMoveColumnLeft
+"nnoremap <silent><script><buffer>
+"      \ <Plug>OrgTableMoveColumnLeft :OrgTableMoveColumnLeft<CR>
+"  "nmap <silent><buffer> <A-Right> <Plug>OrgTableMoveColumnRight
+"nnoremap <silent><script><buffer>
+"      \ <Plug>OrgTableMoveColumnRight :OrgTableMoveColumnRight<CR>
+"" -------------------------------------
+"
+"imap <silent> <buffer>   <s-c-CR>               <c-r>=OrgNewHead('levelup',1)<CR>
+"imap <silent> <buffer>   <c-CR>               <c-r>=OrgNewHead('leveldown',1)<CR>
+"imap <silent> <buffer>   <s-CR>               <c-r>=OrgNewHead('same',1)<CR>
+"nmap <silent> <buffer>   <s-c-CR>               :call OrgNewHead('levelup')<CR>
+"nmap <silent> <buffer>   <c-CR>               :call OrgNewHead('leveldown')<CR>
+"nmap <silent> <buffer>   <s-CR>               :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+"nmap <silent> <buffer>   <CR>               :call <SID>OrgEnterFunc()<CR>
+"map <silent> <buffer>   <c-left>               :call OrgShowLess(line("."))<CR>
+"map <silent> <buffer>   <c-right>            :call OrgShowMore(line("."))<CR>
+"map <silent> <buffer>   <c-a-left>               :call OrgMoveLevel(line("."),'left')<CR>
+"map <silent> <buffer>   <c-a-right>             :call OrgMoveLevel(line("."),'right')<CR>
+"map <silent> <buffer>   <c-a-up>               :call OrgMoveLevel(line("."),'up')<CR>
+"map <silent> <buffer>   <c-a-down>             :call OrgMoveLevel(line("."),'down')<CR>
+"map <silent> <buffer>   <a-end>                 :call OrgNavigateLevels("end")<CR>
+"map <silent> <buffer>   <a-home>                 :call OrgNavigateLevels("home")<CR>
+"map <silent> <buffer>   <a-up>                 :call OrgNavigateLevels("up")<CR>
+"map <silent> <buffer>   <a-down>               :call OrgNavigateLevels("down")<CR>
+"map <silent> <buffer>   <a-left>               :call OrgNavigateLevels("left")<CR>
+"map <silent> <buffer>   <a-right>              :call OrgNavigateLevels("right")<CR>
+"map <silent> <buffer> <localleader>le      :call EditLink()<cr>
+"map <silent> <buffer> <localleader>lf      :call FollowLink(s:GetLink())<cr>
+"map <silent> <buffer> <localleader>ln      :/]]<cr>
+"map <silent> <buffer> <localleader>lp      :?]]<cr>
+"map <silent> <buffer> <localleader>lc      :set conceallevel=3\|set concealcursor=nc<cr>
+"map <silent> <buffer> <localleader>la      :set conceallevel=3\|set concealcursor=c<cr>
+"map <silent> <buffer> <localleader>lx      :set conceallevel=0<cr>
+"nmap <silent> <buffer>   <localleader>,e    :call OrgSingleHeadingText("expand")<CR>
+"nmap <silent> <buffer>   <localleader>,E    :call OrgBodyTextOperation(1,line("$"),"expand")<CR>
+"nmap <silent> <buffer>   <localleader>,C    :call OrgBodyTextOperation(1,line("$"),"collapse")<CR>
+"nmap <silent> <buffer>   <localleader>,c    :call OrgSingleHeadingText("collapse")<CR>
+"nmap <silent> <buffer>   zc    :call OrgDoSingleFold(line("."))<CR>
+"map <buffer>   <localleader>,,          :source $HOME/.vim/ftplugin/org.vim<CR>
+"map! <buffer>  <localleader>w           <Esc>:w<CR>a
 
 
 
@@ -6298,6 +6296,7 @@ map! <buffer>  <localleader>w           <Esc>:w<CR>a
 set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
 set fo=qtcwn
 let b:v.current_syntax = "org"
+setlocal foldtext=OrgFoldText()
 
 
 " vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum)=~'^func'?1\:2:
