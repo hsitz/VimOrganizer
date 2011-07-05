@@ -12,18 +12,21 @@ function! s:SynStars(perlevel)
 endfunction
 command! ChangeSyn  call <SID>SynStars(b:levelstars)
 
-"syntax match Properties +^\s*:\s*\S\{-1,}\s*:+
-"syntax match Tags +\s*:\S*:\s*$+
-syntax match Properties +^\s*:\S*:\ze.*+
-syntax match Tags +\s*:\S*:$+
-syntax match Drawers +^\s*:\(PROPERTIES\|LOGBOOK\|END\):\ze.*+
-syntax match Dates +[<[]\d\d\d\d-\d\d-\d\d.\{-1,}[\]>]+
-syntax match stars +\*\+\*+me=e-1 contained
+
+syntax match Org_Property_Value +^\s*:\S*:\ze.*+
+syntax match Org_Config_Line '^#+.*'
+
+syntax match Org_Tags +\s*:\S*:$+
+syntax match Org_Drawers +^\s*:\(PROPERTIES\|LOGBOOK\|END\):\ze.*+
+syntax match Org_Dates +[<[]\d\d\d\d-\d\d-\d\d.\{-1,}[\]>]+
+syntax match Org_Stars +\*\+\*+me=e-1 contained
 syntax match NEXT '\* \zsNEXT' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match CANCELED '\* \zsCANCELED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match TODO '\* \zsTODO' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match STARTED '\* \zsSTARTED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match DONE '\* \zsDONE' containedin=OL1,OL2,OL3,OL4,OL5,OL6
+
+syntax region Org_Block start='^#+begin.*$'hs=e+1 end='^#+end'he=e-11 contains=Org_Config_Line
 
 syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars
 syntax match OL2 +^\(*\)\{2}\s.*+ contains=stars
@@ -35,16 +38,16 @@ syntax match OL7 +^\(*\)\{7}\s.*+ contains=stars
 syntax match OL8 +^\(*\)\{8}\s.*+ contains=stars
 syntax match OL9 +^\(*\)\{9}\s.*+ contains=stars
 
-
-syn match code '=\S.\{-}\S='
-syn match itals '\(\_^\|\W\)/\zs\S[^/]\{-}\S\ze/\_W'
-syn match boldtext '\(\_^\|\W\)\*\zs\S[^*]\{-}\S\ze\*\_W'
-syn match undertext '\(\_^\|\W\)_\zs\S[^_]\{-}\S\ze_\_W'
-syn match lnumber '^\t*\(\d\.\)*\s\s' contained
+" character highlights
+syn match Org_Code '=\S.\{-}\S='
+syn match Org_Itals '\(\_^\|\W\)/\zs\S[^/]\{-}\S\ze/\_W'
+syn match Org_Bold '\(\_^\|\W\)\*\zs\S[^*]\{-}\S\ze\*\_W'
+syn match Org_Underline '\(\_^\|\W\)_\zs\S[^_]\{-}\S\ze_\_W'
+syn match Org_Lnumber '^\t*\(\d\.\)*\s\s' contained
 
 if has("conceal")
-	syn region HalfLink concealends matchgroup=linkends start='\[\[' end=']]' contains=FullLink
-	syn region FullLink concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
+	syn region Org_Half_Link concealends matchgroup=linkends start='\[\[' end=']]' contains=FullLink
+	syn region Org_Full_Link concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
 endif	
 " ***********************************************
 " section below is example for having subregions
