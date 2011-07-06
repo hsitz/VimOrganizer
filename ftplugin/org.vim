@@ -5823,13 +5823,14 @@ function! OrgSetColors()
 
     " various text item "highlightings" are below
     " change to suit your taste
-    hi! Org_Drawers guifg=pink ctermfg=magenta
+    hi! Org_Drawer guifg=pink ctermfg=magenta
     hi! Org_Property_Value guifg=pink ctermfg=magenta
-    hi! Org_Block guifg=pink ctermfg=magenta
+    hi! Org_Block guifg=#555555 ctermfg=magenta
+    hi! Org_Table guifg=#888888 guibg=#333333 ctermfg=magenta
     hi! Org_Config_Line guifg=darkgray ctermfg=magenta
-    hi! Org_Tags guifg=lightgreen ctermfg=blue
-    hi! Org_Dates guifg=magenta ctermfg=magenta gui=underline cterm=underline
-    hi! Org_Stars guifg=#444444 ctermfg=darkgray
+    hi! Org_Tag guifg=lightgreen ctermfg=blue
+    hi! Org_Date guifg=magenta ctermfg=magenta gui=underline cterm=underline
+    hi! Org_Star guifg=#444444 ctermfg=darkgray
     hi! Props guifg=#ffa0a0 ctermfg=gray
     hi! Org_Code guifg=orange gui=bold ctermfg=14
     hi! Org_Itals gui=italic guifg=#aaaaaa ctermfg=lightgray
@@ -5845,15 +5846,11 @@ function! OrgSetColors()
     hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
     hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
 
-    "user can define colors in vimrc for above items, these will be executed
+    "user can define OrgCustomColors() in vimrc for above items, these will be executed
     "here and override the defaults above.
-    " format for each item in list is simply text of vim highlight command, 
-    " minus the 'highlight', e.g., : 
-    " g:custom_colors = ['Dates guifg=green ctermfg=green']
-    for item in g:org_custom_colors
-        silent exe 'hi! ' . matchstr(item,'^\S\+')
-        silent exe 'hi! ' . item
-    endfor
+    if exists('*OrgCustomColors')
+        call OrgCustomColors()
+    endif
 endfunction
 autocmd ColorScheme  * :silent! call OrgSetColors()
 call OrgSetColors()
@@ -6030,12 +6027,16 @@ setlocal fillchars=|,
 "Section Narrow Region
 let g:nrrw_rgn_vert=1
 function! NarrowOutline(line)
-    let start = s:OrgGetHead_l(a:line)
-    let end = s:OrgSubtreeLastLine_l(start)
-    execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
-    " then set ftype in new buffer
-    set ft=org
-    set winwidth=80
+    if matchstr(getline(line('.')), b:v.headMatch) ># ''
+        let start = s:OrgGetHead_l(a:line)
+        let end = s:OrgSubtreeLastLine_l(start)
+        execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
+        " then set ftype in new buffer
+        set ft=org
+        set winwidth=80
+    else
+        echo "You must be on a heading to narrow it."
+    endif
 endfunction
 
 function! NarrowCodeBlock(line)
@@ -6048,15 +6049,21 @@ function! NarrowCodeBlock(line)
     endif
     call search('^#+end_src','','')
     let end=line('.') - 1
-    execute start ',' . end . 'call nrrwrgn#NrrwRgn()'
-    if filereadable($VIMRUNTIME . '/ftplugin/' . language . '.vim')
-        execute 'set ft=' . language
-    endif
-    if filereadable($VIMRUNTIME. '/syntax/' . language . '.vim')
-        execute 'set syntax=' . language
-    endif
 
-    set winwidth=80
+    if (start <= a:line) && (end >= a:line)
+        execute start ',' . end . 'call nrrwrgn#NrrwRgn()'
+        if filereadable($VIMRUNTIME . '/ftplugin/' . language . '.vim')
+            execute 'set ft=' . language
+        endif
+        if filereadable($VIMRUNTIME. '/syntax/' . language . '.vim')
+            execute 'set syntax=' . language
+        endif
+
+        set winwidth=80
+    else
+        execute a:line
+        echo "You are not inside a code block."
+    endif
 
     
 endfunction
@@ -6154,7 +6161,6 @@ function! MenuCycle()
 endfunction
 
 execute "source " . expand("<sfile>:p:h") . '/vimorg-main-mappings.vim'
-
 
 " below is autocmd to change tw for lines that have comments on them
 " I think this should go in vimrc so i runs for each buffer load

@@ -14,19 +14,20 @@ command! ChangeSyn  call <SID>SynStars(b:levelstars)
 
 
 syntax match Org_Property_Value +^\s*:\S*:\ze.*+
-syntax match Org_Config_Line '^#+.*'
 
-syntax match Org_Tags +\s*:\S*:$+
-syntax match Org_Drawers +^\s*:\(PROPERTIES\|LOGBOOK\|END\):\ze.*+
-syntax match Org_Dates +[<[]\d\d\d\d-\d\d-\d\d.\{-1,}[\]>]+
-syntax match Org_Stars +\*\+\*+me=e-1 contained
+syntax match Org_Tag +\s*:\S*:$+
+syntax match Org_Drawer +^\s*:\(PROPERTIES\|LOGBOOK\|END\):\ze.*+
+syntax match Org_Date +[<[]\d\d\d\d-\d\d-\d\d.\{-1,}[\]>]+
+syntax match Org_Star +\*\+\*+me=e-1 contained
+syntax match Org_Table +^\s*|.\+|\s*$+
 syntax match NEXT '\* \zsNEXT' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match CANCELED '\* \zsCANCELED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match TODO '\* \zsTODO' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match STARTED '\* \zsSTARTED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match DONE '\* \zsDONE' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 
-syntax region Org_Block start='^#+begin.*$'hs=e+1 end='^#+end'he=e-11 contains=Org_Config_Line
+syntax match Org_Config_Line '^#+.*' containedin=Org_Block
+syntax region Org_Block start='^#+begin.*$' end='^#+end' keepend contains=Org_Config_Line
 
 syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars
 syntax match OL2 +^\(*\)\{2}\s.*+ contains=stars
