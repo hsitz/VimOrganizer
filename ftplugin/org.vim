@@ -10,6 +10,7 @@ let b:v.org_loaded=0
 let b:v.lasttext_lev=''
 let maplocalleader = ","        " Org key mappings prepend single comma
 
+let s:sfile = expand("<sfile>:p:h")
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
 let b:v.taglineMatch = '^\s*:\S\+:\s*$'
@@ -1123,10 +1124,10 @@ function! s:FoldStatus(line)
     return l:status
 endfunction 
 
-function s:OrgEnterFunc()
+function OrgEnterFunc()
     let syn_items = synstack(line('.'),col('.'))
     call map(syn_items, "synIDattr(v:val,'name')")
-    if index(syn_items,'FullLink') >= 0
+    if (index(syn_items,'Org_Full_Link') >= 0) || ( index(syn_items,'Org_Half_Link') >= 0)
         call FollowLink( s:GetLink() )
     else
         call OrgNewHead('same')
@@ -1279,10 +1280,12 @@ function! OrgShowLess(headingline)
     " collapses headings at farthest out visible level
     let l:maxi = s:MaxVisIndent(a:headingline)
     let l:offset = l:maxi - s:Ind(a:headingline)
+    echo 'offset:  ' . l:offset
     if l:offset > 1 
         call s:ShowSubs(l:offset - 1,0)
     elseif l:offset == 1
-        normal! zc  
+        normal zc
+        "normal! zc
     endif   
 endfunction
 
@@ -1300,6 +1303,19 @@ function! OrgShowMore(headingline)
     endif
 endfunction
 
+function! OrgShowSubs(number,withtext)
+
+    let cur_level = s:Ind(line('.')) - 1
+    if a:number > cur_level
+        let rel_level = a:number - cur_level 
+        if rel_level >= 1
+             call s:ShowSubs(rel_level  ,0)
+         endif
+    else
+        call s:DoFullCollapse(line('.'))
+    endif
+endfunction
+
 function! s:ShowSubs(number,withtext)
     " shows specif number of levels down from current 
     " heading, includes text
@@ -1310,15 +1326,22 @@ function! s:ShowSubs(number,withtext)
     let l:start = foldclosed(line("."))
     if l:start != -1
         let l:end = foldclosedend(line("."))
-        exec l:start . "," . l:end . "foldc!"
+        "exec l:start 
+        "exec "normal! zv"
+        exec "" . l:start . "," . l:end . "foldc!"
         exec "normal! zv"
-        if a:number >= 2 
-            let l:i = 2
-            while l:i <= a:number
-                exec "".l:start.",".l:end."foldo"
-                let l:i = l:i + 1
-            endwhile    
-        endif
+        "if a:number >= 2 
+        let to_level = 2
+        for to_level in range( 2 , a:number )
+            exec "" . l:start . "," . l:end . "foldo"
+        endfor
+        "    jj
+        "    let l:i = 2
+        "    while l:i <= a:number
+        "        exec "" . l:start . "," . l:end . "foldo"
+        "        let l:i = l:i + 1
+        "    endwhile    
+        "endif
     endif
     if a:withtext == 0
         call OrgSingleHeadingText('collapse')
@@ -4738,6 +4761,7 @@ endfunction
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
+let g:org_sid = s:SID()
 function! OrgSID(func)
     execute 'call <SNR>'.s:SID().'_'.a:func
 endfunction
@@ -5521,7 +5545,7 @@ function! s:AgendaBufHighlight()
     call matchadd('NEXT', '^.*\* \zsNEXT')
     call matchadd('CANCELED', '^.*\* \zsCANCELED')
 
-    execute "source " . expand("<sfile>:p:h") . '/vimorg-agenda-mappings.vim'
+    execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
 
 endfunction
 function! s:AgendaHighlight()
@@ -5832,7 +5856,7 @@ function! OrgSetColors()
     hi! Org_Date guifg=magenta ctermfg=magenta gui=underline cterm=underline
     hi! Org_Star guifg=#444444 ctermfg=darkgray
     hi! Props guifg=#ffa0a0 ctermfg=gray
-    hi! Org_Code guifg=orange gui=bold ctermfg=14
+    hi! Org_Code guifg=darkgray gui=bold ctermfg=14
     hi! Org_Itals gui=italic guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Bold gui=bold guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
@@ -6118,6 +6142,9 @@ amenu &Org.Set\ Restriction\ Lock :echo 'not implemented yet'<cr>
 amenu &Org.File\ List\ for\ Agenda :call EditAgendaFiles()<cr>
 amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
 amenu &Org.-Sep5- :
+amenu &Org.Narro&w.Heading\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
+amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
+amenu &Org.-Sep6- :
 amenu &Org.Export/Publish :call OrgExport()<cr>
 
 "*********************************************************************
@@ -6160,6 +6187,7 @@ function! MenuCycle()
     call OrgCycle()
 endfunction
 
+nmap <silent> <buffer>   <s-CR>               :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
 execute "source " . expand("<sfile>:p:h") . '/vimorg-main-mappings.vim'
 
 " below is autocmd to change tw for lines that have comments on them
