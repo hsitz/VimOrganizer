@@ -1304,7 +1304,8 @@ function! OrgShowMore(headingline)
 endfunction
 
 function! OrgShowSubs(number,withtext)
-
+    " used by comma-num mapping
+    " expands/collapses individual heading to level visibility equal to a:number
     let cur_level = s:Ind(line('.')) - 1
     if a:number > cur_level
         let rel_level = a:number - cur_level 
@@ -6092,16 +6093,25 @@ function! NarrowCodeBlock(line)
     
 endfunction
 " Org Menu Entries
-amenu &Org.&View.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
-amenu &Org.&View.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
-amenu &Org.&View.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
-amenu &Org.&View.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
-amenu &Org.&View.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
-amenu &Org.&View.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
-amenu &Org.&View.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
-amenu &Org.&View.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
-amenu &Org.&View.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
-amenu &Org.&View.Expand\ Level\ &All :set foldlevel=99999<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &1<tab>,,1 :set foldlevel=1<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &2<tab>,,2 :set foldlevel=2<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &3<tab>,,3 :set foldlevel=3<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &4<tab>,,4 :set foldlevel=4<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &5<tab>,,5 :set foldlevel=5<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &6<tab>,,6 :set foldlevel=6<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &7<tab>,,7 :set foldlevel=7<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &8<tab>,,8 :set foldlevel=8<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &9<tab>,,9 :set foldlevel=9<cr>
+amenu &Org.&View.Entire\ &Document.Expand\ Level\ &All :set foldlevel=99999<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &1<tab>,1 :silent call OrgShowSubs(1,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &2<tab>,2 :silent call OrgShowSubs(2,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &3<tab>,3 :silent call OrgShowSubs(3,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &4<tab>,4 :silent call OrgShowSubs(4,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &5<tab>,5 :silent call OrgShowSubs(5,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &6<tab>,6 :silent call OrgShowSubs(6,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &7<tab>,7 :silent call OrgShowSubs(7,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &8<tab>,8 :silent call OrgShowSubs(8,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &9<tab>,9 :silent call OrgShowSubs(9,0)cr>
 amenu &Org.-Sep1- :
 amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or <s-cr>) :call OrgNewHead('same')<cr>
 amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
