@@ -1327,22 +1327,12 @@ function! s:ShowSubs(number,withtext)
     let l:start = foldclosed(line("."))
     if l:start != -1
         let l:end = foldclosedend(line("."))
-        "exec l:start 
-        "exec "normal! zv"
         exec "" . l:start . "," . l:end . "foldc!"
         exec "normal! zv"
-        "if a:number >= 2 
         let to_level = 2
         for to_level in range( 2 , a:number )
             exec "" . l:start . "," . l:end . "foldo"
         endfor
-        "    jj
-        "    let l:i = 2
-        "    while l:i <= a:number
-        "        exec "" . l:start . "," . l:end . "foldo"
-        "        let l:i = l:i + 1
-        "    endwhile    
-        "endif
     endif
     if a:withtext == 0
         call OrgSingleHeadingText('collapse')
@@ -2352,7 +2342,7 @@ function! OrgRunSearch(search_spec,...)
         "set mouseshape-=n:busy,v:busy,i:busy
     "let win = bufnr('Calendar')
     if bufnr('Calendar') > 0 
-        execute 'bd' . bufnr('Calendar')
+        execute 'bd!' . bufnr('Calendar')
     endif   
 
     try
@@ -2625,7 +2615,7 @@ function! OrgRunAgenda(date,count,...)
         execute win . 'wincmd w'
         normal ggjjj
         wincmd l
-        execute 'bd' . bufnr('Calendar')
+        execute 'bd!' . bufnr('Calendar')
 
     endif   
     if !exists("g:agenda_files") || (g:agenda_files == [])
@@ -4727,7 +4717,7 @@ function! ToggleColumnView()
     if b:v.columnview
         let winnum = bufwinnr('ColHeadBuffer')
         if winnum > 0 
-            execute "bd" . bufnr('ColHeadBuffer')
+            execute "bd!" . bufnr('ColHeadBuffer')
             "wincmd c
         endif
         let b:v.columnview = 0
@@ -5636,15 +5626,29 @@ function! OrgEvalTable()
     call setpos('.',savecursor)
 endfunction
 function! OrgEval()
+    if matchstr(getline(line('.')) , '^\s*|.*|\s*$' ) ># ''
+        call OrgEvalTable()
+    else
+        call OrgEvalBlock()
+    endif
+endfunction
+
+function! OrgEvalBlock()
     let savecursor = getpos('.')
-    let g:t1 = strftime("%c")
-    call search('^#+begin_src','b','')
-    normal k
-    let start=line('.')
-    call search('^#+results','','')
-    call search('^\s*$','','')
-    normal k
-    let end=line('.')
+    let start = search('^#+begin_src','bn','') - 1
+    let prev_end = search('^#+end_src','bn','') 
+    let end = search('^#+end_src','n','') 
+    if (start == -1) || (end == 0) || ( ( prev_end > start ) && (prev_end < line('.') ) )
+        echo "You aren't in a code block."
+        return
+    endif
+    exec end
+    if ( search('^#+results','n','') - end ) <= 3
+        call search('^#+results','','')
+        call search('^\s*$','','')
+        normal k
+        let end = line('.')
+    endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
     "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code2.el\^")^"'
     let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"'
@@ -5655,7 +5659,6 @@ function! OrgEval()
     exe start .',' . end . 'read ~/org-src-block.org'
     exe start . ',' . end . 'd'
     call setpos('.',savecursor)
-    let g:t2 = strftime("%c")
 endfunction
 function! s:ExportToPDF()
     let command1 = g:org_path_to_emacs . ' -batch --load $HOME/.emacs --visit='
@@ -5808,6 +5811,16 @@ function! s:Intersect(list1, list2)
     return sort(keys(rdict))
 endfunc 
 
+function! OrgSetEmphasis( emph_char ) range
+    let emph_char = a:emph_char
+    let my_mode = mode()
+    if my_mode ==? 'v'
+        exe 'normal oi' . emph_char 
+        exe 'normal gvoi' . emph_char
+    else
+        exe 'normal i' . emph_char . emph_char
+    endif
+endfunction
 
 function! OrgSetColors()
     " define foreground colors for ****UNfolded**** outline heading levels
@@ -6111,9 +6124,9 @@ amenu &Org.&View.&Subtree.To\ Level\ &5<tab>,5 :silent call OrgShowSubs(5,0)<cr>
 amenu &Org.&View.&Subtree.To\ Level\ &6<tab>,6 :silent call OrgShowSubs(6,0)<cr>
 amenu &Org.&View.&Subtree.To\ Level\ &7<tab>,7 :silent call OrgShowSubs(7,0)<cr>
 amenu &Org.&View.&Subtree.To\ Level\ &8<tab>,8 :silent call OrgShowSubs(8,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &9<tab>,9 :silent call OrgShowSubs(9,0)cr>
+amenu &Org.&View.&Subtree.To\ Level\ &9\ \ \ \ \ \ <tab>,9 :silent call OrgShowSubs(9,0)cr>
 amenu &Org.-Sep1- :
-amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or <s-cr>) :call OrgNewHead('same')<cr>
+amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or\ <s-cr>) :call OrgNewHead('same')<cr>
 amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
 amenu &Org.&New\ Heading.New\ Head\ Parent\ Level<tab><s-c-cr> :call OrgNewHead('levelup')<cr>
 amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading<tab><a-left> :exec <SID>OrgParentHead()<cr>
@@ -6125,12 +6138,21 @@ amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLeve
 amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
 amenu &Org.&Navigate\ Headings.Next\ &Sibling<tab><a-down> :exec <SID>OrgNextSiblingHead()<cr>
 amenu &Org.&Navigate\ Headings.Previous\ Sibling<tab><a-up> :exec <SID>OrgPrevSiblingHead()<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
-amenu &Org.&Edit\ Structure.Move\ Subtree\ Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
-amenu &Org.&Edit\ Structure.Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
-amenu &Org.&Edit\ Structure.Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
-amenu &Org.Editing :echo 'not implemented yet'<cr>
-amenu &Org.Archive :echo 'not implemented yet'<cr>
+amenu &Org.Edit\ &Structure.Move\ Subtree\ &Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
+amenu &Org.Edit\ &Structure.Move\ Subtree\ &Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
+amenu &Org.Edit\ &Structure.&Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
+amenu &Org.Edit\ &Structure.&Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
+vmenu &Org.&Editing.&Bold\ (*)<tab>,cb              "zdi*<C-R>z*<ESC>l
+vmenu &Org.&Editing.&Italic\ (/)<tab>,ci            "zdi/<C-R>z/<ESC>l
+vmenu &Org.&Editing.&Underline\ (_)<tab>,cu         "zdi_<C-R>z_<ESC>l
+vmenu &Org.&Editing.&Code\ (=)<tab>,cc              "zdi=<C-R>z=<ESC>l
+amenu &Org.&Editing.-Sep22- :
+amenu &Org.&Editing.Narrow\ &Codeblock<tab>,nc :silent call NarrowCodeBlock(line('.'))<cr>
+amenu &Org.&Editing.Narrow\ Outline\ &Subtree<tab>,ns :silent call NarrowOutline(line('.'))<cr>
+amenu &Org.&Refile.&Refile\ to\ Point<tab>,rh :call OrgRefile(line('.'))<cr>
+amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
+amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
+amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
 amenu &Org.-Sep2- :
 amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
 amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
@@ -6140,19 +6162,26 @@ amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
 amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
 amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
 amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
+amenu &Org.&Table.&Create<tab>,bc :call org#tbl#create()<cr>
+amenu &Org.&Table.Column\ &Left<tab>,bl :call org#tbl#move_column_left()<cr>
+amenu &Org.&Table.Column\ &Right<tab>,br :call org#tbl#move_column_right()<cr>
 amenu &Org.-Sep3- :
-amenu &Org.TODO\ Lists :echo 'not implemented yet'<cr>
-amenu &Org.TAGS\ and\ Properties :echo 'not implemented yet'<cr>
-amenu &Org.Dates\ and\ Scheduling :echo 'not implemented yet'<cr>
-amenu &Org.Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
-amenu &Org.Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
+amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+amenu &Org.Edit\ TA&GS<tab>,et  :call OrgTagsEdit()<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Deadline<tab>,dd :call OrgDateEdit('DEADLINE')<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Scheduled<tab>,ds :call OrgDateEdit('SCHEDULED')<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Closed<tab>,dc :call OrgDateEdit('CLOSED')<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Timestamp<tab>,dt :call OrgDateEdit('TIMESTAMP')<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgDateEdit('')<cr>
+amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
+amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
 amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
-amenu &Org.Set\ Restriction\ Lock :echo 'not implemented yet'<cr>
-amenu &Org.File\ List\ for\ Agenda :call EditAgendaFiles()<cr>
-amenu &Org.Special\ views\ current\ file :echo 'not implemented yet'<cr>
+amenu &Org.&Do\ Emacs\ Eval<tab>,xe :call OrgEval()<cr>
+amenu &Org.File\ &List\ for\ Agenda :call EditAgendaFiles()<cr>
+amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
 amenu &Org.-Sep5- :
-amenu &Org.Narro&w.Heading\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
+amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
 amenu &Org.Export/Publish :call OrgExport()<cr>
