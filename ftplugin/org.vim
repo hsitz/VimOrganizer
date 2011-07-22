@@ -5002,6 +5002,10 @@ function! s:OrgAgendaToBuf()
     set foldlevel=1
     normal! zv
     normal! z.
+    normal V
+    redraw
+    sleep 100m
+    normal V
     "wincmd j
     execute bufnr('Agenda').'wincmd w'
     "wincmd c
@@ -5615,14 +5619,20 @@ function! OrgEvalTable()
     let savecursor = getpos('.')
     call search('^\s*$','b','')
     let start=line('.')
-    call search('^#+TBLFM','','')
-    call search('^\s*$','','')
-    let end=line('.')
-    exe start . ',' . end . 'w! ~/org-tbl-block.org'
-    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code3.el\^")^"'
-    silent exe '!' . g:orgpath
-    exe start .',' . end . 'read ~/org-tbl-block.org'
-    exe start . ',' . end . 'd'
+    " find first line after table block and check for formulas
+    call search('^\(\s*|\)\@!','','')
+    if getline(line('.'))[0:6] == '#+TBLFM'
+        let end=line('.')
+        exe start . ',' . end . 'w! ~/org-tbl-block.org'
+        let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"~/org-tbl-block.org\^' . '"' . ')(org-table-recalculate-buffer-tables)(save-buffer)(kill-buffer)))' 
+        let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"' . part1 . '^"'
+        silent exe '!' . g:orgpath
+        exe start .',' . end . 'read ~/org-tbl-block.org'
+        exe start . ',' . end . 'd'
+        echo "Calculations complete."
+    else
+        echo "No #+TBLFM line at end of table, so no calculations necessary."
+    endif
     call setpos('.',savecursor)
 endfunction
 function! OrgEval()
@@ -5652,8 +5662,9 @@ function! OrgEvalBlock()
     exe start . ',' . end . 'w! ~/org-src-block.org'
     "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code2.el\^")^"'
     let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"'
-    call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"',1)
-    "call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code2.el\^")^"',1)
+            let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"~/org-src-block.org\^' . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
+    "call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"',1)
+    silent call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"' . part1 . '^"',1)
     " line below is for without xolox
     "silent exe '!' . g:orgpath
     exe start .',' . end . 'read ~/org-src-block.org'
@@ -6177,14 +6188,14 @@ amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
 amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
 amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
-amenu &Org.&Do\ Emacs\ Eval<tab>,xe :call OrgEval()<cr>
+amenu <silent> &Org.&Do\ Emacs\ Eval<tab>,xe :call OrgEval()<cr>
 amenu &Org.File\ &List\ for\ Agenda :call EditAgendaFiles()<cr>
 amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
 amenu &Org.-Sep5- :
 amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
-amenu &Org.Export/Publish :call OrgExport()<cr>
+amenu &Org.Export/Publish\ w/Emacs :call OrgExport()<cr>
 
 "*********************************************************************
 "*********************************************************************
