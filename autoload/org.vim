@@ -31,10 +31,10 @@ function! org#SetOrgFileType()
 			":let g:ft_ignore_pat = '\.\(Z\|gz\|bz2\|zip\|tgz\)$'
                 endif
 		"call input("you reached bufenter func!")
-		syntax on
-		if &fdm!='expr'
-			set fdm=expr
-		endif
+		"syntax on
+		"if &fdm!='expr'
+		"	set fdm=expr
+		"endif
         endif
         "if !exists('g:in_agenda_search') && (&foldmethod!='expr')
         "        setlocal foldmethod=expr

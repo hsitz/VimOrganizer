@@ -3641,7 +3641,7 @@ function! CalEdit( sdate, stime )
         " bring up calendar to edit and return a date value
         let basedate = a:sdate ==# '' ? s:Today() : a:sdate 
         let basetime = a:stime
-        let newdate = '<' . basedate[0:9] . (basetime ># '' ? ' ' . b:v.basetime : '') . '>'
+        let newdate = '<' . basedate[0:9] . ' ' . calutil#dayname(basedate[0:9]) . (basetime ># '' ? ' ' . b:v.basetime : '') . '>'
         let newtime = basetime
 
         hi Cursor guibg=black
@@ -4502,6 +4502,9 @@ function! s:LocateFile(filename)
         silent execute bufwinnr(filename)."wincmd w"
     else
         execute 'tab drop ' . filename
+        if &ft != 'org'
+            call org#SetOrgFileType()
+        endif
     endif
     "endif
     " below is alternate method:
