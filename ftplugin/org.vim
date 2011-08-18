@@ -690,8 +690,8 @@ function! s:UnconvertTags(line)
 endfunction
 function! <SID>GlobalUnconvertTags(state)
     if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
-        let g:save_cursor = getpos(".")
-        let g:last_changenr = a:state
+        let s:save_cursor = getpos(".")
+        let s:last_changenr = a:state
         mkview
         normal A 
         g/^\*\+\s/call s:UnconvertTags(line("."))
@@ -700,10 +700,10 @@ function! <SID>GlobalUnconvertTags(state)
 endfunction
 function! <SID>UndoUnconvertTags()
     if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
-        silent exec 'undo ' . g:last_changenr 
+        silent exec 'undo ' . s:last_changenr 
         silent undo
         loadview
-        call setpos(".",g:save_cursor)
+        call setpos(".",s:save_cursor)
     endif
 endfunction
 
@@ -3593,6 +3593,12 @@ function! OrgAgendaDateType()
 endfunction
 
 function! GetDateAtCursor()
+
+    return matchstr( GetDateSpecAtCursor() , '^[[<]\zs\d\d\d\d-\d\d-\d\d' )
+
+endfunction
+
+function! GetDateSpecAtCursor()
     let savecursor = getpos(".")
     " save visual bell settings so no bell
     " when not found"
@@ -3601,17 +3607,17 @@ function! GetDateAtCursor()
     set vb t_vb=
 
     "  check for date string within brackets
-    normal! vi<
+    normal! va<
     silent! normal! "xy
     call setpos('.',savecursor)
     if len(@x) < 7 
         "normal! vi["xy
-        normal! vi[
+        normal! va[
         silent! normal! "xy
     endif
 
-    if (len(@x)>=14) && (len(@x)<40)
-        let date = matchstr(@x,'^\d\d\d\d-\d\d-\d\d')
+    if (len(@x)>=15) && (len(@x)<41)
+        let date = matchstr(@x,'^[[<]\d\d\d\d-\d\d-\d\d')
     else
         let date = ''
     endif
@@ -3621,6 +3627,7 @@ function! GetDateAtCursor()
     let &t_vb = orig_t_vb
 
     if date ># ''
+        " return with only opening '<' or '['
         return @x
     else
         return ''
@@ -3630,71 +3637,12 @@ function! GetDateAtCursor()
         
 endfunction
 
-function! OrgDateEdit(type)
-    " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP or blank for 
-    " date on current line
-    let old_cal_navi = g:calendar_navi
-    unlet g:calendar_navi
-    try
-        let text = a:type
-        let line_pos = getpos('.')[2]
-        let b:v.basetime=''
-        let from_agenda=0
-        let str = ''
-        let lineno=line('.')
-        let buffer_lineno = lineno
-        let file = expand("%:t")
-        let bufline = getline(lineno)
-        if bufname("%") ==? ('__Agenda__')
-            let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
-            let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
-            let from_agenda=1
-            let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
-            let str = ',' . buffer_lineno . ',"' . file . '"'
-            let bufline = OrgGetLine(buffer_lineno,file)
-            if bufline !~ '[<[]\d\d\d\d-\d\d-\d\d'
-                call confirm("Can't find corresponding line in main buffer, may need to refresh Agenda")
-                return
-            endif
-            let b:v.mdate = matchstr(bufline,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d-\d\d:\d\d\| \d\d:\d\d\|\)') 
-        else
-            let b:v.mdate = GetDateAtCursor()
-        endif
-        if text =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\)'
-            let b:v.mdate = s:GetProp(text,buffer_lineno, file)
-        endif
-
-        if matchstr(bufline,'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
-           call confirm("Date has a repeater.  Please edit by hand.")
-           return
-        endif
-
-        let b:v.mdate = matchstr(b:v.mdate,'\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d-\d\d:\d\d\| \d\d:\d\d\|\)') 
-        let replace_str = b:v.mdate
-        " if no date found insert in between empty <> 
-        " or subsistute >< or finally put at the end of the line
-        if replace_str ==? ""
-            let replace_str = '<\zs[^>]*\ze>\|><\|$'
-        end
-        if b:v.mdate ># ''
-            let b:v.basedate = b:v.mdate[0:9]
-            let b:v.baseday = b:v.mdate[11:13]
-            if len(b:v.mdate) > 14
-                let b:v.basetime = b:v.mdate[15:]
-            else
-                let b:v.basetime = ''
-            endif
-        else
-            let b:v.mdate=strftime("%Y-%m-%d %a")
-            let b:v.basedate=s:Today()
-            let b:v.basetime = ''
-        endif
-
-"function! OrgDatePrompt(basedate, basetime)
-        let basedate = b:v.basedate[0:9]
-        let basetime = b:v.basetime
-        let newdate = '<' . b:v.mdate[0:13] . (b:v.basetime ># '' ? ' ' . b:v.basetime : '') . '>'
-        let newtime = b:v.basetime
+function! CalEdit( sdate, stime )
+        " bring up calendar to edit and return a date value
+        let basedate = a:sdate ==# '' ? s:Today() : a:sdate 
+        let basetime = a:stime
+        let newdate = '<' . basedate[0:9] . (basetime ># '' ? ' ' . b:v.basetime : '') . '>'
+        let newtime = basetime
 
         hi Cursor guibg=black
         let s:org_cal_date = newdate[1:10]
@@ -3740,7 +3688,7 @@ function! OrgDateEdit(type)
                     bdelete Calendar
                 endif
                 redraw
-                return
+                return ''
             elseif (nchar ==? "\<LeftMouse>") && (v:mouse_win > 0) && (bufwinnr('__Calendar') == v:mouse_win)
                 let g:cal_list=[]
                 exe v:mouse_win . "wincmd w"
@@ -3771,27 +3719,40 @@ function! OrgDateEdit(type)
         endwhile
         hi Cursor guibg=gray
         bdelete __Calendar
-        if (from_agenda == 0) && bufname("%") ==? '__Agenda__'
-           wincmd k 
+        return newdate 
+endfunction
+
+function! OrgGenericDateEdit()
+    " edit date at cursor, not necessarily any specific type
+    let save_cursor = getpos('.')
+    let old_cal_navi = g:calendar_navi
+    unlet g:calendar_navi
+    try
+        let my_date = GetDateSpecAtCursor()
+        let orig_date = matchstr( my_date, '[[<]\zs\d\d\d\d-\d\d-\d\d' )
+        let orig_time = matchstr( my_date, '[[<]\d\d\d\d-\d\d-\d\d ... \zs\d\d:\d\d' )
+
+        if matchstr(my_date,'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
+           call confirm("Date has a repeater.  Please edit by hand.")
+           return
         endif
 
-        " set buffer text with new date . . . 
-        if text =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\)'
-            let b:v.mdate = s:SetProp(text,newdate,buffer_lineno, file)
-        else
-            " set the date at linenumber to new date
-            "let newdate = substitute(bufline,'[[<]\zs\d\d\d\d-\d\d-\d\d.\{-}\ze[>\]]',newdate[1:-2],'')
-            let newdate = substitute(bufline,replace_str, newdate[1:-2]  ,'')
-            if bufname("%") ==? ('__Agenda__')
-                call OrgSetLine(buffer_lineno,file,newdate)
+        let cal_result = CalEdit(orig_date, orig_time)
+
+        " put new date into text
+        call setpos('.', save_cursor)
+        if cal_result =~ '^.\d\d\d\d-\d\d'
+            let @x = cal_result[1:-2]
+            if my_date ># ''
+                "replace existing date within delimiters
+                exec 'normal vi' . my_date[0] . 'd'
+                normal h"xpll
             else
-                call setline(buffer_lineno,newdate)
-                "normal f>
+                "paste in brand new date
+                exec 'normal i <> '
+                normal hh"xpll
             endif
         endif
-        let @/=''
-        set nohlsearch
-        set hlsearch
         redraw
         echo 
         redraw
@@ -3800,7 +3761,59 @@ function! OrgDateEdit(type)
     endtry
 endfunction
 
+function! OrgDateEdit(type)
+    " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP 
+    let old_cal_navi = g:calendar_navi
+    unlet g:calendar_navi
+    try
+        let dtype = a:type
+        if bufname("%") ==? ('__Agenda__')
+            "get file, lineno, and other data if in Agenda
+            let from_agenda=1
+            let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+            let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+            let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
+            let bufline = OrgGetLine(buffer_lineno,file)
+        else
+            let from_agenda=0
+            let buffer_lineno = line('.')
+            let bufline = getline(buffer_lineno)
+            let file = expand("%:t")
+        endif
+        if dtype =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\)'
+            let my_date = s:GetProp(dtype,buffer_lineno, file)
+        
+            let orig_date = matchstr( my_date, '[[<]\zs\d\d\d\d-\d\d-\d\d' )
+            let orig_time = matchstr( my_date, '[[<]\d\d\d\d-\d\d-\d\d ... \zs\d\d:\d\d' )
+
+            if matchstr(bufline,'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
+               call confirm("Date has a repeater.  Please edit by hand.")
+               return
+            endif
+
+            let cal_result = CalEdit(orig_date, orig_time)
+
+            " back to main window if agenda is above calendar after close
+            if (from_agenda == 0) && bufname("%") ==? '__Agenda__'
+               wincmd k 
+            endif
+
+            " set buffer text with new date . . . 
+            call s:SetProp(dtype,cal_result,buffer_lineno, file)
+
+            redraw
+            echo 
+            redraw
+        else
+            echo "Date type must be one of: DEADLINE, SCHEDULED, CLOSED, or TIMESTAMP."
+        endif
+    finally
+        let g:calendar_navi = old_cal_navi
+    endtry
+endfunction
+
 function! s:GetNewTime(cue, basetime)
+    " called from caledit()
     let timecue = a:cue
     if timecue =~ '\d\d:\d\d'
         let mytime = ' '.timecue
@@ -3812,22 +3825,23 @@ function! s:GetNewTime(cue, basetime)
 endfunction
 
 function! s:GetNewDate(cue,basedate,basetime)
-        if match(a:cue,':') >= 0
-            let cue = matchstr(a:cue,'^\S\+\ze \S\+:')
-            let timecue = matchstr(a:cue,'\S\+:\S\+')
-        else
-            let cue = a:cue
-            let timecue = ''
-        endif
-        let basedate = a:basedate
-        let newdate = DateCueResult( cue , basedate )
-        if timecue =~ '\d\d:\d\d'
-            let mytime = ' '.timecue
-        else
-            let mytime = a:basetime ># '' ? ' ' . a:basetime : ''
-        endif
-        let mydow = calutil#dayname(newdate)
-        return newdate . ' ' . mydow . mytime
+    " called from caledit()
+    if match(a:cue,':') >= 0
+        let cue = matchstr(a:cue,'^\S\+\ze \S\+:')
+        let timecue = matchstr(a:cue,'\S\+:\S\+')
+    else
+        let cue = a:cue
+        let timecue = ''
+    endif
+    let basedate = a:basedate
+    let newdate = DateCueResult( cue , basedate )
+    if timecue =~ '\d\d:\d\d'
+        let mytime = ' '.timecue
+    else
+        let mytime = a:basetime ># '' ? ' ' . a:basetime : ''
+    endif
+    let mydow = calutil#dayname(newdate)
+    return newdate . ' ' . mydow . mytime
 endfunction
 function! DateCueResult( cue, basedate)
         let cue = a:cue
@@ -4855,6 +4869,12 @@ function! OrgFoldText(...)
     endif
     if exists('v:foldhighlight')
         let v:foldhighlight = level_highlight
+        if matchstr(origline, b:v.todoMatch) ># ''
+            let this_todo = matchstr(origline, '^\*\+ \zs\S*')
+            let v:todohighlight = hlID(this_todo)
+        else
+            let v:todohighlight = 0
+        endif
     endif
     return l:line
 endfunction
@@ -5710,7 +5730,7 @@ function! OrgExport()
     let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
             \      'h':'html', 'b':'html-and-open', 'l':'latex', 
             \      'F':'current-file', 'P':'current-project', 'E':'all', 
-            \      'p':'pdf', 'd':'pdf-and-open', 'D':'docbook' } 
+            \      'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle' } 
     echo " Press key for export operation:"
     echo " --------------------------------"
     echo " [t]   insert the export options template block"
@@ -5729,6 +5749,8 @@ function! OrgExport()
     echo " "
     echo " [x] export as XOXO"
     echo " "
+    echo " [g] tangle file"
+    echo " "
     echo " [F] publish current file"
     echo " [P] publish current project"
     echo " [E] publish all projects"
@@ -5746,9 +5768,15 @@ function! OrgExport()
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \^' . '"' . g:myfilename . '\^' . '"' . '))) (progn  (' 
-            let g:mypart3 = ' nil ) (kill-buffer buf) ))'
+            if item == 'g' 
+                let g:mypart3 = ' ) (kill-buffer buf) ))'
+            else
+                let g:mypart3 = ' nil ) (kill-buffer buf) ))'
+            endif
             if item =~ 'F\|P\|E'
                 let command_part2 = ' org-publish-' . mydict[key]
+            elseif item == 'g'
+                let command_part2 = ' org-babel-tangle'
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
