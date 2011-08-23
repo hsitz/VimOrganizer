@@ -6214,7 +6214,7 @@ amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Deadline<tab>,dd :call OrgDateEdit
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Scheduled<tab>,ds :call OrgDateEdit('SCHEDULED')<cr>
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Closed<tab>,dc :call OrgDateEdit('CLOSED')<cr>
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Timestamp<tab>,dt :call OrgDateEdit('TIMESTAMP')<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgDateEdit('')<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgGenericDateEdit()<cr>
 amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
 amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :

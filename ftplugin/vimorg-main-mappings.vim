@@ -8,7 +8,7 @@ nmap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
 nmap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 "cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
 " dl is for the date on the current line
-map <silent> <buffer> <localleader>dg :call OrgDateEdit('')<cr>
+map <silent> <buffer> <localleader>dg :call OrgGenericDateEdit()<cr>
 map <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
 map <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
 map <silent> <buffer> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
