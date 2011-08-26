@@ -94,8 +94,13 @@ let g:org_clock_history=[]
 let g:org_reverse_note_order = 0
 let g:org_html_app=''
 let g:org_pdf_app=''
-let g:org_path_to_emacs='emacsclient'
-let g:org_path_to_emacs='"c:\program files (x86)\emacs\emacs\bin\emacsclientw.exe"'
+if has('win32') || has('win64')
+    let g:org_path_to_emacs = expand("~") . '\emacsclientw.exe'
+    let s:qchar = '^'
+else
+    let g:org_path_to_emacs = 'emacsclient'
+    let s:qchar = ''
+endif
 let s:org_headMatch = '^\*\+\s'
 let s:org_cal_date = '2000-01-01'
 let g:org_tag_group_arrange = 0
@@ -5647,9 +5652,13 @@ function! OrgEvalTable()
     if getline(line('.'))[0:6] == '#+TBLFM'
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"~/org-tbl-block.org\^' . '"' . ')(org-table-recalculate-buffer-tables)(save-buffer)(kill-buffer)))' 
-        let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"' . part1 . '^"'
-        silent exe '!' . g:orgpath
+        let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:qchar . '"~/org-tbl-block.org\' . s:qchar . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        let orgcmd = g:org_path_to_emacs . ' --eval ' . s:qchar . '"' . part1 . s:qchar . '"'
+        if exists('*xolox#shell#execute')
+            silent call xolox#shell#execute(orgcmd, 1)
+        else
+            silent exe '!' . orgcmd
+        endif
         exe start .',' . end . 'read ~/org-tbl-block.org'
         exe start . ',' . end . 'd'
         echo "Calculations complete."
@@ -5683,42 +5692,17 @@ function! OrgEvalBlock()
         let end = line('.')
     endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
-    "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(load-file \^"~/run-code2.el\^")^"'
-    let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"'
-            let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \^' . '"~/org-src-block.org\^' . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
-    "call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"',1)
-    silent call xolox#shell#execute('c:\users\herbert\emacsclientw.exe --eval ^"' . part1 . '^"',1)
-    " line below is for without xolox
-    "silent exe '!' . g:orgpath
+    "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"'
+    let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:qchar . '"~/org-src-block.org\' . s:qchar . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
+    let orgcmd = g:org_path_to_emacs . ' --eval ' . s:qchar . '"' . part1 . s:qchar . '"'
+    if exists('*xolox#shell#execute')
+        silent call xolox#shell#execute(orgcmd, 1)
+    else
+        silent exe "!" . orgcmd
+    endif
     exe start .',' . end . 'read ~/org-src-block.org'
     exe start . ',' . end . 'd'
     call setpos('.',savecursor)
-endfunction
-function! s:ExportToPDF()
-    let command1 = g:org_path_to_emacs . ' -batch --load $HOME/.emacs --visit='
-    let part2 = ' --funcall org-export-as-pdf-and-open'
-    silent execute '!' . command1 . expand("%") . part2
-    "call inputdialog("just waiting to go forward. . . ")
-    "silent execute '!'.expand("%:r").'.pdf'
-endfunction
-function! s:ExportToHTML()
-    let command1 = g:org_path_to_emacs .' -batch --visit='
-    let part2 = ' --funcall org-export-as-html-and-open'
-    silent execute '!' . command1 . expand("%") . part2
-    "call inputdialog("just waiting to go forward. . . ")
-    "silent execute '!'.expand("%:r").'.html'
-endfunction
-function! s:ExportToAscii()
-    let command1 = g:org_path_to_emacs .' -batch --visit='
-    let part2 = ' --funcall org-export-as-ascii'
-    silent execute '!' . command1 . expand("%") . part2
-    "call inputdialog("just waiting to go forward. . . ")
-endfunction
-function! s:ExportToDocBook()
-    let command1 = g:org_path_to_emacs .' -batch --visit='
-    let part2 = ' --funcall org-export-as-docbook'
-    silent execute '!' . command1 . expand("%") . part2
-    "call inputdialog("just waiting to go forward. . . ")
 endfunction
 function! MyExpTest()
     let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
@@ -5766,11 +5750,11 @@ function! OrgExport()
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
-            let p1 = g:org_path_to_emacs . ' --eval '
+            "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
+            let orgpath = g:org_path_to_emacs . ' --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
-            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \^' . '"' . g:myfilename . '\^' . '"' . '))) (progn  (' 
+            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:qchar . '"' . g:myfilename . '\' . s:qchar . '"))) (progn  (' 
             if item == 'g' 
                 let g:mypart3 = ' ) (kill-buffer buf) ))'
             else
@@ -5783,8 +5767,8 @@ function! OrgExport()
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
-            let g:mainpart =  'silent !' . g:orgpath . '^"' . g:mypart1 
-            silent execute g:mainpart . command_part2 . g:mypart3 . '^"'
+            let g:mainpart =  'silent !' . orgpath . qchar . '"' . g:mypart1 
+            silent execute g:mainpart . command_part2 . g:mypart3 . qchar . '"'
             call s:UndoUnconvertTags()
             let g:org_emacs_autoconvert = 0
             silent exec 'write'
