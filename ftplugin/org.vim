@@ -5186,8 +5186,7 @@ function! OrgFoldLevel(line)
     if l:text[0] ==? '*'
         " we're on a heading line
         let b:v.lasttext_lev = ''
-        " propmatch line is new (sep 27) need ot test having different
-        " value for propmatch and deadline lines
+        
         if l:nexttext =~ b:v.drawerMatch
             let b:v.lev = '>' . string(b:v.myAbsLevel + 4)
         elseif l:nexttext =~ s:remstring
@@ -5195,8 +5194,6 @@ function! OrgFoldLevel(line)
         elseif (l:nexttext !~ b:v.headMatch) && (a:line != line('$'))
             let b:v.lev = '>' . string(b:v.myAbsLevel + 3)
         elseif l:nextAbsLevel > b:v.myAbsLevel
-            "let b:v.lev = '>20'
-            "let b:v.lev = '>' . string(l:nextAbsLevel)
             let b:v.lev = '>' . string(b:v.myAbsLevel)
         elseif l:nextAbsLevel < b:v.myAbsLevel
             let b:v.lev = '<' . string(l:nextAbsLevel)
@@ -5219,10 +5216,6 @@ function! OrgFoldLevel(line)
             elseif (l:nexttext !~ s:remstring) || 
                         \ (l:nexttext =~ b:v.drawerMatch) 
                 let b:v.lev = '<' . string(b:v.prevlev + 4)
-            " reverting back to use the if and elseif blocks above
-            " (11-24-2009)
-            "if (getline(a:line - 1) =~ b:v.headMatch) 
-            "    let b:v.lev = '>' . string(b:v.prevlev + 4)
             else
                 let b:v.lev = b:v.prevlev + 4
             endif
@@ -5767,8 +5760,13 @@ function! OrgExport()
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
-            let g:mainpart =  'silent !' . orgpath . qchar . '"' . g:mypart1 
-            silent execute g:mainpart . command_part2 . g:mypart3 . qchar . '"'
+            let orgcmd =  'silent !' . orgpath . qchar . '"' . g:mypart1 . command_part2 . g:mypart3 . qchar . '"'
+            " execute the call out to emacs
+            if exists('*xolox#shell#execute')
+                silent call xolox#shell#execute(orgcmd, 1)
+            else
+                silent execute orgcmd
+            endif
             call s:UndoUnconvertTags()
             let g:org_emacs_autoconvert = 0
             silent exec 'write'
