@@ -13,6 +13,7 @@
 
 " stuff below here is necessary for VimOrganizer to work right
 filetype plugin indent on
+syntax on
 " use this colorscheme or integrate it into an existing colorscheme
 colorscheme org_dark
 
@@ -35,9 +36,9 @@ set guioptions-=L
 "let g:org_agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop"]
 
 " vars below are used to define default Todo list and
-" default Tag list.  Will be changed in near future so
-" that these are defined by config lines in each .org
-" file itself, but now these are where you can change things:
+" default Tag list.  In some cases they can be 
+" overridden or supplemented with config lines 
+" inserted into and specific to a .org document file.
 let g:org_todo_setup= 'TODO | DONE'
 " while g:org_tag_setup is itself a string
 let g:org_tag_setup='{@home(h) @work(w) @tennisclub(t)} \n {easy(e) hard(d)} \n {computer(c) phone(p)}'

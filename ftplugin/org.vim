@@ -4517,19 +4517,7 @@ function! s:LocateFile(filename)
             call org#SetOrgFileType()
         endif
     endif
-    "endif
-    " below is alternate method:
-    " = == = == = == = == = == = == = == = == ==
-    " remember current value of switchbuf
-    "  let l:old_switchbuf = &switchbuf
-    "  try
-    "    " change switchbuf so other windows and tabs are used
-    "    set switchbuf=useopen,usetab
-    "    execute 'sbuf' a:filename
-    "  finally
-    "    " restore old value of switchbuf
-    "    let &switchbuf = l:old_switchbuf
-    "  endtry
+
 endfunction
 
 function! OrgConfirmDrawer(type,...)
@@ -4848,7 +4836,8 @@ function! OrgFoldText(...)
     let line_count = v:foldend - v:foldstart
 
     if l:line =~ b:v.drawerMatch
-        let level_highlight = hlID('Title')
+        "let level_highlight = hlID('Title')
+        let level_highlight = hlID('Org_Drawer')
         let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
         let line_count = line_count - 1
@@ -6097,6 +6086,12 @@ setlocal fillchars=|,
 "Section Narrow Region
 let g:nrrw_rgn_vert=1
 function! NarrowOutline(line)
+    if exists(":NarrowRegion") == 0
+       echo "The Vim plugin NrrwRgn.vim must be installed for"
+        echo "narrowing to work.  You can find a copy at:"
+        echo 'http://www.vim.org/scripts/script.php?script_id=3075'
+        return
+    endif
     if matchstr(getline(line('.')), b:v.headMatch) ># ''
         let start = s:OrgGetHead_l(a:line)
         let end = s:OrgSubtreeLastLine_l(start)
@@ -6110,6 +6105,12 @@ function! NarrowOutline(line)
 endfunction
 
 function! NarrowCodeBlock(line)
+    if exists(":NarrowRegion") == 0
+       echo "The Vim plugin NrrwRgn.vim must be installed for"
+        echo "narrowing to work.  You can find a copy at:"
+        echo 'http://www.vim.org/scripts/script.php?script_id=3075'
+        return
+    endif
     execute a:line
     call search('^#+begin_src','b','')
     let start=line('.') + 1
