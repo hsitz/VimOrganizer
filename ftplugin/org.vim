@@ -3714,7 +3714,13 @@ function! CalEdit( sdate, stime )
             else
                 let cue .= newchar
             endif
-            let newdate = '<' . s:GetNewDate(cue,basedate,basetime)  . '>'
+            try
+                let newdate = '<' . s:GetNewDate(cue,basedate,basetime)  . '>'
+            catch
+                " don't raise error if user mistypes cue. . . 
+                " or if last char makes cue uninterpretable
+                let newdate = "date cue can't be interpreted..."
+            endtry
             if g:org_use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
                 let s:org_cal_date = newdate[1:10]
                 call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
