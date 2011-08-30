@@ -5685,7 +5685,6 @@ function! OrgEvalBlock()
         let end = line('.')
     endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
-    "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval ^"(vimorg-babel-execute-src-block)^"'
     let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:qchar . '"~/org-src-block.org\' . s:qchar . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
     let orgcmd = g:org_path_to_emacs . ' --eval ' . s:qchar . '"' . part1 . s:qchar . '"'
     if exists('*xolox#shell#execute')
@@ -5738,20 +5737,23 @@ function! OrgExport()
     let key = nr2char(getchar())
     for item in keys(mydict)
         if (item ==# key) && (item !=# 't')
-            let g:org_emacs_autoconvert = 1
-            call s:GlobalUnconvertTags(changenr())
+            "let g:org_emacs_autoconvert = 1
+            "call s:GlobalUnconvertTags(changenr())
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            "let g:orgpath='c:\users\herbert\emacsclientw.exe --eval '
-            let orgpath = g:org_path_to_emacs . ' --eval '
+            let orgpath = g:org_path_to_emacs . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:qchar . '"' . g:myfilename . '\' . s:qchar . '"))) (progn  (' 
             if item == 'g' 
-                let g:mypart3 = ' ) (kill-buffer buf) ))'
+                "let g:mypart3 = ' ) (kill-buffer buf) ))'
+                "let g:mypart3 = ' ) (set-buffer buf) (set-buffer-modified-p nil) (kill-buffer buf) ))'
+                let g:mypart3 = ' buf) (set-buffer buf) (not-modified) (kill-this-buffer) ))'
             else
-                let g:mypart3 = ' nil ) (kill-buffer buf) ))'
+                "let g:mypart3 = ' nil ) (set-buffer-modified-p nil) (kill-buffer buf) ))'
+                "let g:mypart3 = ' ) (set-buffer buf) (set-buffer-modified-p nil) (kill-buffer buf) ))'
+                let g:mypart3 = ' buf) (set-buffer buf) (not-modified) (kill-this-buffer) ))'
             endif
             if item =~ 'F\|P\|E'
                 let command_part2 = ' org-publish-' . mydict[key]
@@ -5760,15 +5762,15 @@ function! OrgExport()
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
-            let orgcmd =  'silent !' . orgpath . qchar . '"' . g:mypart1 . command_part2 . g:mypart3 . qchar . '"'
+            let orgcmd =  orgpath . s:qchar . '"' . g:mypart1 . command_part2 . g:mypart3 . s:qchar . '"'
             " execute the call out to emacs
             if exists('*xolox#shell#execute')
                 silent call xolox#shell#execute(orgcmd, 1)
             else
-                silent execute orgcmd
+                silent execute '!' . orgcmd
             endif
-            call s:UndoUnconvertTags()
-            let g:org_emacs_autoconvert = 0
+            "call s:UndoUnconvertTags()
+            "let g:org_emacs_autoconvert = 0
             silent exec 'write'
             break
         endif
