@@ -3719,7 +3719,7 @@ function! CalEdit( sdate, stime )
             catch
                 " don't raise error if user mistypes cue. . . 
                 " or if last char makes cue uninterpretable
-                let newdate = "date cue can't be interpreted..."
+                let newdate = "can't interpret date cue  "
             endtry
             if g:org_use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
                 let s:org_cal_date = newdate[1:10]
