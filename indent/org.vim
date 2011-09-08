@@ -1,5 +1,22 @@
+" org.vim - VimOrganizer plugin for Vim
+" -------------------------------------------------------------
+" Version: 0.30
+" Maintainer: Herbert Sitz <hesitz@gmail.com>
+" Last Change: 2011 Aug 31
+"
+" Script: http://www.vim.org/scripts/script.php?script_id=3342
+" Github page: http://github.com/hsitz/VimOrganizer 
+" Copyright: (c) 2010, 2011 by Herbert Sitz
+" The VIM LICENSE applies to all files in the
+" VimOrganizer plugin.  
+" (See the Vim copyright except read "VimOrganizer"
+" in places where that copyright refers to "Vim".)
+" http://vimdoc.sourceforge.net/htmldoc/uganda.html#license
+" No warranty, express or implied.
+" *** *** Use At-Your-Own-Risk *** ***
 
-" Delete the next line to avoid the special indention of items
+" set indent of text lines beyond heading's left column
+" 0 -- have text lines flush with their heading's left col
 if !exists("g:org_indent_from_head")
   let g:org_indent_from_head = 0
 

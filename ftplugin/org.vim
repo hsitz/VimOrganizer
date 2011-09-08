@@ -1,3 +1,20 @@
+" org.vim - VimOrganizer plugin for Vim
+" -------------------------------------------------------------
+" Version: 0.30
+" Maintainer: Herbert Sitz <hesitz@gmail.com>
+" Last Change: 2011 Aug 31
+"
+" Script: http://www.vim.org/scripts/script.php?script_id=3342
+" Github page: http://github.com/hsitz/VimOrganizer 
+" Copyright: (c) 2010, 2011 by Herbert Sitz
+" The VIM LICENSE applies to all files in the
+" VimOrganizer plugin.  
+" (See the Vim copyright except read "VimOrganizer"
+" in places where that copyright refers to "Vim".)
+" http://vimdoc.sourceforge.net/htmldoc/uganda.html#license
+" No warranty, express or implied.
+" *** *** Use At-Your-Own-Risk *** ***
+"
 "Section Setup
 "if !exists('g:v')
 "    let g:v={}
@@ -4837,7 +4854,7 @@ function! OrgFoldText(...)
 
     if l:line =~ b:v.drawerMatch
         "let level_highlight = hlID('Title')
-        let level_highlight = hlID('Org_Drawer')
+        let level_highlight = hlID('Org_Drawer_Bold')
         let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
         let line_count = line_count - 1
@@ -5673,9 +5690,16 @@ function! OrgEvalBlock()
         return
     endif
     exec end
+    " include results if there is result block w/in a couple of lines
     if ( search('^#+results','n','') - end ) <= 3
         call search('^#+results','','')
-        call search('^\s*$','','')
+        if getline(line('.')+1) =~ '#+BEGIN_RESULT'
+            call search('^#+END_RESULT')
+            normal j
+        else
+            " :'s used as linebegins w/first blank line as end of result block
+            call search('^\s*$','','')
+        endif
         normal k
         let end = line('.')
     endif
@@ -5844,36 +5868,34 @@ function! OrgSetEmphasis( emph_char ) range
 endfunction
 
 function! OrgSetColors()
-    " define foreground colors for ****UNfolded**** outline heading levels
-    "hi! default link OL1 Folded
-    "hi! default link OL2 WarningMsg
-    "hi! default link OL3 WildMenu
-    "hi! default link OL4 DiffAdd
-    "hi! default link OL5 DiffChange
-    "hi! default link OL6 Title
-    "hi! default link OL7 LineNr
-    "hi! default link OL8 PreProc
-    "hi! default link OL9 Type
+    " Set highlights for outline headings.  These are set from existing
+    " highlights in a colorscheme:
+    "  OL1 from Statement
+    "  OL2 from Identifier
+    "  OL3 from Constant
+    "  OL4 from Comment
+    "  OL5 from Special
     for pair in [ ['OL1','Statement'], ['OL2','Identifier'], ['OL3','Constant'],
             \     ['OL4','Comment'],   ['OL5','Special'] ]
         execute 'hi clear ' . pair[0]
         execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
         execute 'hi ' . pair[0] . ' gui=NONE'
     endfor
+    " set up highlights to use for headlines
+    " involves create new set of highlights to 
+    " correspond to OL1-OL5, but this time with bold flag
+    " folded headlines use different highlights:
+    " folded OL1 uses Folded
+    " folded OL2 uses WarningMsg
+    " folded OL3 uses WildMenu
+    " folded OL4 uses DiffAdd
+    " folded OL5 uses DiffChange
     for pair in [ ['Folded','Statement'], ['WarningMsg','Identifier'], ['WildMenu','Constant'],
             \     ['DiffAdd','Comment'],   ['DiffChange','Special'] ]
         execute 'hi clear ' . pair[0]
         execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
         execute 'hi ' . pair[0] . ' gui=bold'
     endfor
-
-    " define highlighting for ***FOLDED*** outline heading levels
-    " 'Folded' is used for folded OL1
-    "hi! default link Folded Statement
-    "hi! default link WarningMsg Identifier
-    "hi! default link WildMenu Constant
-    "hi! default link DiffAdd Comment
-    "hi! default link DiffChange Special
 
     "blank out foldcolumn
     hi! FoldColumn guifg=bg guibg=bg ctermfg=fg ctermbg=bg
@@ -5883,6 +5905,7 @@ function! OrgSetColors()
     " various text item "highlightings" are below
     " change to suit your taste
     hi! Org_Drawer guifg=pink ctermfg=magenta
+    hi! Org_Drawer_Bold guifg=pink ctermfg=magenta gui=bold cterm=bold
     hi! Org_Property_Value guifg=pink ctermfg=magenta
     hi! Org_Block guifg=#555555 ctermfg=magenta
     hi! Org_Table guifg=#888888 guibg=#333333 ctermfg=magenta
@@ -5898,9 +5921,9 @@ function! OrgSetColors()
     hi! Org_Lnumber guifg=#999999 ctermfg=gray
     if has("conceal")
         hi! default linkends guifg=blue ctermfg=blue
-        hi! Org_Full_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
-        hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
     endif
+    hi! Org_Full_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+    hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
 
     hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
     hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
@@ -6093,12 +6116,14 @@ function! NarrowOutline(line)
         return
     endif
     if matchstr(getline(line('.')), b:v.headMatch) ># ''
+        let start_width = winwidth(0)
+        let &winwidth = winwidth(0) / 3
         let start = s:OrgGetHead_l(a:line)
         let end = s:OrgSubtreeLastLine_l(start)
         execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
         " then set ftype in new buffer
         set ft=org
-        set winwidth=80
+        let &winwidth=start_width*2/3
     else
         echo "You must be on a heading to narrow it."
     endif
@@ -6122,6 +6147,8 @@ function! NarrowCodeBlock(line)
     let end=line('.') - 1
 
     if (start <= a:line) && (end >= a:line)
+        let start_width = winwidth(0)
+        let &winwidth = winwidth(0) / 3
         execute start ',' . end . 'call nrrwrgn#NrrwRgn()'
         if filereadable($VIMRUNTIME . '/ftplugin/' . language . '.vim')
             execute 'set ft=' . language
@@ -6130,7 +6157,7 @@ function! NarrowCodeBlock(line)
             execute 'set syntax=' . language
         endif
 
-        set winwidth=80
+        let &winwidth=start_width*2/3
     else
         execute a:line
         echo "You are not inside a code block."
