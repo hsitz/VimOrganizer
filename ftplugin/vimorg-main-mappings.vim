@@ -54,11 +54,13 @@ nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
 " clear search matching
 nnoremap <silent> <buffer> <localleader>cs :let @/=''<cr>
 
-noremap <silent> <buffer> <localleader>rh :call OrgRefile(line('.'))<cr>
-noremap <silent> <buffer> <localleader>rj :call OrgJumpToRefilePoint()<cr>
-noremap <silent> <buffer> <localleader>rs :call OrgSetRefilePoint()<cr>
-noremap <silent> <buffer> <localleader>rp :call OrgRefileToPermPoint(line('.'))<cr>
-noremap <silent> <buffer> <localleader>xe :silent call OrgEval()<cr>
+noremap <buffer> <localleader>r :call OrgRefileDashboard()<cr>
+"noremap <silent> <buffer> <localleader>rh :call OrgRefile(line('.'))<cr>
+"noremap <silent> <buffer> <localleader>rj :call OrgJumpToRefilePoint()<cr>
+"noremap <silent> <buffer> <localleader>rx :call OrgJumpToRefilePointPersistent()<cr>
+"noremap <silent> <buffer> <localleader>rs :call OrgSetRefilePoint()<cr>
+"noremap <silent> <buffer> <localleader>rp :call OrgRefileToPermPoint(line('.'))<cr>
+"noremap <silent> <buffer> <localleader>xe :silent call OrgEval()<cr>
 
 noremap <buffer>   <C-K>         <C-]>
 noremap <buffer>   <C-N>         <C-T>

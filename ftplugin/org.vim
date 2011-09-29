@@ -1644,7 +1644,7 @@ endfunction
 function! s:GetPlacedSignsString(buffer)
     let placedstr = ''
     redir => placedstr
-    silent execute "sign place buffer=".a:buffer
+        silent execute "sign place buffer=".a:buffer
     redir END
     return placedstr
 
@@ -1657,22 +1657,31 @@ function! s:GetProperties(hl,withtextinfo,...)
     " optional args are: a:1 - lineno, a:2 - file
         call s:LocateFile(a:1)
     endif
-    let hl = s:OrgGetHead_l(a:hl)
     let datesdone = 0
     let result1 = {}
     let result = {}
-    let result1['line'] = hl
-    let linetext = getline(hl)
-    let result1['ITEM'] = linetext
-    if exists('g:agenda_files')
-        let filematch = index(g:agenda_files,expand("%:t"))
-        if filematch == -1
-            let filematch = index(g:agenda_files,expand("%:p"))
-        endif
-        let result1['file'] = filematch
+
+    let linetext = getline(a:hl)
+    if linetext[0] == '*'
+        let hl = a:hl
     else
-        let result1['file']=expand("%:t:r")
+        let hl = s:OrgGetHead_l(a:hl)
+        let linetext = getline(hl)
     endif
+
+    let result1['line'] = hl
+    "let linetext = getline(hl)
+    let result1['ITEM'] = linetext
+    let result1['file'] = expand("%:t")
+    "if exists('g:agenda_files')
+    "    let filematch = index(g:agenda_files,expand("%:t"))
+    "    if filematch == -1
+    "        let filematch = index(g:agenda_files,expand("%:p"))
+    "    endif
+    "    let result1['file'] = filematch
+    "else
+    "    let result1['file']=expand("%:t:r")
+    "endif
     " get date on headline, if any
     if linetext =~ b:v.dateMatch
         let result1['ld'] = matchlist(linetext,b:v.dateMatch)[1]
@@ -1709,12 +1718,14 @@ function! s:GetProperties(hl,withtextinfo,...)
         endif
         let line += 1
     endwhile
+    " *****************************************
     " get inherited properties
-    for item in b:v.org_inherited_properties
-        if index(keys(result), item) == -1
-            let result[item] = s:IProp(hl , item)
-        endif
-    endfor
+    "for item in b:v.org_inherited_properties
+    "    if index(keys(result), item) == -1
+    "        let result[item] = s:IProp(hl , item)
+    "    endif
+    "endfor
+    " *****************************************
     " get last line
     if a:withtextinfo
         "let result['tbegin'] = line 
@@ -1963,7 +1974,7 @@ function! OrgMakeDict()
    while next > 0
       execute next
       let b:v.org_dict[line('.')].c = []
-      "let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
+      let b:v.org_dict[line('.')].props = s:GetProperties(line('.'),1)
       let parent = b:v.org_dict[line('.')].parent
       call add(b:v.org_dict[parent].c ,line('.'))
       let next = s:OrgNextHead()
@@ -2209,12 +2220,13 @@ function! s:OrgIfExprResults(ifexpr,...)
             execute headline
             " _thisline_ is variable evaluated in myifexpr
             let thisline = getline(headline)
-            if s:IsTagLine(headline + 1)
-                let thisline .= ' ' . getline(headline+1)
-            endif
+            "if s:IsTagLine(headline + 1)
+            "    let thisline .= ' ' . getline(headline+1)
+            "endif
             " lineprops is main variable tested in 'ifexpr' 
             " expression that gets evaluated
-            let lineprops = s:GetProperties(headline,1)
+            "let lineprops = s:GetProperties(headline,1)
+            let lineprops = b:v.org_dict[headline].props
             " next line is to fix for text area search
             " now that we can reference tbegin and tend
             let myifexpr = substitute(a:ifexpr,'tbegin,tend',get(lineprops,'tbegin') .','. get(lineprops,'tend'),"")
@@ -5938,6 +5950,36 @@ autocmd ColorScheme  * :silent! call OrgSetColors()
 call OrgSetColors()
 
 "Section for refile and archive funcs
+function! OrgRefileDashboard()
+    echohl WarningMsg
+    echo " Press key for a refile command:"
+    echo " --------------------------------"
+    echo " h   refile heading (including subtree) to point"
+    echo " p   refile heading (including subtree) to point"
+    echo " j   jump to refile point"
+    echo " x   jump to persistent refile point"
+    echo " s   set persistent refile point"
+    echo " "
+    echo " "
+    echohl Question
+    let key = nr2char(getchar())
+    redraw
+    if key ==? 'h'
+        call OrgRefile(line('.'))
+    elseif key ==? 'p'
+        call OrgRefileToPermPoint(line('.'))
+    elseif key ==? 'j'
+        call OrgJumpToRefilePoint()
+    elseif key ==? 'x'
+        call OrgJumpToRefilePointPersistent()
+    elseif key ==? 's'
+        call OrgSetRefilePoint()
+    else
+        echo "No refile option selected."
+    endif
+    echohl None
+endfunction
+
 let g:org_heading_temp=['','','','','','','','']
 function! OutlineHeads()
     let level = s:Ind(line('.'))
@@ -5976,18 +6018,16 @@ function! GetMyItems(arghead)
 endfunction
 function! FileList(arghead,sd,gf)
     let arghead = substitute(a:arghead,'\~','\\\~','g')
-    let g:myheads  = [ '~/Desktop/org_files/juggler.org'
-                \     , '~/Desktop/org_files/mytestorg.org'
-                \            , '~/Desktop/org-mode.org']
-    let matches = filter( copy( g:myheads ),'v:val =~ arghead')
+    let s:myheads  = ['[current file]'] + copy(g:agenda_files)
+    let matches = filter( copy( s:myheads ),'v:val =~ arghead')
     redraw!
     return join( matches, "\n" )
 endfunction
 
 function! HeadingList(arghead,sd,gf)
     let arghead = a:arghead
-    let g:myheads = GetMyItems(arghead)
-    let matches = filter( copy( g:myheads ),'v:val =~ a:arghead')
+    let s:myheads = GetMyItems(arghead)
+    let matches = filter( copy( s:myheads ),'v:val =~ a:arghead')
     redraw!
     return join( matches, "\n" )
 endfunction
@@ -5995,36 +6035,53 @@ endfunction
 function! GetTarget()
     let orig_wildmode = &wildmode
     set wildmode=list:full
-    " need to modify getcmdline to strip back on bs
-    cmap <c-BS> <C-\>egetcmdline()[-1:] == '/' ? matchstr(getcmdline()[:-2], '.*\ze/.*' ) . '/' : matchstr(getcmdline(), '.*\ze/.*') . '/'<CR>
-    while 1
-        let s:refile_file = ''
-        let s:refile_file = input("Target file: ","",'custom,FileList')
-        if index(g:myheads,s:refile_file) == -1
-            break
-        endif
-        let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom,HeadingList')
-        if heading ==# ''
-            let heading = ''
-            continue
-        else
-            return [ s:refile_file, matchstr(heading,'.\{-}/\zs.*')]
-        endif
-    endwhile
-    let &wildmode = orig_wildmode
-    cunmap <c-BS>
+    try
+        " need to modify getcmdline to strip back on bs
+        cmap <c-BS> <C-\>egetcmdline()[-1:] == '/' ? matchstr(getcmdline()[:-2], '.*\ze/.*' ) . '/' : matchstr(getcmdline(), '.*\ze/.*') . '/'<CR>
+        while 1
+            let s:refile_file = ''
+            let s:refile_file = input("Target file: ","[current file]",'custom,FileList')
+            if s:refile_file ==# '[current file]'
+                let s:refile_file = expand("%") 
+            elseif index(s:myheads,s:refile_file) == -1
+                break
+            endif
+            let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom,HeadingList')
+            if heading ==# ''
+                let heading = ''
+                continue
+            else
+                return [ s:refile_file, matchstr(heading,'.\{-}/\zs.*')]
+            endif
+        endwhile
+    finally
+        let &wildmode = orig_wildmode
+        cunmap <c-BS>
+    endtry
+endfunction
+function! OrgJumpToRefilePointPersistent()
+    if exists('s:persistent_refile_point') && (len(s:persistent_refile_point)==2)
+        call OrgGotoHeading( s:persistent_refile_point[0], s:persistent_refile_point[1] )
+        normal zv
+    else
+        echo 'No persistent refile point assigned.'
+    endif
 endfunction
 function! OrgJumpToRefilePoint()
-    let s:perm_refile_point = GetTarget()
-    call OrgGotoHeading( s:perm_refile_point[0], s:perm_refile_point[1] )
-    normal zv
+    let my_refile_point = GetTarget()
+    if len(my_refile_point)==2
+        call OrgGotoHeading( my_refile_point[0], my_refile_point[1] )
+        normal zv
+    else
+        echo "Jump aborted."
+    endif
 endfunction
 function! OrgSetRefilePoint()
     let s:persistent_refile_point = GetTarget()
 endfunction
 function! OrgRefileToPermPoint(headline)
     if s:persistent_refile_point[1] !=# ''
-        silent call DoRefile( s:perm_refile_point, a:headline )
+        silent call DoRefile( s:persistent_refile_point, a:headline )
         redraw!
         echo "Heading and its subtree refiled to: \n" . s:persistent_refile_point[0] . '/' . s:persistent_refile_point[1]
     else
@@ -6210,6 +6267,8 @@ amenu &Org.&Editing.-Sep22- :
 amenu &Org.&Editing.Narrow\ &Codeblock<tab>,nc :silent call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.&Editing.Narrow\ Outline\ &Subtree<tab>,ns :silent call NarrowOutline(line('.'))<cr>
 amenu &Org.&Refile.&Refile\ to\ Point<tab>,rh :call OrgRefile(line('.'))<cr>
+amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
+amenu &Org.&Refile.&Jump\ to\ Persistent\ Point<tab>,rx :call OrgJumpToRefilePointPersistent()<cr>
 amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
 amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
 amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
