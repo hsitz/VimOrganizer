@@ -3762,6 +3762,36 @@ function! CalEdit( sdate, stime )
         return newdate 
 endfunction
 
+function! OrgDateDashboard()
+    echohl WarningMsg
+    echo " Press key for a date command:"
+    echo " --------------------------------"
+    echo " d   set DEADLINE for current heading"
+    echo " s   set SCHEDULED for current heading"
+    echo " c   set CLOSED for current heading"
+    echo " t   set TIMESTAMP for current heading"
+    echo " g   set date at cursor"
+    echo " "
+    echo " "
+    echohl Question
+    let key = nr2char(getchar())
+    redraw
+    if key ==? 'd'
+        call OrgDateEdit('DEADLINE')
+    elseif key ==? 's'
+        call OrgDateEdit('SCHEDULED')
+    elseif key ==? 'c'
+        call OrgDateEdit('CLOSED')
+    elseif key ==? 't'
+        call OrgDateEdit('TIMESTAMP')
+    elseif key ==? 'g'
+        call OrgGenericDateEdit()
+    else
+        echo "No date command selected."
+    endif
+    echohl None
+endfunction
+
 function! OrgGenericDateEdit()
     " edit date at cursor, not necessarily any specific type
     let save_cursor = getpos('.')
@@ -3803,6 +3833,7 @@ endfunction
 
 function! OrgDateEdit(type)
     " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP 
+    let save_cursor = getpos('.')
     let old_cal_navi = g:calendar_navi
     unlet g:calendar_navi
     try
@@ -3849,6 +3880,7 @@ function! OrgDateEdit(type)
         endif
     finally
         let g:calendar_navi = old_cal_navi
+        call setpos('.',save_cursor)
     endtry
 endfunction
 

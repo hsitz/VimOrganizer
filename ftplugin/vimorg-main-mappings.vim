@@ -25,11 +25,12 @@ nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
 nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 "cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
 " dl is for the date on the current line
-noremap <silent> <buffer> <localleader>dg :call OrgGenericDateEdit()<cr>
-noremap <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
-noremap <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
-noremap <silent> <buffer> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
-noremap <silent> <buffer> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
+noremap <buffer> <localleader>d :call OrgDateDashboard()<cr>
+"noremap <silent> <buffer> <localleader>dg :call OrgGenericDateEdit()<cr>
+"noremap <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
+"noremap <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
+"noremap <silent> <buffer> <localleader>dc :call OrgDateEdit('CLOSED')<cr>
+"noremap <silent> <buffer> <localleader>ds :call OrgDateEdit('SCHEDULED')<cr>
 noremap <silent> <buffer> <localleader>a* :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'')<cr>
 noremap <silent> <buffer> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+ALL_TODOS')<cr>
 noremap <silent> <buffer> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
