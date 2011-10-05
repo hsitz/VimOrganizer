@@ -3763,13 +3763,22 @@ function! CalEdit( sdate, stime )
 endfunction
 
 function! OrgDateDashboard()
+    let save_cursor = getpos('.')
+    if bufname("%") ==? ('__Agenda__')
+        let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+        let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+        let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
+        let props = s:GetProperties(buffer_lineno, 0, file)
+    else
+        let props = s:GetProperties(line('.'),0)
+    endif
     echohl WarningMsg
     echo " Press key for a date command:"
     echo " --------------------------------"
-    echo " d   set DEADLINE for current heading"
-    echo " s   set SCHEDULED for current heading"
-    echo " c   set CLOSED for current heading"
-    echo " t   set TIMESTAMP for current heading"
+    echo " d   set DEADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
+    echo " s   set SCHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
+    echo " c   set CLOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
+    echo " t   set TIMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
     echo " g   set date at cursor"
     echo " "
     echo " "
@@ -3790,6 +3799,7 @@ function! OrgDateDashboard()
         echo "No date command selected."
     endif
     echohl None
+    call setpos('.',save_cursor)
 endfunction
 
 function! OrgGenericDateEdit()

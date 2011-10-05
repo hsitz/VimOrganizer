@@ -19,5 +19,6 @@
     nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
     nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
     nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
+    nnoremap <silent> <buffer> <localleader>d  :call OrgDateDashboard()<cr>
     nnoremap <silent> <buffer> q  :quit<cr>
     nnoremap <silent> <buffer> <c-tab>  :wincmd k<cr>
