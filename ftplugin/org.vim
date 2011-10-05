@@ -107,17 +107,19 @@ endif
 if !exists('g:org_confirm_babel_evaluate')
     let g:org_confirm_babel_evaluate = 0
 endif
+if !exists('g:org_path_to_emacs') 
+    if has('win32') || has('win64')
+        let g:org_path_to_emacs = expand("~") . '\emacsclientw.exe'
+        let s:qchar = '^'
+    else
+        let g:org_path_to_emacs = 'emacsclient'
+        let s:qchar = ''
+    endif
+endif
 let g:org_clock_history=[]
 let g:org_reverse_note_order = 0
 let g:org_html_app=''
 let g:org_pdf_app=''
-if has('win32') || has('win64')
-    let g:org_path_to_emacs = expand("~") . '\emacsclientw.exe'
-    let s:qchar = '^'
-else
-    let g:org_path_to_emacs = 'emacsclient'
-    let s:qchar = ''
-endif
 let s:org_headMatch = '^\*\+\s'
 let s:org_cal_date = '2000-01-01'
 let g:org_tag_group_arrange = 0
