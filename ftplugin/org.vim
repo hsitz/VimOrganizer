@@ -107,14 +107,10 @@ endif
 if !exists('g:org_confirm_babel_evaluate')
     let g:org_confirm_babel_evaluate = 0
 endif
-if !exists('g:org_path_to_emacs') 
-    if has('win32') || has('win64')
-        let g:org_path_to_emacs = expand("~") . '\emacsclientw.exe'
-        let s:qchar = '^'
-    else
-        let g:org_path_to_emacs = 'emacsclient'
-        let s:qchar = ''
-    endif
+if has('win32') || has('win64')
+    let s:cmd_line_quote_char = '^'
+else
+    let s:cmd_line_quote_char = ''
 endif
 let g:org_clock_history=[]
 let g:org_reverse_note_order = 0
@@ -5561,31 +5557,25 @@ function! OrgAgendaDashboard()
         echo " f   Freeform sparse tree of: " . g:org_search_spec
         echo " "
         let key = nr2char(getchar())
+        redraw
         if key ==? 't'
-            redraw
             silent execute "call OrgRunSearch('+ALL_TODOS','agenda_todo')"
         elseif key ==? 'a'
-            redraw
             silent execute "call OrgRunAgenda(s:Today(),'w')"
         elseif key ==? 'L'
-            redraw
             silent execute "call s:Timeline()"
         elseif key ==? 'c'
-            redraw
             execute "call OrgCustomSearchMenu()"
         elseif key ==? 'm'
-            redraw
             let mysearch = input("Enter search string: ")
             silent execute "call OrgRunSearch(mysearch)"
         elseif key ==? 'h'
-            redraw
             let g:org_sparse_spec = input("Enter search string: ")
             if bufname("%") ==? '__Agenda__'
                 :bd
             endif
             silent execute "call OrgRunSearch(g:org_sparse_spec,1)"
         elseif key ==? 'f'
-            redraw
             let g:org_sparse_spec = input("Enter search string: ")
             if bufname("%") ==? '__Agenda__'
                 :bd
@@ -5704,6 +5694,25 @@ command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()
 command! -nargs=0 OrgToAscii :call s:ExportToAscii()
 command! -nargs=0 OrgToDocBook :call s:ExportToDocBook()
+function! s:OrgHasEmacsVar()
+    let result = 1
+    if !exists('g:org_command_for_emacs')
+        let msg = "=============================================== \n"
+                \ . "You're trying to call out to Emacs but \n"
+                \ . "you haven't set an Emacs command variable. \n"
+                \ . "You should set this in your vimrc by including \n"
+               \ . "a line like: \n\n"
+               \ . "    let g:org_command_for_emacs=[put command to start emacs here] \n\n"
+               \ . "See :h org-emacs-invocation for more info. \n\n"
+               \ . "The call you attempted to Emacs will now be aborted.  \n"
+               \ . "Revise your vimrc and restart Vim to use this feature.\n"
+               \ . "==============================================\n"
+               \ . "Press <enter> to continue."
+        call input(msg)
+        let result = 0
+    endif
+    return result
+endfunction
 function! OrgEvalTable()
     let savecursor = getpos('.')
     call search('^\s*$','b','')
@@ -5713,8 +5722,8 @@ function! OrgEvalTable()
     if getline(line('.'))[0:6] == '#+TBLFM'
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:qchar . '"~/org-tbl-block.org\' . s:qchar . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
-        let orgcmd = g:org_path_to_emacs . ' --eval ' . s:qchar . '"' . part1 . s:qchar . '"'
+        let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_char . '"~/org-tbl-block.org\' . s:cmd_line_quote_char . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_char . '"' . part1 . s:cmd_line_quote_char . '"'
         if exists('*xolox#shell#execute')
             silent call xolox#shell#execute(orgcmd, 1)
         else
@@ -5729,6 +5738,9 @@ function! OrgEvalTable()
     call setpos('.',savecursor)
 endfunction
 function! OrgEval()
+    if s:OrgHasEmacsVar() == 0
+       return
+    endif
     if matchstr(getline(line('.')) , '^\s*|.*|\s*$' ) ># ''
         call OrgEvalTable()
     else
@@ -5760,8 +5772,8 @@ function! OrgEvalBlock()
         let end = line('.')
     endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
-    let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:qchar . '"~/org-src-block.org\' . s:qchar . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
-    let orgcmd = g:org_path_to_emacs . ' --eval ' . s:qchar . '"' . part1 . s:qchar . '"'
+    let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:cmd_line_quote_char . '"~/org-src-block.org\' . s:cmd_line_quote_char . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
+    let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_char . '"' . part1 . s:cmd_line_quote_char . '"'
     if exists('*xolox#shell#execute')
         silent call xolox#shell#execute(orgcmd, 1)
     else
@@ -5780,6 +5792,9 @@ function! MyExpTest()
     silent exec g:myc
 endfunction
 function! OrgExport()
+    if s:OrgHasEmacsVar() == 0
+       return
+    endif
     " show export dashboard
     let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
             \      'h':'html', 'b':'html-and-open', 'l':'latex', 
@@ -5817,10 +5832,10 @@ function! OrgExport()
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            let orgpath = g:org_path_to_emacs . ' -n --eval '
+            let orgpath = g:org_command_for_emacs . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
-            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:qchar . '"' . g:myfilename . '\' . s:qchar . '"))) (progn  (' 
+            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_char . '"' . g:myfilename . '\' . s:cmd_line_quote_char . '"))) (progn  (' 
             if item == 'g' 
                 "let g:mypart3 = ' ) (kill-buffer buf) ))'
                 "let g:mypart3 = ' ) (set-buffer buf) (set-buffer-modified-p nil) (kill-buffer buf) ))'
@@ -5837,7 +5852,7 @@ function! OrgExport()
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
-            let orgcmd =  orgpath . s:qchar . '"' . g:mypart1 . command_part2 . g:mypart3 . s:qchar . '"'
+            let orgcmd =  orgpath . s:cmd_line_quote_char . '"' . g:mypart1 . command_part2 . g:mypart3 . s:cmd_line_quote_char . '"'
             " execute the call out to emacs
             if exists('*xolox#shell#execute')
                 silent call xolox#shell#execute(orgcmd, 1)
