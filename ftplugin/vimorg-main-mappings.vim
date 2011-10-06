@@ -25,6 +25,7 @@ nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
 nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 "cnoremap <space> <C-\>e(<SID>OrgDateEdit())<CR>
 " dl is for the date on the current line
+noremap <buffer> <localleader>x :call OrgExportDashboard()<cr>
 noremap <buffer> <localleader>d :call OrgDateDashboard()<cr>
 "noremap <silent> <buffer> <localleader>dg :call OrgGenericDateEdit()<cr>
 "noremap <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>

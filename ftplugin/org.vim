@@ -118,6 +118,7 @@ let g:org_html_app=''
 let g:org_pdf_app=''
 let s:org_headMatch = '^\*\+\s'
 let s:org_cal_date = '2000-01-01'
+let g:org_export_babel_evaluate = 1
 let g:org_tag_group_arrange = 0
 let g:org_first_sparse=0
 let g:org_clocks_in_agenda = 0
@@ -5791,7 +5792,7 @@ function! MyExpTest()
     let g:myc =  '!' . g:orgpath . '^"' . g:myvar . '^"' 
     silent exec g:myc
 endfunction
-function! OrgExport()
+function! OrgExportDashboard()
     if s:OrgHasEmacsVar() == 0
        return
     endif
@@ -5835,7 +5836,10 @@ function! OrgExport()
             let orgpath = g:org_command_for_emacs . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
-            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . g:myfilename . '\' . s:cmd_line_quote_fix . '"))) (progn  (' 
+            " set org-mode to either auto-evaluate all exec blocks or evaluate none w/o
+            " confirming each with yes/no
+            let g:mypart1 = '(let ((org-' . (g:org_export_babel_evaluate == 1 ? 'confirm' : 'export') . '-babel-evaluate nil)'
+            let g:mypart1 .= '(buf (find-file \' . s:cmd_line_quote_fix . '"' . g:myfilename . '\' . s:cmd_line_quote_fix . '"))) (progn  (' 
             if item == 'g' 
                 "let g:mypart3 = ' ) (kill-buffer buf) ))'
                 "let g:mypart3 = ' ) (set-buffer buf) (set-buffer-modified-p nil) (kill-buffer buf) ))'
@@ -6362,7 +6366,7 @@ amenu &Org.-Sep5- :
 amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
-amenu &Org.Export/Publish\ w/Emacs :call OrgExport()<cr>
+amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
 
 "*********************************************************************
 "*********************************************************************
