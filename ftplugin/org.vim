@@ -5838,7 +5838,11 @@ function! OrgExportDashboard()
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             " set org-mode to either auto-evaluate all exec blocks or evaluate none w/o
             " confirming each with yes/no
-            let g:mypart1 = '(let ((org-' . (g:org_export_babel_evaluate == 1 ? 'confirm' : 'export') . '-babel-evaluate nil)'
+            if g:org_export_babel_evaluate == 1
+                let g:mypart1 = '(let ((org-export-babel-evaluate t)(org-confirm-babel-evaluate nil)'
+            else
+                let g:mypart1 = '(let ((org-export-babel-evaluate nil)'
+            endif
             let g:mypart1 .= '(buf (find-file \' . s:cmd_line_quote_fix . '"' . g:myfilename . '\' . s:cmd_line_quote_fix . '"))) (progn  (' 
             if item == 'g' 
                 "let g:mypart3 = ' ) (kill-buffer buf) ))'
