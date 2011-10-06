@@ -108,9 +108,9 @@ if !exists('g:org_confirm_babel_evaluate')
     let g:org_confirm_babel_evaluate = 0
 endif
 if has('win32') || has('win64')
-    let s:cmd_line_quote_char = '^'
+    let s:cmd_line_quote_fix = '^'
 else
-    let s:cmd_line_quote_char = ''
+    let s:cmd_line_quote_fix = ''
 endif
 let g:org_clock_history=[]
 let g:org_reverse_note_order = 0
@@ -5722,8 +5722,8 @@ function! OrgEvalTable()
     if getline(line('.'))[0:6] == '#+TBLFM'
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_char . '"~/org-tbl-block.org\' . s:cmd_line_quote_char . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
-        let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_char . '"' . part1 . s:cmd_line_quote_char . '"'
+        let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         if exists('*xolox#shell#execute')
             silent call xolox#shell#execute(orgcmd, 1)
         else
@@ -5772,8 +5772,8 @@ function! OrgEvalBlock()
         let end = line('.')
     endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
-    let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:cmd_line_quote_char . '"~/org-src-block.org\' . s:cmd_line_quote_char . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
-    let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_char . '"' . part1 . s:cmd_line_quote_char . '"'
+    let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:cmd_line_quote_fix . '"~/org-src-block.org\' . s:cmd_line_quote_fix . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
+    let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
     if exists('*xolox#shell#execute')
         silent call xolox#shell#execute(orgcmd, 1)
     else
@@ -5835,7 +5835,7 @@ function! OrgExport()
             let orgpath = g:org_command_for_emacs . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
-            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_char . '"' . g:myfilename . '\' . s:cmd_line_quote_char . '"))) (progn  (' 
+            let g:mypart1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . g:myfilename . '\' . s:cmd_line_quote_fix . '"))) (progn  (' 
             if item == 'g' 
                 "let g:mypart3 = ' ) (kill-buffer buf) ))'
                 "let g:mypart3 = ' ) (set-buffer buf) (set-buffer-modified-p nil) (kill-buffer buf) ))'
@@ -5852,7 +5852,7 @@ function! OrgExport()
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
-            let orgcmd =  orgpath . s:cmd_line_quote_char . '"' . g:mypart1 . command_part2 . g:mypart3 . s:cmd_line_quote_char . '"'
+            let orgcmd =  orgpath . s:cmd_line_quote_fix . '"' . g:mypart1 . command_part2 . g:mypart3 . s:cmd_line_quote_fix . '"'
             " execute the call out to emacs
             if exists('*xolox#shell#execute')
                 silent call xolox#shell#execute(orgcmd, 1)
