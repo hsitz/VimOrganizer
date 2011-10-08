@@ -1327,6 +1327,9 @@ endfunction
 function! OrgShowSubs(number,withtext)
     " used by comma-num mapping
     " expands/collapses individual heading to level visibility equal to a:number
+    if getline(line('.'))[0] != '*'
+        exec s:OrgPrevHead()
+    endif
     let cur_level = s:Ind(line('.')) - 1
     if a:number > cur_level
         let rel_level = a:number - cur_level 
@@ -1592,11 +1595,11 @@ function! OrgGlobalCycle()
         call OrgExpandWithoutText(1)
     elseif &foldlevel == 1
         call OrgExpandWithoutText(b:v.global_cycle_levels_to_show)
-    elseif (&foldlevel > 1) && ( s:orgskipthirdcycle == 0 ) 
-        let s = getpos('.')
-        g/^\*\+ /call OrgUnfoldBodyText(line('.'))
-        call setpos('.',s)
-        let s:orgskipthirdcycle = 1
+    "elseif (&foldlevel > 1) && ( s:orgskipthirdcycle == 0 ) 
+    "    let s = getpos('.')
+    "    g/^\*\+ /call OrgUnfoldBodyText(line('.'))
+    "    call setpos('.',s)
+    "    let s:orgskipthirdcycle = 1
     else
         set foldlevel=9999
         let s:orgskipthirdcycle = 0
@@ -5704,7 +5707,7 @@ function! s:OrgHasEmacsVar()
                 \ . "You should set this in your vimrc by including \n"
                \ . "a line like: \n\n"
                \ . "    let g:org_command_for_emacs=[put command to start emacs here] \n\n"
-               \ . "See :h org-emacs-invocation for more info. \n\n"
+               \ . "See :h org-emacs-invoking for more info. \n\n"
                \ . "The call you attempted to Emacs will now be aborted.  \n"
                \ . "Revise your vimrc and restart Vim to use this feature.\n"
                \ . "==============================================\n"
