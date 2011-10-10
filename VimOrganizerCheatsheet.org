@@ -126,7 +126,7 @@
    (1) :call ClearSparseTree()
    or (2) issue an agenda command or another RunSearch() command
 ** Videos (on Vimeo)
-   [Org-mode clone for Vim[http://viimeo.com/16543959]]
+   [Org-mode clone for Vim[http://vimeo.com/16543959]]
    [Sparse Tree Search in Vim clone of Org-mode[http://vimeo.com/16646716]]
    [Overview of Tags in Org-mode clone for Vim[http://vimeo.com/16650450]]
    [Basic Outline Editing in Vim org-clone[http://vimeo.com/16796666]]
