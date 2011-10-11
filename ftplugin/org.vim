@@ -2222,9 +2222,9 @@ function! s:OrgIfExprResults(ifexpr,...)
             execute headline
             " _thisline_ is variable evaluated in myifexpr
             let thisline = getline(headline)
-            "if s:IsTagLine(headline + 1)
-            "    let thisline .= ' ' . getline(headline+1)
-            "endif
+            if s:IsTagLine(headline + 1)
+                let thisline .= ' ' . getline(headline+1)
+            endif
             " lineprops is main variable tested in 'ifexpr' 
             " expression that gets evaluated
             "let lineprops = s:GetProperties(headline,1)
@@ -2376,9 +2376,8 @@ endfunc
 
 function! OrgRunSearch(search_spec,...)
         "set mouseshape-=n:busy,v:busy,i:busy
-    "let win = bufnr('Calendar')
     if bufnr('Calendar') > 0 
-        execute 'bd!' . bufnr('Calendar')
+        execute 'bw!' . bufnr('Calendar')
     endif   
 
     try
@@ -2651,7 +2650,7 @@ function! OrgRunAgenda(date,count,...)
         execute win . 'wincmd w'
         normal ggjjj
         wincmd l
-        execute 'bd!' . bufnr('Calendar')
+        execute 'bw!' . bufnr('Calendar')
 
     endif   
     if !exists("g:agenda_files") || (g:agenda_files == [])
@@ -5611,8 +5610,7 @@ function! s:AgendaBufHighlight()
     
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
-    call matchadd( 'Locator', '^\d\+')
-"    call matchadd( 'Todos', todoMatchInAgenda )
+    syntax match Locator '^\d\+' conceal
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
@@ -5700,13 +5698,13 @@ command! -nargs=0 OrgToAscii :call s:ExportToAscii()
 command! -nargs=0 OrgToDocBook :call s:ExportToDocBook()
 function! s:OrgHasEmacsVar()
     let result = 1
-    if !exists('g:org_command_for_emacs')
+    if !exists('g:org_command_for_emacsclient')
         let msg = "=============================================== \n"
                 \ . "You're trying to call out to Emacs but \n"
                 \ . "you haven't set an Emacs command variable. \n"
                 \ . "You should set this in your vimrc by including \n"
                \ . "a line like: \n\n"
-               \ . "    let g:org_command_for_emacs=[put command to start emacs here] \n\n"
+               \ . "    let g:org_command_for_emacsclient=[put command to start emacs here] \n\n"
                \ . "See :h org-emacs-invoking for more info. \n\n"
                \ . "The call you attempted to Emacs will now be aborted.  \n"
                \ . "Revise your vimrc and restart Vim to use this feature.\n"
@@ -5727,7 +5725,7 @@ function! OrgEvalTable()
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
         let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
-        let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
+        let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         if exists('*xolox#shell#execute')
             silent call xolox#shell#execute(orgcmd, 1)
         else
@@ -5777,7 +5775,7 @@ function! OrgEvalBlock()
     endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
     let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:cmd_line_quote_fix . '"~/org-src-block.org\' . s:cmd_line_quote_fix . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
-    let orgcmd = g:org_command_for_emacs . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
+    let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
     if exists('*xolox#shell#execute')
         silent call xolox#shell#execute(orgcmd, 1)
     else
@@ -5836,7 +5834,7 @@ function! OrgExportDashboard()
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            let orgpath = g:org_command_for_emacs . ' -n --eval '
+            let orgpath = g:org_command_for_emacsclient . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             " set org-mode to either auto-evaluate all exec blocks or evaluate none w/o
@@ -5985,11 +5983,12 @@ function! OrgSetColors()
     hi! SignColumn guibg=fg guibg=bg ctermfg=fg ctermbg=bg
 
     " various text item "highlightings" are below
-    " change to suit your taste
+    " change to suit your taste and put in OrgCustomColors() (see below)
     hi! Org_Drawer guifg=pink ctermfg=magenta
     hi! Org_Drawer_Bold guifg=pink ctermfg=magenta gui=bold cterm=bold
     hi! Org_Property_Value guifg=pink ctermfg=magenta
     hi! Org_Block guifg=#555555 ctermfg=magenta
+    hi! Org_Src_Block guifg=#555555 ctermfg=magenta
     hi! Org_Table guifg=#888888 guibg=#333333 ctermfg=magenta
     hi! Org_Config_Line guifg=darkgray ctermfg=magenta
     hi! Org_Tag guifg=lightgreen ctermfg=blue
