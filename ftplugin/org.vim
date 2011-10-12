@@ -79,6 +79,7 @@ if has("conceal")
     set concealcursor=nc
 endif
 setlocal indentexpr=
+setlocal foldexpr=OrgFoldLevel(v:lnum)
 "setlocal iskeyword+=<
 setlocal nocindent
 setlocal iskeyword=@,39,45,48-57,_,129-255
@@ -160,6 +161,7 @@ let s:org_weekdays = ['mon','tue','wed','thu','fri','sat','sun']
 let s:org_weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
 let s:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
 let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
+let s:include_inherited_props=0
 let s:AgendaBufferName = "__Agenda__"
 
 "testing stuff
@@ -736,13 +738,12 @@ function! s:ConvertTags(line)
     endif
 endfunction
 function! <SID>GlobalConvertTags()
-    if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
+    "if exists('g:org_emacs_autoconvert') && (g:org_emacs_autoconvert != 0)
         let save_cursor = getpos(".")
         g/^\*\+\s/call s:ConvertTags(line("."))
-        "call OrgProcessConfigLines()
         silent! %s/^\(\s*\)\(DEADLINE:\|SCHEDULED:\|CLOSED:\|<\d\d\d\d-\d\d-\d\d\)/\1:\2/
         call setpos(".",save_cursor)
-    endif
+    "endif
 endfunction
 function! s:GlobalFormatTags()
     let save_cursor = getpos(".")
@@ -1149,7 +1150,7 @@ function OrgEnterFunc()
     let syn_items = synstack(line('.'),col('.'))
     call map(syn_items, "synIDattr(v:val,'name')")
     if (index(syn_items,'Org_Full_Link') >= 0) || ( index(syn_items,'Org_Half_Link') >= 0)
-        call FollowLink( s:GetLink() )
+        call FollowLink( OrgGetLink() )
     else
         call OrgNewHead('same')
     endif
@@ -1675,15 +1676,6 @@ function! s:GetProperties(hl,withtextinfo,...)
     "let linetext = getline(hl)
     let result1['ITEM'] = linetext
     let result1['file'] = expand("%:t")
-    "if exists('g:agenda_files')
-    "    let filematch = index(g:agenda_files,expand("%:t"))
-    "    if filematch == -1
-    "        let filematch = index(g:agenda_files,expand("%:p"))
-    "    endif
-    "    let result1['file'] = filematch
-    "else
-    "    let result1['file']=expand("%:t:r")
-    "endif
     " get date on headline, if any
     if linetext =~ b:v.dateMatch
         let result1['ld'] = matchlist(linetext,b:v.dateMatch)[1]
@@ -1722,11 +1714,13 @@ function! s:GetProperties(hl,withtextinfo,...)
     endwhile
     " *****************************************
     " get inherited properties
-    "for item in b:v.org_inherited_properties
-    "    if index(keys(result), item) == -1
-    "        let result[item] = s:IProp(hl , item)
-    "    endif
-    "endfor
+    if s:include_inherited_props == 1
+        for item in b:v.org_inherited_properties
+            if index(keys(result), item) == -1
+                let result[item] = s:IProp(hl , item)
+            endif
+        endfor
+    endif
     " *****************************************
     " get last line
     if a:withtextinfo
@@ -2281,7 +2275,8 @@ function! s:MakeResults(search_spec,...)
     else
         let g:in_agenda_search = 1
         for file in g:agenda_files
-            execute 'tab drop ' . file
+            "execute 'tab drop ' . file
+            call s:LocateFile(file)
             let s:filenum = index(g:agenda_files,file)
             call OrgMakeDict()
             let ifexpr = s:OrgIfExpr()
@@ -2355,7 +2350,10 @@ function! s:MakeAgenda(date,count,...)
     let g:in_agenda_search=1
     for file in g:agenda_files
         call s:LocateFile(file)
-        call OrgMakeDict()
+        "call OrgMakeDict()
+
+        let b:v.org_dict = {}
+        call OrgMakeDictInherited()
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today ># ''
@@ -3405,6 +3403,10 @@ function! OrgAgendaGetText(...)
                 else
                     call s:ReplaceTodo(curTodo)
                 endif
+                normal V
+                redraw
+                sleep 100m
+                normal V
             else
                 let lastline = s:OrgNextHead_l(newhead) - 1
                 if lastline > newhead
@@ -4616,7 +4618,7 @@ function! OrgConfirmDrawer(type,...)
     endif
 endfunction
 
-function! s:GetLink()
+function! OrgGetLink()
     let savecursor = getpos('.')
 
     let linkdict = {'link':'','desc':''}
@@ -4722,7 +4724,7 @@ function! FollowTextLink(link)
 endfunction
 function! EditLink()
     "is this here: and is this there:
-    let thislink = s:GetLink()
+    let thislink = OrgGetLink()
 
     let link = input('Link: ', thislink.link)
     let desc = input('Description: ', thislink.desc)
@@ -4743,7 +4745,7 @@ function! OrgMouseDate()
     let found = ''
     silent! let date = GetDateAtCursor()
     call setpos('.',save_cursor)
-    let linkdict = s:GetLink()
+    let linkdict = OrgGetLink()
     if date ># ''
         let found='date'
         let date = date[0:9]
@@ -4782,7 +4784,15 @@ function! s:SetColumnHead()
 endfunction
 
 function! s:GetColumns(line)
-    let props = s:GetProperties(a:line,0)
+    " call GetProperties making sure it gets inherited props
+    let save_inherit_setting = s:include_inherited_props
+    let s:include_inherited_props = 1
+    try
+        let props = s:GetProperties(a:line,0)
+    finally
+        let s:include_inherited_props = save_inherit_setting
+    endtry
+
     let result = ''
     let i = 0
     " get column list for this line
@@ -4796,6 +4806,7 @@ function! s:GetColumns(line)
         let result .= '|' . s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
         let i += 2
     endwhile
+
     return result[:-2]
 
 endfunction
@@ -4820,6 +4831,13 @@ function! <SID>ColumnStatusLine()
 endfunction
 function! s:AdjustItemLen()
     " called on VimResized event, adjusts length of heading when folded
+    let i = 1
+    let b:v.total_columns_width = 3
+    let colspec = split(b:v.org_inherited_defaults['COLUMNS'], ',')
+    while i < len(colspec)
+        let b:v.total_columns_width += colspec[i]
+        let i += 2
+    endwhile
     if expand('%') !~ '__Agenda__'
         let g:org_item_len = winwidth(0) - 10 - b:v.total_columns_width
     endif
@@ -4916,8 +4934,8 @@ function! OrgFoldText(...)
     elseif l:line[0] ==? '#'
         let level_highlight = hlID('VisualNOS')
     else
-        let l = g:org_item_len
-        let line = line[:l]
+        let mytrim = g:org_item_len
+        let line = line[:mytrim]
     endif
     if exists('w:sparse_on') && w:sparse_on && (a:0 == 0) 
         let b:v.signstring= s:GetPlacedSignsString(bufnr("%")) 
@@ -4931,14 +4949,17 @@ function! OrgFoldText(...)
     if g:org_show_fold_dots 
         let l:line .= '...'
     endif
-    let offset = &fdc + 5*(&number) + 4
+    "let offset = &fdc + 5*(&number) + 4
+    let offset = &fdc + 5*(&number) + (b:v.columnview ? 7 : 4)
     if b:v.columnview && (origline =~ b:v.headMatch) 
         let l:line .= s:PrePad(s:GetColumns(foldstart), winwidth(0)-len(l:line) - offset)
-    elseif a:0 && (foldclosed(line('.')) > 0)
+    endif
+    if a:0 && (foldclosed(line('.')) > 0)
         let l:line .= s:PrePad("(" 
             \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
-    elseif (g:org_show_fold_lines && !b:v.columnview) || (l:line =~ b:v.drawerMatch) 
+    "elseif (g:org_show_fold_lines && !b:v.columnview) || (l:line =~ b:v.drawerMatch) 
+    elseif (g:org_show_fold_lines ) || (l:line =~ b:v.drawerMatch) 
         let l:line .= s:PrePad("(" . s:PrePad( line_count . ")",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
@@ -5799,9 +5820,10 @@ function! OrgExportDashboard()
     endif
     " show export dashboard
     let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
-            \      'h':'html', 'b':'html-and-open', 'l':'latex', 
-            \      'F':'current-file', 'P':'current-project', 'E':'all', 
-            \      'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle' } 
+            \     'h':'html', 'b':'html-and-open', 'l':'latex', 
+            \     'F':'current-file', 'P':'current-project', 'E':'all', 
+            \     'f':'freemind', 'j':'taskjuggler', 'k':'taskjuggler-and-open'
+            \     'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle' } 
     echo " Press key for export operation:"
     echo " --------------------------------"
     echo " [t]   insert the export options template block"
@@ -5818,8 +5840,9 @@ function! OrgExportDashboard()
     echo " [D] export as DocBook"
     echo " [V] export as DocBook, process to PDF, and open"
     echo " "
-    echo " [x] export as XOXO"
-    echo " "
+    echo " [x] export as XOXO       [j] export as TaskJuggler"
+    echo " [m] export as Freemind   [k] export as TaskJuggler and open"
+
     echo " [g] tangle file"
     echo " "
     echo " [F] publish current file"
@@ -6344,7 +6367,7 @@ amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPo
 amenu &Org.-Sep2- :
 amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
 amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
-amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(s:GetLink())<cr>
+amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(OrgGetLink())<cr>
 amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
 amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
 amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
@@ -6390,11 +6413,13 @@ let b:v.org_loaded=1
 "*********************************************************************
 "*********************************************************************
 "*********************************************************************
+" convert to VimOrganizer tag format and add colon (:) before dates
+PreLoadTags
 " below is default todo setup, anything different can be done
 " in vimrc (or in future using a config line in the org file itself)
 if !exists('g:in_agenda_search') && ( &foldmethod!= 'expr') && !exists('b:v.bufloaded')
     setlocal foldmethod=expr
-    setlocal foldexpr=OrgFoldLevel(v:lnum)
+    "setlocal foldexpr=OrgFoldLevel(v:lnum)
     set foldlevel=1
     let b:v.bufloaded=1
 else

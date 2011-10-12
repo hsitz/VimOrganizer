@@ -147,7 +147,7 @@ noremap <silent> <buffer> <a-down>           :call OrgNavigateLevels("down")<CR>
 noremap <silent> <buffer> <a-left>           :call OrgNavigateLevels("left")<CR>
 noremap <silent> <buffer> <a-right>          :call OrgNavigateLevels("right")<CR>
 noremap <silent> <buffer> <localleader>le    :call EditLink()<cr>
-noremap <silent> <buffer> <localleader>lf    :call FollowLink(s:GetLink())<cr>
+noremap <silent> <buffer> <localleader>lf    :call FollowLink(OrgGetLink())<cr>
 noremap <silent> <buffer> <localleader>ln    :/]]<cr>
 noremap <silent> <buffer> <localleader>lp    :?]]<cr>
 noremap <silent> <buffer> <localleader>lc    :set conceallevel=3\|set concealcursor=nc<cr>
