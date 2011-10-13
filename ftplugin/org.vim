@@ -41,12 +41,12 @@ let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
-let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'tags,30'}
+let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'TAGS,30'}
 let b:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
-let b:v.buffer_columns = 'tags,30'
+let b:v.buffer_columns = 'TAGS,30'
 let w:sparse_on = 0
 let b:v.columnview = 0
 let b:v.clock_to_logbook = 1
@@ -95,6 +95,8 @@ let b:v.suppress_list_indent=0
 " everything in between is executed only the first time an
 " org file is opened
 if !exists('g:org_loaded')
+
+let g:org_custom_column_settings = ['DEADLINE,15,TAGS,35'] 
 
 if !exists('g:org_custom_colors')
     let g:org_custom_colors=[]
@@ -424,7 +426,7 @@ function! OrgTagsEdit(...)
         call s:SetDynamicTags()
     endif
     
-    let heading_tags = get(s:GetProperties(lineno,0,file),'tags','')
+    let heading_tags = get(s:GetProperties(lineno,0,file),'TAGS','')
     
     let new_heading_tags = s:TagMenu(heading_tags)
     if new_heading_tags != heading_tags
@@ -1672,21 +1674,21 @@ function! s:GetProperties(hl,withtextinfo,...)
         let linetext = getline(hl)
     endif
 
-    let result1['line'] = hl
+    let result1['LINE'] = hl
     "let linetext = getline(hl)
     let result1['ITEM'] = linetext
-    let result1['file'] = expand("%:t")
+    let result1['FILE'] = expand("%:t")
     " get date on headline, if any
     if linetext =~ b:v.dateMatch
         let result1['ld'] = matchlist(linetext,b:v.dateMatch)[1]
     endif
     if (getline(hl+1) =~ b:v.tagMatch) && (getline(hl+1) !~ b:v.drawerMatch)
-        let result1['tags'] = matchstr(getline(hl+1),b:v.tagMatch)
+        let result1['TAGS'] = matchstr(getline(hl+1),b:v.tagMatch)
     endif
     if linetext =~ b:v.todoMatch
-        let result1['todo'] = matchstr(linetext,b:v.todoMatch)[2:]
+        let result1['TODO'] = matchstr(linetext,b:v.todoMatch)[2:]
     else
-        let result1['todo'] = ''
+        let result1['TODO'] = ''
     endif
 
     let line = hl + 1
@@ -1702,7 +1704,7 @@ function! s:GetProperties(hl,withtextinfo,...)
             if datesdone
                 call extend(result, dateresult)
             endif
-            let result['block_end'] = line - 1
+            let result['BLOCK_END'] = line - 1
             break
         elseif (ltext =~ b:v.dateMatch) && !datesdone
             let dateresult = s:GetDateVals(line)
@@ -1725,7 +1727,7 @@ function! s:GetProperties(hl,withtextinfo,...)
     " get last line
     if a:withtextinfo
         "let result['tbegin'] = line 
-        let result['tend'] = s:OrgNextHead_l(hl) - 1
+        let result['TEND'] = s:OrgNextHead_l(hl) - 1
     endif
     if a:0 >= 1
         execute "tabnext ".curtab
@@ -2225,7 +2227,7 @@ function! s:OrgIfExprResults(ifexpr,...)
             let lineprops = b:v.org_dict[headline].props
             " next line is to fix for text area search
             " now that we can reference tbegin and tend
-            let myifexpr = substitute(a:ifexpr,'tbegin,tend',get(lineprops,'tbegin') .','. get(lineprops,'tend'),"")
+            let myifexpr = substitute(a:ifexpr,'TBEGIN,TEND',get(lineprops,'TBEGIN') .','. get(lineprops,'TEND'),"")
             "
             "********  eval() is what does it all ***************
             if eval(myifexpr)
@@ -2527,8 +2529,8 @@ function! s:ADictPlaceSigns()
     let myl=[]
     call s:DeleteSigns()  " signs placed in GetDateHeads
     for key in keys(g:adict)
-        let headline = g:adict[key].line
-        let filenum = g:adict[key].file
+        let headline = g:adict[key].LINE
+        let filenum = g:adict[key].FILE
         let buf = bufnr(s:agenda_files_copy[filenum])
         try
             silent execute "sign place " . headline . " line=" 
@@ -3765,6 +3767,46 @@ function! CalEdit( sdate, stime )
         return newdate 
 endfunction
 
+function! OrgColumnsDashboard()
+    let save_cursor = getpos('.')
+    echohl WarningMsg
+    echo " Document default columns:        " . b:v.buffer_columns
+    echo " Current default columns:         " . b:v.org_inherited_defaults['COLUMNS']
+    echo " Column view is currently:        " . (b:v.columnview==1 ? 'ON' : 'OFF')
+    echo " Heading line count is currently: " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
+    echo " "
+    echo " Press key to enter a columns command"
+    echo " ------------------------------------"
+    if b:v.org_inherited_defaults['COLUMNS'] != b:v.buffer_columns
+        echo " r   revert to document default columns"
+    endif
+    echo " t   toggle column view on/off"
+    echo " c   toggle heading line count on/off"
+    echo " Custom columns:"
+    let i = 0
+    while i < len(g:org_custom_column_settings) 
+        echo " " . i . "   " . g:org_custom_column_settings[i]
+        let i += 1
+    endwhile
+    echo " "
+    echohl Question
+    let key = nr2char(getchar())
+    redraw
+    if key ==? 'r'
+        let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
+    elseif key ==? 't'
+        let b:v.columnview = 1 - b:v.columnview
+    elseif key ==? 'c'
+        let g:org_show_fold_lines = 1 - g:org_show_fold_lines
+    elseif key =~ '[0-9]'
+        let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_settings[key]
+    else
+        echo "No column option selected."
+    endif
+    echohl None
+    setlocal foldtext=OrgFoldText()
+    call setpos('.',save_cursor)
+endfunction
 function! OrgDateDashboard()
     let save_cursor = getpos('.')
     if bufname("%") ==? ('__Agenda__')
