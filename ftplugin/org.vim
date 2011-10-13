@@ -123,7 +123,7 @@ let s:org_headMatch = '^\*\+\s'
 let s:org_cal_date = '2000-01-01'
 let g:org_export_babel_evaluate = 1
 let g:org_tag_group_arrange = 0
-let g:org_first_sparse=0
+let g:org_first_sparse=1
 let g:org_clocks_in_agenda = 0
 let s:remstring = '^\s*:\S'
 let s:block_line = '^\s*\(:\|DEADLINE\|SCHEDULED\|CLOSED\|<\d\d\d\d-\|[\d\d\d\d-\)'
@@ -165,6 +165,7 @@ let s:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct',
 let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
 let s:include_inherited_props=0
 let s:AgendaBufferName = "__Agenda__"
+let s:sparse_lines = {}
 
 "testing stuff
 function CustomSearchesSetup()
@@ -2002,7 +2003,7 @@ function! s:SparseTreeRun(term)
     let b:v.signstring= s:GetPlacedSignsString(bufnr("%")) 
     set fdm=expr
     set foldlevel=0
-    let g:org_first_sparse=0
+    let g:org_first_sparse=1
     execute 'let @/ ="' . a:term .'"'
     execute 'g/' . a:term . '/normal zv'
     set hlsearch
@@ -2046,6 +2047,14 @@ function! s:SparseTreeDoFolds()
     endfor
     for item in b:v.fold_list
         execute "sign place " . item ." line=".item." name=fend buffer=".bufnr("%")
+    endfor
+    let s:sparse_lines = {}
+    for item in b:v.sparse_list
+        let s:sparse_lines[item] = 1
+        let s:sparse_lines[item-1] = 1
+    endfor
+    for item in b:v.fold_list
+        let s:sparse_lines[item] = 1
     endfor
     " FoldTouch below instead of fdm line above to save time
     " updating folds for just newly changed foldlevel lines
@@ -2486,7 +2495,7 @@ function! s:ResultsToSparseTree()
         let w:sparse_on = 1
         let temp = []
         for key in keys(g:adict)
-            call add(temp,g:adict[key].line)
+            call add(temp,g:adict[key].LINE)
         endfor
         let b:v.sparse_list = sort(temp,'s:NumCompare')
         "for key in keys(g:adict)
@@ -3781,13 +3790,16 @@ function! OrgColumnsDashboard()
         echo " r   revert to document default columns"
     endif
     echo " t   toggle column view on/off"
-    echo " c   toggle heading line count on/off"
-    echo " Custom columns:"
+    echo " l   line count on/off"
+    if len(g:org_custom_column_settings) > 0 
+        echo " Custom columns settings:"
+    endif
     let i = 0
     while i < len(g:org_custom_column_settings) 
         echo " " . i . "   " . g:org_custom_column_settings[i]
         let i += 1
     endwhile
+    echo " ------------------------------------"
     echo " "
     echohl Question
     let key = nr2char(getchar())
@@ -3796,7 +3808,7 @@ function! OrgColumnsDashboard()
         let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
     elseif key ==? 't'
         let b:v.columnview = 1 - b:v.columnview
-    elseif key ==? 'c'
+    elseif key ==? 'l'
         let g:org_show_fold_lines = 1 - g:org_show_fold_lines
     elseif key =~ '[0-9]'
         let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_settings[key]
@@ -3804,6 +3816,8 @@ function! OrgColumnsDashboard()
         echo "No column option selected."
     endif
     echohl None
+    call s:AdjustItemLen()
+    " redraw folded headings
     setlocal foldtext=OrgFoldText()
     call setpos('.',save_cursor)
 endfunction
@@ -5270,12 +5284,26 @@ function! OrgDoSingleFold(line)
     endif
 endfunction
 
-
 function! OrgFoldLevel(line)
     " called as foldexpr to determine the fold level of a line.
     if g:org_folds == 0
         return 0
     endif
+    " STUFF FOR SPARSE TREE LEVELS
+    if exists('w:sparse_on') && w:sparse_on && (get(s:sparse_lines,a:line) == 1)
+        if index(b:v.sparse_list,a:line+1) >= 0
+            return '<0'
+        endif
+        let sparse = index(b:v.sparse_list,a:line)
+        if sparse >= 0
+            return '>99'
+        endif
+        let sparse = index(b:v.fold_list,a:line)
+        if sparse >= 0
+            return '<0' 
+        endif
+    endif
+
     let l:text = getline(a:line)
     let l:nexttext = getline(a:line + 1)
     "if l:text =~ b:v.headMatch
@@ -5287,32 +5315,6 @@ function! OrgFoldLevel(line)
     endif
     let l:nextAbsLevel = s:Ind(a:line + 1)
 
-    " STUFF FOR SPARSE TREE LEVELS
-    if exists('w:sparse_on') && w:sparse_on  
-        if g:org_first_sparse == 0    
-            let b:v.signstring= s:GetPlacedSignsString(bufnr("%")) 
-            if match(b:v.signstring,'line='.(a:line+1).'\s\sid=\d\+\s\sname=fbegin') >=0
-                return '<0'
-            endif
-            if match(b:v.signstring,'line='.a:line.'\s\sid=\d\+\s\sname=fbegin') >=0
-                return '>99'
-            elseif match(b:v.signstring,'line='.a:line.'\s\sid=\d\+\s\sname=fend') >=0
-                return '<0'
-            endif
-        else
-            if index(b:v.sparse_list,a:line+1) >= 0
-                return '<0'
-            endif
-            let sparse = index(b:v.sparse_list,a:line)
-            if sparse >= 0
-                return '>20'
-            endif
-            let sparse = index(b:v.fold_list,a:line)
-            if sparse >= 0
-                return '<0' 
-            endif
-        endif
-    endif
 
     "if l:text =~ b:v.headMatch
     if l:text[0] ==? '*'
