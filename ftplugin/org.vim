@@ -3809,6 +3809,7 @@ function! OrgColumnsDashboard()
 endfunction
 function! OrgDateDashboard()
     let save_cursor = getpos('.')
+    let save_window = winnr()
     if bufname("%") ==? ('__Agenda__')
         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
@@ -3844,6 +3845,7 @@ function! OrgDateDashboard()
         echo "No date command selected."
     endif
     echohl None
+    exe save_window . 'wincmd w'
     call setpos('.',save_cursor)
 endfunction
 
