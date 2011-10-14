@@ -175,17 +175,17 @@ function CustomSearchesSetup()
                 \    , { 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
                 \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
                 \           ]
-                "\     'search_spec':'+UNFINISHED_TODOS' }
 endfunction
 function RunCustom(searchnum)
     let mydict = g:org_custom_searches[a:searchnum]
     if mydict.type ==? 'agenda'
-        let spec = get(mydict,'search_spec','')
         call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
-                        \  mydict.agenda_duration,
-                        \  spec  )
+                        \  get(mydict, 'agenda_duration', 'w')
+                        \  get(mydict, 'spec',''  )
     elseif mydict.type ==? 'sparse_tree'
         call OrgRunSearch( mydict.spec, 1 )
+    elseif mydict.type ==? 'sparse_tree_regex'
+        silent call s:SparseTreeRun(mydict.spec)
     elseif mydict.type ==? 'heading_list'
         call OrgRunSearch( mydict.spec )
     endif
@@ -2390,11 +2390,12 @@ function! OrgRunSearch(search_spec,...)
     endif   
 
     try
-    if bufname('%') ==? '__Agenda__'
-        " vsplit agenda ********************
-        " wincmd h
-        " *************************
-        wincmd k
+    "if bufname('%') ==? '__Agenda__'
+        "wincmd k
+        "bwipeout __Agenda__
+    "endif
+    if bufnr('__Agenda__') >= 0
+        bwipeout __Agenda__
     endif
 
     let g:agenda_head_lookup={}
@@ -2507,12 +2508,13 @@ function! s:ResultsToSparseTree()
         "for item in sort(b:v.fold_list,'NumCompare')
         set fdm=expr
         set foldlevel=0
+        call clearmatches()
         for item in b:v.sparse_list
             if item > 11
                 execute item - g:org_sparse_lines_after
                 normal! zv
+                call matchadd('Search','\%' . (item - g:org_sparse_lines_after) . 'l')
             endif
-            "execute 'call matchadd("MatchGroup","\\%' . line(".") . 'l")'
         endfor
         execute 1
 endfunction
@@ -3041,16 +3043,24 @@ function! s:Timeline(...)
         "go back up to main org buffer
         wincmd k
     endif
-    let prev_spec = g:org_search_spec
-    let prev_files = g:agenda_files
+    if exists('g:org_search_spec')
+        let prev_spec = g:org_search_spec
+    endif
+    if exists('g:agenda_files')
+        let prev_files = g:agenda_files
+    endif
     exec "let g:agenda_files=['".substitute(expand("%"),' ','\\ ','g')."']"
     call s:BufMinMaxDate()
     let num_days = 1 + calutil#jul(b:v.MinMaxDate[1]) - calutil#jul(b:v.MinMaxDate[0])
     try
         call OrgRunAgenda(b:v.MinMaxDate[0], num_days,spec)
     finally
-        let g:org_search_spec = prev_spec
-        let g:agenda_files = prev_files
+        if exists('prev_spec')
+            let g:org_search_spec = prev_spec
+        endif
+        if exists('prev_files')
+            let g:agenda_files = prev_files
+        endif
     endtry
 endfunction
 
@@ -5616,15 +5626,16 @@ function! OrgAgendaDashboard()
         " already on this tab page
         echo " Press key for an agenda command:"
         echo " --------------------------------"
-        echo " a   Agenda for current week or day"
+        echo " a   Agenda for current week"
         echo " t   List of all TODO entries"
         echo " m   Match a TAGS/PROP/TODO query"
         echo " L   Timeline for current buffer"
-        echo " s   Search for keywords"
+        "echo ' s   Freeform regex search, not heading-metadata'
+        echo " "
         echo " c   Show custom search menu"
         echo " "
-        echo " h   Headline-based sparse tree of: " . g:org_search_spec
-        echo " f   Freeform sparse tree of: " . g:org_search_spec
+        echo " h   Headline-metadata-based sparse tree search"
+        echo " f   Freeform (i.e., regex) sparse tree search" 
         echo " "
         let key = nr2char(getchar())
         redraw
