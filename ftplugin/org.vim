@@ -5039,7 +5039,7 @@ function! OrgFoldText(...)
             \ winwidth(0)-len(l:line) - offset) 
     "elseif (g:org_show_fold_lines && !b:v.columnview) || (l:line =~ b:v.drawerMatch) 
     elseif (g:org_show_fold_lines ) || (l:line =~ b:v.drawerMatch) 
-        let l:line .= s:PrePad("(" . s:PrePad( line_count . ")",5),
+        let l:line .= s:PrePad("|" . s:PrePad( line_count . "|",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
     if exists('v:foldhighlight')
@@ -5328,17 +5328,17 @@ function! OrgFoldLevel(line)
     let l:text = getline(a:line)
     let l:nexttext = getline(a:line + 1)
     "if l:text =~ b:v.headMatch
-    if l:text[0] ==? '*'
+    if l:text =~ '^\*\+\s'
         let b:v.myAbsLevel = s:Ind(a:line)
-    elseif (b:v.lasttext_lev ># '') && (l:nexttext[0] !=? '*') && (b:v.lastline == a:line - 1)
+    elseif (b:v.lasttext_lev ># '') && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
         let b:v.lastline = a:line
         return b:v.lasttext_lev
     endif
     let l:nextAbsLevel = s:Ind(a:line + 1)
 
 
-    "if l:text =~ b:v.headMatch
-    if l:text[0] ==? '*'
+    "if l:text[0] ==? '*'
+    if l:text =~ '^\*\+\s'
         " we're on a heading line
         let b:v.lasttext_lev = ''
         
@@ -5388,7 +5388,8 @@ function! OrgFoldLevel(line)
         endif   
 
         "if l:nexttext =~ b:v.headMatch
-        if l:nexttext[0] ==? '*'
+        "if l:nexttext[0] ==? '*'
+        if l:nexttext =~ '^\*\+\s'
             let b:v.lev = '<' . string(l:nextAbsLevel)
         endif
 
@@ -5563,7 +5564,7 @@ function! EditAgendaFiles()
     call s:AgendaBufSetup()
     command! W :call s:SaveAgendaFiles()
     let msg = "These are your current agenda files:"
-    let msg2 = "Org files in your 'g:org_agenda_dirs' are below."
+    let msg2 = "Org files in your 'g:org_agenda_select_dirs' are below."
     call setline(1,[msg])
     call append(1, repeat('-',winwidth(0)-5))
     call append("$",g:agenda_files + ['',''])
@@ -5571,7 +5572,7 @@ function! EditAgendaFiles()
     silent! execute '%s/\\ / /g'
     let line = repeat('-',winwidth(0)-5)
     call append("$",[line] + [msg2,"To add files to 'g:agenda_files' copy or move them ","to between the preceding lines and press :W to save (or :q to cancel):","",""])
-    for item in g:org_agenda_dirs
+    for item in g:org_agenda_select_dirs
         call append("$",split(globpath(item,"*.org"),"\n"))
     endfor
 endfunction
@@ -5894,7 +5895,7 @@ function! OrgExportDashboard()
     let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
             \     'h':'html', 'b':'html-and-open', 'l':'latex', 
             \     'F':'current-file', 'P':'current-project', 'E':'all', 
-            \     'f':'freemind', 'j':'taskjuggler', 'k':'taskjuggler-and-open'
+            \     'f':'freemind', 'j':'taskjuggler', 'k':'taskjuggler-and-open',
             \     'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle' } 
     echo " Press key for export operation:"
     echo " --------------------------------"
