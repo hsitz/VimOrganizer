@@ -172,6 +172,8 @@ function CustomSearchesSetup()
     let g:org_custom_searches = [
                 \    { 'name':"Next week's agenda", 'type':'agenda', 
                 \                'agenda_date':'+1w','agenda_duration':'w'}
+                \    ,{ 'name':"Next week's TODOS", 'type':'agenda', 
+                \                'agenda_date':'+1w','agenda_duration':'w','spec'='+UNFINISHED_TODOS'}
                 \    , { 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
                 \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
                 \           ]
@@ -180,8 +182,8 @@ function RunCustom(searchnum)
     let mydict = g:org_custom_searches[a:searchnum]
     if mydict.type ==? 'agenda'
         call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
-                        \  get(mydict, 'agenda_duration', 'w')
-                        \  get(mydict, 'spec',''  )
+                        \  get(mydict, 'agenda_duration', 'w'),
+                        \  get(mydict, 'spec','')  )
     elseif mydict.type ==? 'sparse_tree'
         call OrgRunSearch( mydict.spec, 1 )
     elseif mydict.type ==? 'sparse_tree_regex'
@@ -2361,10 +2363,13 @@ function! s:MakeAgenda(date,count,...)
     let g:in_agenda_search=1
     for file in g:agenda_files
         call s:LocateFile(file)
-        "call OrgMakeDict()
-
         let b:v.org_dict = {}
-        call OrgMakeDictInherited()
+        " only do CATEGORIES for dict if no search spec
+        if g:org_search_spec ==# ''
+            call OrgMakeDictInherited()
+        else
+            call OrgMakeDict()
+        endif
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today ># ''
@@ -2578,13 +2583,14 @@ function! s:DateDictPlaceSigns()
 endfunction
 
 function! s:DateDictToScreen()
-    let message = ["Press <f> or <b> for next or previous period." ,
+    let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
                 \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
                 \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
     let search_spec = g:org_search_spec ># '' ? g:org_search_spec : 'None - include all heads'
     call add(message,"Agenda view for " . g:agenda_startdate 
                 \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
-                \ . ' with SearchSpec=' . search_spec  )
+                \ . ' matching FILTER: ' . search_spec  )
+                "\ . ' with SearchSpec=' . search_spec  )
     call add(message,'')
     call setline(1,message)
     call s:DateDictPlaceSigns()
@@ -2707,7 +2713,8 @@ function! OrgRunAgenda(date,count,...)
     map <silent> <buffer> b :call OrgAgendaMove('backward')<cr>
     map <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
     map <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
-    nmap <silent> <buffer> r :call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)<CR>
+    "nmap <silent> <buffer> r :call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)<CR>
+    nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
 
@@ -2734,6 +2741,10 @@ function! OrgRunAgenda(date,count,...)
         "set mouseshape-=n:busy,v:busy,i:busy
     endtry
 
+endfunction
+function! OrgRefreshCalendarAgenda()
+    let g:org_search_spec = matchstr(getline(5),'FILTER:\s*\zs.*$')
+    call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
 endfunction
 function! s:Resize()
     let cur = winheight(0)
@@ -5561,7 +5572,7 @@ function! EditAgendaFiles()
     let line = repeat('-',winwidth(0)-5)
     call append("$",[line] + [msg2,"To add files to 'g:agenda_files' copy or move them ","to between the preceding lines and press :W to save (or :q to cancel):","",""])
     for item in g:org_agenda_dirs
-        call append("$",split(globpath(item,"**/*.org"),"\n"))
+        call append("$",split(globpath(item,"*.org"),"\n"))
     endfor
 endfunction
 function! s:SaveAgendaFiles()
@@ -5607,7 +5618,11 @@ function! OrgCustomSearchMenu()
         echo " "
         let key = nr2char(getchar())
         let itemnum = str2nr(key)
-        call RunCustom( itemnum - 1 )
+        if itemnum > 0 && itemnum <= len(g:org_custom_searches)
+            call RunCustom( itemnum - 1 )
+        else
+            echo 'No search was chosen.'
+        endif
     endif
 endfunction
 
@@ -5783,7 +5798,7 @@ function! s:OrgHasEmacsVar()
                 \ . "You should set this in your vimrc by including \n"
                \ . "a line like: \n\n"
                \ . "    let g:org_command_for_emacsclient=[put command to start emacs here] \n\n"
-               \ . "See :h org-emacs-invoking for more info. \n\n"
+               \ . "See :h vimorg-emacs-invoking for more info. \n\n"
                \ . "The call you attempted to Emacs will now be aborted.  \n"
                \ . "Revise your vimrc and restart Vim to use this feature.\n"
                \ . "==============================================\n"
