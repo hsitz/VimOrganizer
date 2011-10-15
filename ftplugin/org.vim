@@ -2717,6 +2717,7 @@ function! OrgRunAgenda(date,count,...)
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
 
     "wincmd J
     for key in keys(g:agenda_date_dict)
@@ -5033,7 +5034,6 @@ function! OrgFoldText(...)
     if g:org_show_fold_dots 
         let l:line .= '...'
     endif
-    "let offset = &fdc + 5*(&number) + 4
     let offset = &fdc + 5*(&number) + (b:v.columnview ? 7 : 1)
     if b:v.columnview && (origline =~ b:v.headMatch) 
         let l:line .= s:PrePad(s:GetColumns(foldstart), winwidth(0)-len(l:line) - offset)
@@ -5144,10 +5144,33 @@ command! MySynchCycle call <SID>OrgShowMatch(1)
 command! MyAgendaToBuf call <SID>OrgAgendaToBufTest()
 command! AgendaMoveToBuf call s:OrgAgendaToBuf()
 
-command -range CodeEval :call <SID>CodeEval
-
+command! -range CodeEval :call <SID>CodeEval
+command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
 function! CodeEval() range
     
+endfunction
+
+function! OrgAgendaCommand(...)
+    if exists('a:1')
+        let mydate = a:1
+    else
+        let mydate = s:Today()
+    endif
+    if exists('a:2')
+        let viewdays = a:2
+    else
+        let viewdays = 'w'
+    endif
+    if exists('a:3')
+        let search_spec = a:3
+    else
+        let search_spec = ''
+    endif
+    if mydate =~ '\d\d\d\d-\d\d-\d\d'
+        call OrgRunAgenda(mydate,viewdays,search_spec)
+    else
+        call OrgRunAgenda(DateCueResult(mydate,s:Today()),viewdays,search_spec)
+    endif
 endfunction
 
 function! s:OrgAgendaToBufTest()
