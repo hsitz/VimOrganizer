@@ -5034,7 +5034,7 @@ function! OrgFoldText(...)
         let l:line .= '...'
     endif
     "let offset = &fdc + 5*(&number) + 4
-    let offset = &fdc + 5*(&number) + (b:v.columnview ? 7 : 4)
+    let offset = &fdc + 5*(&number) + (b:v.columnview ? 7 : 1)
     if b:v.columnview && (origline =~ b:v.headMatch) 
         let l:line .= s:PrePad(s:GetColumns(foldstart), winwidth(0)-len(l:line) - offset)
     endif
