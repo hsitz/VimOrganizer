@@ -101,6 +101,7 @@ nnoremap <silent> <buffer> <localleader>cb   i**<ESC>h
 nnoremap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
 nnoremap <silent> <buffer> <localleader>ns :call NarrowOutline(line('.'))<cr>
 nnoremap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
+nnoremap <silent> <buffer> <localleader>m :call OrgColumnsDashboard()<cr>
 " ----------------------------------------
 " table commands
 au InsertEnter *.org :call org#tbl#reset_tw(line("."))

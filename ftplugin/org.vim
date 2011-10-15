@@ -41,12 +41,12 @@ let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
-let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'TAGS,30'}
+let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'TAGS,%-30s'}
 let b:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
-let b:v.buffer_columns = 'TAGS,30'
+let b:v.buffer_columns = 'TAGS,%-30s'
 let w:sparse_on = 0
 let b:v.columnview = 0
 let b:v.clock_to_logbook = 1
@@ -96,7 +96,7 @@ let b:v.suppress_list_indent=0
 " org file is opened
 if !exists('g:org_loaded')
 
-let g:org_custom_column_settings = ['DEADLINE,15,TAGS,35'] 
+let g:org_custom_column_settings = ['DEADLINE,%-14s,TAGS,%-35s'] 
 
 if !exists('g:org_custom_colors')
     let g:org_custom_colors=[]
@@ -3833,6 +3833,7 @@ function! OrgColumnsDashboard()
         let g:org_show_fold_lines = 1 - g:org_show_fold_lines
     elseif key =~ '[0-9]'
         let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_settings[key]
+        let b:v.columnview = 1
     else
         echo "No column option selected."
     endif
@@ -4882,11 +4883,15 @@ function! s:GetColumns(line)
     endif
     " build text string with column values
     while i < len(g:org_colview_list)
-        let result .= '|' . s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
+        "let result .= '|' . s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
+        let fmt = '|' . g:org_colview_list[i+1] 
+        "let result .= '|' . printf(s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
+        let result .= printf(fmt, get(props,(g:org_colview_list[i]),'')) 
         let i += 2
     endwhile
 
-    return result[:-2]
+    "return result[:-2]
+    return result
 
 endfunction
 function! ToggleColumnView()
@@ -4914,7 +4919,7 @@ function! s:AdjustItemLen()
     let b:v.total_columns_width = 3
     let colspec = split(b:v.org_inherited_defaults['COLUMNS'], ',')
     while i < len(colspec)
-        let b:v.total_columns_width += colspec[i]
+        let b:v.total_columns_width += matchstr(colspec[i], '\d\+')
         let i += 2
     endwhile
     if expand('%') !~ '__Agenda__'
@@ -6438,7 +6443,7 @@ amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
 amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
 amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
 amenu &Org.-Sep2- :
-amenu &Org.&Toggle\ ColumnView :silent exec 'let b:v.columnview = 1 - b:v.columnview'<cr> 
+amenu &Org.&Columns\ Menu :call OrgColumnsDashboard()<cr>
 amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
 amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(OrgGetLink())<cr>
 amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
