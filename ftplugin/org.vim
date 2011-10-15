@@ -219,8 +219,8 @@ function! OrgProcessConfigLines()
         elseif line =~ '#+TAGS:'
             let newtags = matchstr( line, '#+TAGS:\s*\zs.*') 
             let b:v.buf_tags_static_spec .= newtags . '\n '
-        elseif line =~ '#+TODO:'
-            call OrgTodoSetup(matchstr(line,'#+TODO:\s*\zs.*'))
+        elseif line =~ '\(#+TODO:\|#+SEQ_TODO:\)'
+            call OrgTodoSetup(matchstr(line,'\(#+TODO:\|#+SEQ_TODO:\)\s*\zs.*'))
         endif
     endfor
     if empty(b:v.todoitems)
