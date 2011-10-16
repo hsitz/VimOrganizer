@@ -2354,7 +2354,7 @@ function! s:MakeAgenda(date,count,...)
         let g:agenda_startdate = a:date
         let g:org_agenda_days = l:count
     endif
-    if count == 1 | let as_today = g:agenda_startdate | endif
+    if l:count == 1 | let as_today = g:agenda_startdate | endif
     let g:adict = {}
     let s:filedict = copy(g:agenda_files)
     let s:agenda_files_copy = copy(g:agenda_files)
@@ -2709,8 +2709,8 @@ function! OrgRunAgenda(date,count,...)
     map <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 'w',g:org_search_spec)<CR>
     map <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 'm',g:org_search_spec)<CR>
     map <silent> <buffer> vy :call OrgRunAgenda(g:agenda_startdate, 'y',g:org_search_spec)<CR>
-    map <silent> <buffer> f :call OrgAgendaMove('forward')<cr>
-    map <silent> <buffer> b :call OrgAgendaMove('backward')<cr>
+    map <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
+    map <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
     map <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
     map <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
     "nmap <silent> <buffer> r :call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)<CR>
@@ -3170,41 +3170,33 @@ function! s:DateListAdd(valdict)
     return a:valdict
 endfunction 
 
-function! OrgAgendaMove(direction)
-    if a:direction ==? 'forward'
-        if g:org_agenda_days == 1
-            let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)+1)
-        elseif g:org_agenda_days == 7
-            let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)+7)
-        elseif g:org_agenda_days >= 360
-            let g:agenda_startdate = string(g:agenda_startdate[0:3]+1).'-01-01'
-        else
-            if g:agenda_startdate[5:6] ==? '12'
-                let g:agenda_startdate = string(g:agenda_startdate[0:3] + 1).'-01-01'
-            else
-                let g:agenda_startdate = g:agenda_startdate[0:4].
-                            \ s:Pre0(string(str2nr(g:agenda_startdate[5:6])+1)) .'-01'
-            endif
-            let g:org_agenda_days = s:DaysInMonth(g:agenda_startdate)
-        endif
-    else            "we're going backward
-        if g:org_agenda_days == 1
-            let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)-1)
-        elseif g:org_agenda_days == 7
-            let g:agenda_startdate = calutil#cal(calutil#jul(g:agenda_startdate)-7)
-        elseif g:org_agenda_days >= 360
-            let g:agenda_startdate = string(g:agenda_startdate[0:3]-1).'-01-01'
-        else
-            if g:agenda_startdate[5:6] ==? '01'
-                let g:agenda_startdate = string(g:agenda_startdate[0:3] - 1).'-12-01'
-            else
-                let g:agenda_startdate = g:agenda_startdate[0:4].
-                            \ s:Pre0(string(str2nr(g:agenda_startdate[5:6]) - 1)) .'-01'
-            endif
-            let g:org_agenda_days = s:DaysInMonth(g:agenda_startdate)
-        endif
+function! OrgAgendaMove(direction,count)
+    " need to add functionaity for count, refactor
+    let cnt = (a:count == 0) ? 1 : a:count
+    let cnt = (a:direction ==? 'forward') ? cnt : -cnt
+    let date_jul = calutil#jul(g:agenda_startdate)
+    let ymd_list = split(g:agenda_startdate,'-')
 
+    if g:org_agenda_days == 1
+        let g:agenda_startdate = calutil#cal(date_jul + (cnt * 1))
+    elseif g:org_agenda_days == 7
+        let g:agenda_startdate = calutil#cal(date_jul + (cnt * 7))
+    elseif g:org_agenda_days >= 360
+        let g:agenda_startdate = string(ymd_list[0] + (cnt * 1)) .'-01-01'
+    else
+        let ymd_list[1] = ymd_list[1] + (cnt * 1)
+        if ymd_list[1] > 0
+            let ymd_list[0] += ymd_list[1] / 12
+            let ymd_list[1] = ymd_list[1] % 12
+        else
+            let ymd_list[0] += (ymd_list[1] / 12) - 1
+            let ymd_list[1] = 12 + (ymd_list[1] % 12)
+        endif
+        let g:agenda_startdate = ymd_list[0] . '-' .
+                    \ s:Pre0(string(ymd_list[1])) .'-01'
+        let g:org_agenda_days = s:DaysInMonth(g:agenda_startdate)
     endif
+
     if g:org_agenda_days == 1
         call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec,g:agenda_startdate)
     else
