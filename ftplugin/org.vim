@@ -242,7 +242,7 @@ function! OrgTodoConvert(orgtodo)
     let sublist = []
     let b:v.tododict = {}
    " let templist = []
-    let temp_list = split(a:orgtodo,' ')
+    let temp_list = split(a:orgtodo,'\s\+')
 
     for item in temp_list
         if item == '|' 
@@ -2543,7 +2543,7 @@ endfunction
 
 function! s:ADictPlaceSigns()
     let myl=[]
-    call s:DeleteSigns()  " signs placed in GetDateHeads
+    call s:DeleteSigns()  " signs were placed during search
     for key in keys(g:adict)
         let headline = g:adict[key].LINE
         let filenum = g:adict[key].FILE
@@ -2560,7 +2560,7 @@ function! s:ADictPlaceSigns()
 endfunction
 function! s:DateDictPlaceSigns()
     let myl=[]
-    call s:DeleteSigns()  " signs placed in GetDateHeads
+    call s:DeleteSigns()  " signs were placed in GetDateHeads
     for key in keys(g:agenda_date_dict)
         let myl = get(g:agenda_date_dict[key], 'l')
         if len(myl) > 0
@@ -5338,7 +5338,7 @@ function! OrgFoldLevel(line)
     if g:org_folds == 0
         return 0
     endif
-    " STUFF FOR SPARSE TREE LEVELS
+    " STUFF to short-circuit FOR SPARSE TREE LEVELS
     if exists('w:sparse_on') && w:sparse_on && (get(s:sparse_lines,a:line) == 1)
         if index(b:v.sparse_list,a:line+1) >= 0
             return '<0'
@@ -5358,7 +5358,7 @@ function! OrgFoldLevel(line)
     "if l:text =~ b:v.headMatch
     if l:text =~ '^\*\+\s'
         let b:v.myAbsLevel = s:Ind(a:line)
-    elseif (b:v.lasttext_lev ># '') && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
+    elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
         let b:v.lastline = a:line
         return b:v.lasttext_lev
     endif
@@ -5388,7 +5388,18 @@ function! OrgFoldLevel(line)
     else    
         "we have a text line 
         if b:v.lastline != a:line - 1    " backup to headline to get bearings
-            let b:v.prevlev = s:Ind(s:OrgPrevHead_l(a:line))
+            if l:text =~ b:v.drawerMatch
+                let b:v.prevlev = s:Ind(s:OrgPrevHead_l(a:line))
+            else
+                "don't just back up, recalc previous lines
+                " to set variables correctly
+                let prevhead = s:OrgPrevHead_l(a:line)
+                let i = prevhead
+                for item in range(prevhead,a:line-1)
+                    call OrgFoldLevel(item)
+                endfor
+            endif
+            "let b:v.prevlev = s:Ind(s:OrgPrevHead_l(a:line))
         endif
 
         if l:text =~ b:v.drawerMatch
@@ -6358,26 +6369,8 @@ setlocal fillchars=|,
 
 "Section Narrow Region
 let g:nrrw_rgn_vert=1
-function! NarrowOutline(line)
-    if exists(":NarrowRegion") == 0
-       echo "The Vim plugin NrrwRgn.vim must be installed for"
-        echo "narrowing to work.  You can find a copy at:"
-        echo 'http://www.vim.org/scripts/script.php?script_id=3075'
-        return
-    endif
-    if matchstr(getline(line('.')), b:v.headMatch) ># ''
-        let start_width = winwidth(0)
-        let &winwidth = winwidth(0) / 3
-        let start = s:OrgGetHead_l(a:line)
-        let end = s:OrgSubtreeLastLine_l(start)
-        execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
-        " then set ftype in new buffer
-        set ft=org
-        let &winwidth=start_width*2/3
-    else
-        echo "You must be on a heading to narrow it."
-    endif
-endfunction
+let g:nrrw_custom_options={'wrap':0}
+command -buffer Narrow :call NarrowCodeBlock(line('.'))
 
 function! NarrowCodeBlock(line)
     if exists(":NarrowRegion") == 0
@@ -6386,6 +6379,9 @@ function! NarrowCodeBlock(line)
         echo 'http://www.vim.org/scripts/script.php?script_id=3075'
         return
     endif
+    " function first tests if inside src block, and if so
+    " narrows the code block.  If not, then
+    " tests for headline and narrows the heading subtree
     execute a:line
     call search('^#+begin_src','b','')
     let start=line('.') + 1
@@ -6396,9 +6392,9 @@ function! NarrowCodeBlock(line)
     call search('^#+end_src','','')
     let end=line('.') - 1
 
+    let start_width = winwidth(0)
+    let &winwidth = winwidth(0) / 3
     if (start <= a:line) && (end >= a:line)
-        let start_width = winwidth(0)
-        let &winwidth = winwidth(0) / 3
         execute start ',' . end . 'call nrrwrgn#NrrwRgn()'
         if filereadable($VIMRUNTIME . '/ftplugin/' . language . '.vim')
             execute 'set ft=' . language
@@ -6409,11 +6405,18 @@ function! NarrowCodeBlock(line)
 
         let &winwidth=start_width*2/3
     else
-        execute a:line
-        echo "You are not inside a code block."
+        let start = s:OrgGetHead_l(a:line)
+        if start > 0 
+            let end = s:OrgSubtreeLastLine_l(start)
+            execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
+            " then set ftype in new buffer
+            set ft=org
+            let &winwidth=start_width*2/3
+        else
+            execute a:line
+            echo "You're not in a source code block or an outline heading."
+        endif
     endif
-
-    
 endfunction
 " Org Menu Entries
 amenu &Org.&View.Entire\ &Document.To\ Level\ &1<tab>,,1 :set foldlevel=1<cr>

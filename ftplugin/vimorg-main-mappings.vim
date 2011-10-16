@@ -98,9 +98,10 @@ nnoremap <silent> <buffer> <localleader>cc   i==<ESC>h
 vmap <silent> <buffer> <localleader>cb   "zdi*<C-R>z*<ESC>l 
 nnoremap <silent> <buffer> <localleader>cb   i**<ESC>h
 
-nnoremap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
-nnoremap <silent> <buffer> <localleader>ns :call NarrowOutline(line('.'))<cr>
-nnoremap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
+"nnoremap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
+"nnoremap <silent> <buffer> <localleader>ns :call NarrowOutline(line('.'))<cr>
+"nnoremap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
+nnoremap <silent> <buffer> <localleader>n :call NarrowCodeBlock(line('.'))<cr>
 nnoremap <silent> <buffer> <localleader>m :call OrgColumnsDashboard()<cr>
 " ----------------------------------------
 " table commands
