@@ -5672,45 +5672,77 @@ function! OrgAgendaDashboard()
     else
         " show dashboard if there is no agenda buffer or it's 
         " already on this tab page
-        echo " Press key for an agenda command:"
-        echo " --------------------------------"
-        echo " a   Agenda for current week"
-        echo " t   List of all TODO entries"
-        echo " m   Match a TAGS/PROP/TODO query"
-        echo " L   Timeline for current buffer"
-        "echo ' s   Freeform regex search, not heading-metadata'
-        echo " "
-        echo " c   Show custom search menu"
-        echo " "
-        echo " h   Headline-metadata-based sparse tree search"
-        echo " f   Freeform (i.e., regex) sparse tree search" 
-        echo " "
-        let key = nr2char(getchar())
-        redraw
-        if key ==? 't'
-            silent execute "call OrgRunSearch('+ALL_TODOS','agenda_todo')"
-        elseif key ==? 'a'
-            silent execute "call OrgRunAgenda(s:Today(),'w')"
-        elseif key ==? 'L'
-            silent execute "call s:Timeline()"
-        elseif key ==? 'c'
-            execute "call OrgCustomSearchMenu()"
-        elseif key ==? 'm'
-            let mysearch = input("Enter search string: ")
-            silent execute "call OrgRunSearch(mysearch)"
-        elseif key ==? 'h'
-            let g:org_sparse_spec = input("Enter search string: ")
-            if bufname("%") ==? '__Agenda__'
-                :bd
+        let restrict = 0
+        let saved_afiles = []
+        while 1
+            echo " Press key for an agenda command:"
+            echo " --------------------------------"
+            echo " a   Agenda for current week"
+            echo " t   List of all TODO entries"
+            echo " m   Match a TAGS/PROP/TODO query"
+            echo " L   Timeline for current buffer"
+            "echo ' s   Freeform regex search, not heading-metadata'
+            echo " "
+            echo " c   Show custom search menu"
+            echo " "
+            echo " h   Headline-metadata-based sparse tree search"
+            echo " f   Freeform (i.e., regex) sparse tree search" 
+            echo " <   restrict to current buffer"
+            if restrict == 1
+                echo "     Will restrict to current buffer.  Press a key to choose search..."
             endif
-            silent execute "call OrgRunSearch(g:org_sparse_spec,1)"
-        elseif key ==? 'f'
-            let g:org_sparse_spec = input("Enter search string: ")
-            if bufname("%") ==? '__Agenda__'
-                :bd
+            echo ""
+            let key = nr2char(getchar())
+            redraw
+            if key == '<'
+                let restrict = 1
+                continue
+            else
+                break
             endif
-            silent call s:SparseTreeRun(g:org_sparse_spec)
+        endwhile
+        if restrict == 1
+            let save_win = winnr()
+            for winnum in range(1,winnr('$'))
+                exec winnum . 'wincmd w'
+                if expand('%') =~ '\.org$'
+                    let saved_afiles = copy(g:agenda_files)
+                    let g:agenda_files = [expand('%:p')]
+                    break
+                endif
+            endfor
+            exec save_win . 'wincmd w'
         endif
+        try
+            if key ==? 't'
+                silent execute "call OrgRunSearch('+ALL_TODOS','agenda_todo')"
+            elseif key ==? 'a'
+                silent execute "call OrgRunAgenda(s:Today(),'w')"
+            elseif key ==? 'L'
+                silent execute "call s:Timeline()"
+            elseif key ==? 'c'
+                execute "call OrgCustomSearchMenu()"
+            elseif key ==? 'm'
+                let mysearch = input("Enter search string: ")
+                silent execute "call OrgRunSearch(mysearch)"
+            elseif key ==? 'h'
+                let g:org_sparse_spec = input("Enter search string: ")
+                if bufname("%") ==? '__Agenda__'
+                    :bd
+                endif
+                silent execute "call OrgRunSearch(g:org_sparse_spec,1)"
+            elseif key ==? 'f'
+                let g:org_sparse_spec = input("Enter search string: ")
+                if bufname("%") ==? '__Agenda__'
+                    :bd
+                endif
+                silent call s:SparseTreeRun(g:org_sparse_spec)
+            endif
+        finally
+            if len(saved_afiles) > 0
+                let g:agenda_files = copy(saved_afiles)
+            endif
+        endtry
     endif
 endfunction
 
@@ -5850,7 +5882,7 @@ function! OrgEvalTable()
     if getline(line('.'))[0:6] == '#+TBLFM'
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        let part1 = '(let ((org-export-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         if exists('*xolox#shell#execute')
             silent call xolox#shell#execute(orgcmd, 1)
@@ -5887,8 +5919,8 @@ function! OrgEvalBlock()
     endif
     exec end
     " include results if there is result block w/in a couple of lines
-    if ( search('^#+results','n','') - end ) <= 3
-        call search('^#+results','','')
+    if ( search('^\s*#+results','nW','') - end ) <= 3
+        call search('^\s*#+results','','')
         if getline(line('.')+1) =~ '#+BEGIN_RESULT'
             call search('^#+END_RESULT')
             normal j
@@ -5900,7 +5932,7 @@ function! OrgEvalBlock()
         let end = line('.')
     endif
     exe start . ',' . end . 'w! ~/org-src-block.org'
-    let part1 = '(let ((org-export-babel-evaluate nil)) (progn (find-file \' . s:cmd_line_quote_fix . '"~/org-src-block.org\' . s:cmd_line_quote_fix . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
+    let part1 = '(let ((org-confirm-babel-evaluate nil)) (progn (find-file \' . s:cmd_line_quote_fix . '"~/org-src-block.org\' . s:cmd_line_quote_fix . '"' . ')(org-babel-next-src-block)(org-babel-execute-src-block)(save-buffer)(kill-buffer)))' 
     let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
     if exists('*xolox#shell#execute')
         silent call xolox#shell#execute(orgcmd, 1)
