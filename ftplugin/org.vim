@@ -2545,8 +2545,8 @@ function! s:ADictPlaceSigns()
     let myl=[]
     call s:DeleteSigns()  " signs were placed during search
     for key in keys(g:adict)
-        let headline = g:adict[key].LINE
-        let filenum = g:adict[key].FILE
+        let headline = matchstr(key,'^\d\d\d\zs\d\+')
+        let filenum = str2nr(key[0:2])
         let buf = bufnr(s:agenda_files_copy[filenum])
         try
             silent execute "sign place " . headline . " line=" 
@@ -5587,6 +5587,7 @@ function! s:ProcessCapture()
     execute "bd"
 endfunction
 
+command! -buffer EditAgendaFiles :call EditAgendaFiles()
 function! EditAgendaFiles()
     if !exists("g:agenda_files") || (g:agenda_files == [])
         call s:CurfileAgenda()
