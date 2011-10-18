@@ -2111,7 +2111,7 @@ function! s:OrgIfExpr()
     " operation
     let str = substitute(g:org_search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
     " preprocess for an OR bar, add '+' before it
-    let str = substitute(g:org_search_spec,'\([^\\]\)|\([+-]\)','\1+|\2','g')
+    let str = substitute(str,'\([^\\]\)|\([+-]\)','\1+|\2','g')
 
     let str = substitute(str,'\([+-]\)','~\1','g')
     let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
@@ -2135,7 +2135,7 @@ function! s:OrgIfExpr()
                 let item = '+' . item
             endif
             " Propmatch has '=' sign and something before and after
-            if item[1:] =~ 'TEXT=\S.*'
+            if item =~ 'TEXT=\S.*'
                 let mtch = matchlist(item[1:],'\(\S.*\)=\(\S.*\)')
                 let b:v.my_if_list[i] = "(s:Range_Search('" . mtch[2] . "','nbW'," 
                 let b:v.my_if_list[i] .= 'tbegin,tend)> 0)'
@@ -2143,8 +2143,11 @@ function! s:OrgIfExpr()
                 " loop to next item
                 continue
             endif
-            if item[1:] =~ '\S.*=\S.*'
-                let pat = '\(\S.*\)\( == \|>=\|<=\|!=\)\(\S.*\)'
+            if item =~ '\S.*[=><]\S.*'
+                if item =~ '[^<>!]=[^=]'
+                    let item = substitute(item,'=','==','')
+                endif
+                let pat = '\(\S\{-}\)\(==\|>=\|<=\|!=\|<\|>\)\(\S.*\)'
                 let mtch = matchlist(item[1:],pat)
                 "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
                 if mtch[3] =~ '^\d\+$'
@@ -2154,6 +2157,7 @@ function! s:OrgIfExpr()
                     " string comparison
                     let rightside="'".mtch[3]."'"
                     let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
+                                \ . '&& (get(lineprops,"' . mtch[1] . '","") != "")'
                     "let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
                 endif
                 let i += 1
