@@ -1594,7 +1594,7 @@ function! OrgCycle()
 endfunction
 let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
-    if w:sparse_on
+    if exists('w:sparse_on') && w:sparse_on
         call s:ClearSparseTree()
     endif
     if (&foldlevel > 1) && (&foldlevel != b:v.global_cycle_levels_to_show)
@@ -1689,7 +1689,7 @@ function! s:GetProperties(hl,withtextinfo,...)
         let result1['TAGS'] = matchstr(getline(hl+1),b:v.tagMatch)
     endif
     if linetext =~ b:v.todoMatch
-        let result1['TODO'] = matchstr(linetext,b:v.todoMatch)[2:]
+        let result1['TODO'] = matchstr(linetext,b:v.todoMatch)
     else
         let result1['TODO'] = ''
     endif
@@ -2745,6 +2745,9 @@ function! OrgRunAgenda(date,count,...)
 endfunction
 function! OrgRefreshCalendarAgenda()
     let g:org_search_spec = matchstr(getline(5),'FILTER:\s*\zs.*$')
+    if g:org_search_spec =~ '\c^None'
+       let g:org_search_spec = ''
+    endif
     call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
 endfunction
 function! s:Resize()
