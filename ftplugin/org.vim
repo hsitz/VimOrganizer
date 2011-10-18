@@ -837,6 +837,9 @@ endfunction
 
 function! s:ReplaceTodo(todoword,...)
     let save_cursor = getpos('.')
+    if getline(line('.'))[0] == '*'
+        exec s:OrgGetHead()
+    endif
     let todoword = a:todoword
     if bufname("%") ==? ('__Agenda__')
         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
