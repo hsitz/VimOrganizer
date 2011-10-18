@@ -2107,85 +2107,96 @@ function! s:OrgIfExpr()
     " subst are to make dates work properly with substitute/split
     " operation
     let str = substitute(g:org_search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
+    " preprocess for an OR bar, add '+' before it
+    let str = substitute(g:org_search_spec,'\([^\\]\)|\([+-]\)','\1+|\2','g')
+
     let str = substitute(str,'\([+-]\)','~\1','g')
     let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
-    let g:str = str
-    let b:v.my_if_list = split(str,'\~')
-    let ifexpr = ''
-    " okay, right now we have split list with each item prepended by + or -
-    " now change each item to be a pattern match equation in parens
-    " e.g.,'( prop1 =~ propval) && (prop2 =~ propval) && (thisline =~tag)
-    let i = 0
-    "using while structure because for structure doesn't allow changing
-    " items?
-    while i < len(b:v.my_if_list)
-        let item = b:v.my_if_list[i]
-        if item[0] !~ '+\|-'
-            let item = '+' . item
-        endif
-        " Propmatch has '=' sign and something before and after
-        if item[1:] =~ 'TEXT=\S.*'
-            let mtch = matchlist(item[1:],'\(\S.*\)=\(\S.*\)')
-            let b:v.my_if_list[i] = "(s:Range_Search('" . mtch[2] . "','nbW'," 
-            let b:v.my_if_list[i] .= 'tbegin,tend)> 0)'
-            let i += 1
-            " loop to next item
-            continue
-        endif
-        if item[1:] =~ '\S.*=\S.*'
-            let pat = '\(\S.*\)\( == \|>=\|<=\|!=\)\(\S.*\)'
-            let mtch = matchlist(item[1:],pat)
-            "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
-            if mtch[3] =~ '^\d\+$'
-                " numeric comparison
-                let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
+    
+    let ifstring_list = split(str,'+|')
+
+    let result_if_list = []
+    for ifstr in ifstring_list
+
+        let b:v.my_if_list = split(ifstr,'\~')
+        let ifexpr = ''
+        " okay, right now we have split list with each item prepended by + or -
+        " now change each item to be a pattern match equation in parens
+        " e.g.,'( prop1 =~ propval) && (prop2 =~ propval) && (thisline =~tag)
+        let i = 0
+        "using while structure because for structure doesn't allow changing
+        " items?
+        while i < len(b:v.my_if_list)
+            let item = b:v.my_if_list[i]
+            if item[0] !~ '+\|-'
+                let item = '+' . item
+            endif
+            " Propmatch has '=' sign and something before and after
+            if item[1:] =~ 'TEXT=\S.*'
+                let mtch = matchlist(item[1:],'\(\S.*\)=\(\S.*\)')
+                let b:v.my_if_list[i] = "(s:Range_Search('" . mtch[2] . "','nbW'," 
+                let b:v.my_if_list[i] .= 'tbegin,tend)> 0)'
+                let i += 1
+                " loop to next item
+                continue
+            endif
+            if item[1:] =~ '\S.*=\S.*'
+                let pat = '\(\S.*\)\( == \|>=\|<=\|!=\)\(\S.*\)'
+                let mtch = matchlist(item[1:],pat)
+                "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
+                if mtch[3] =~ '^\d\+$'
+                    " numeric comparison
+                    let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
+                else
+                    " string comparison
+                    let rightside="'".mtch[3]."'"
+                    let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
+                    "let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
+                endif
+                let i += 1
+                " loop to next item
+                continue
+            endif
+
+            " do todo or tag item
+            if item[0] ==? '+'
+                let op = '=~'
+            elseif item[0] ==? '-'
+                let op = '!~'
+            endif
+            if index(b:v.todoitems,item[1:]) >= 0
+                let item = '(thisline ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
+                let b:v.my_if_list[i] = item
+            elseif item[1:] ==? 'UNFINISHED_TODOS'
+                let item = '(thisline ' . op . " '" . b:v.todoNotDoneMatch . "')"
+                let b:v.my_if_list[i] = item
+            elseif item[1:] ==? 'FINISHED_TODOS'
+                let item = '(thisline ' . op . " '" . b:v.todoDoneMatch . "')"
+                let b:v.my_if_list[i] = item
+            elseif item[1:] ==? 'ALL_TODOS'
+                let item = '(thisline ' . op . " '" . b:v.todoMatch . "')"
+                let b:v.my_if_list[i] = item
             else
-                " string comparison
-                let rightside="'".mtch[3]."'"
-                let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
-                "let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
+                let item = '(thisline ' . op . " ':" . item[1:] . ":')"
+                let b:v.my_if_list[i] = item
+            endif
+            let i += 1 
+        endwhile    
+        let i = 0
+        let b:v.check1 = b:v.my_if_list
+        let ifexpr = ''
+        while i < len(b:v.my_if_list) 
+            let ifexpr .= b:v.my_if_list[i]
+            if i < len(b:v.my_if_list) - 1
+                let ifexpr .= ' && '
             endif
             let i += 1
-            " loop to next item
-            continue
-        endif
+        endwhile
 
-        " do todo or tag item
-        if item[0] ==? '+'
-            let op = '=~'
-        elseif item[0] ==? '-'
-            let op = '!~'
-        endif
-        if index(b:v.todoitems,item[1:]) >= 0
-            let item = '(thisline ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
-            let b:v.my_if_list[i] = item
-        elseif item[1:] ==? 'UNFINISHED_TODOS'
-            let item = '(thisline ' . op . " '" . b:v.todoNotDoneMatch . "')"
-            let b:v.my_if_list[i] = item
-        elseif item[1:] ==? 'FINISHED_TODOS'
-            let item = '(thisline ' . op . " '" . b:v.todoDoneMatch . "')"
-            let b:v.my_if_list[i] = item
-        elseif item[1:] ==? 'ALL_TODOS'
-            let item = '(thisline ' . op . " '" . b:v.todoMatch . "')"
-            let b:v.my_if_list[i] = item
-        else
-            let item = '(thisline ' . op . " ':" . item[1:] . ":')"
-            let b:v.my_if_list[i] = item
-        endif
-        let i += 1 
-    endwhile    
-    let i = 0
-    let b:v.check1 = b:v.my_if_list
-    let ifexpr = ''
-    while i < len(b:v.my_if_list) 
-        let ifexpr .= b:v.my_if_list[i]
-        if i < len(b:v.my_if_list) - 1
-            let ifexpr .= ' && '
-        endif
-        let i += 1
-    endwhile
-
-    return ifexpr
+        "return ifexpr
+        call add(result_if_list, ifexpr)
+    endfor
+    return result_if_list
 
 endfunction
 
@@ -2199,7 +2210,14 @@ function! s:CheckIfExpr(line,ifexpr,...)
     if s:IsTagLine(headline + 1)
         let thisline .= ' ' . getline(headline+1)
     endif
-    return eval(a:ifexpr)
+    let result = 0
+    for item in a:ifexpr
+        if eval(item) == 1
+            let result = 1
+            break
+        endif
+    endfor
+    return result
 
 endfunction
 
@@ -2215,8 +2233,8 @@ function! s:OrgIfExprResults(ifexpr,...)
         let sparse_search = a:1
     endif
 
-    let myifexpr = a:ifexpr
-    "let g:agenda_lines = []    
+    "let myifexpr = a:ifexpr
+    
     execute 1
     if getline(line('.'))!~ '^\*\+ '
         let headline = s:OrgNextHead()
@@ -2236,26 +2254,29 @@ function! s:OrgIfExprResults(ifexpr,...)
             " expression that gets evaluated
             "let lineprops = s:GetProperties(headline,1)
             let lineprops = b:v.org_dict[headline].props
-            " next line is to fix for text area search
-            " now that we can reference tbegin and tend
-            let myifexpr = substitute(a:ifexpr,'TBEGIN,TEND',get(lineprops,'TBEGIN') .','. get(lineprops,'TEND'),"")
-            "
-            "********  eval() is what does it all ***************
-            if eval(myifexpr)
-                if sparse_search
-                    let keyval = headline
-                else
-                    "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
-                    "let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
-                    let keyval = s:PrePad(s:filenum,3,'0') . s:PrePad(headline,5,'0')
-                endif
 
-                let g:adict[keyval]=lineprops
-                if !exists('g:adict[keyval].CATEGORY')
-                    let g:adict[keyval].CATEGORY = b:v.org_dict.iprop(headline,'CATEGORY')
-                endif
+            for if_item in a:ifexpr
+                " next line is to fix for text area search
+                " now that we can reference tbegin and tend
+                let myifexpr = substitute(if_item,'TBEGIN,TEND',get(lineprops,'TBEGIN') .','. get(lineprops,'TEND'),"")
+                "
+                "********  eval() is what does it all ***************
+                if eval(myifexpr)
+                    if sparse_search
+                        let keyval = headline
+                    else
+                        "let keyval = s:PrePad(index(s:agenda_files_copy, lineprops.file . '.org'),3,'0') . s:PrePad(headline,5,'0')
+                        "let keyval = s:PrePad(lineprops.file,3,'0') . s:PrePad(headline,5,'0')
+                        let keyval = s:PrePad(s:filenum,3,'0') . s:PrePad(headline,5,'0')
+                    endif
 
-            endif
+                    let g:adict[keyval]=lineprops
+                    if !exists('g:adict[keyval].CATEGORY')
+                        let g:adict[keyval].CATEGORY = b:v.org_dict.iprop(headline,'CATEGORY')
+                    endif
+                    break
+                endif
+            endfor
             normal l
             let headline = s:OrgNextHead() 
         else
