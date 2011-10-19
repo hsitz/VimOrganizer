@@ -2125,6 +2125,7 @@ function! s:OrgIfExpr()
     while 1
         let m = matchlist(test_str,'^\(|'
                     \ .  '\|[+-]\w\{-}[!<>\=]=*".\{-}"'
+                    \ .  '\|[+-]\w\{-}[!\=]=*{.\{-}}'
                     \ .  '\|[+-]\w\{-}[=<>!]=*[0-9+-.][0-9.]*'
                     \ .  '\|[+-]\w*\)' 
                     \ .  '\(.*\)')
@@ -2171,11 +2172,20 @@ function! s:OrgIfExpr()
             if item =~ '\S.*[=><]\S.*'
                 if item =~ '[^<>!]=\\('
                     let item = substitute(item,'=','=~','')
+                elseif item =~ '[^!]={'
+                    let item = substitute(item,'[^!]\zs=','=~','')
+                    let item = substitute(item,'{','"','')
+                    let item = substitute(item,'}','"','')
+                elseif item =~ '!={'
+                    let item = substitute(item,'!=','!~','')
+                    let item = substitute(item,'{','"','')
+                    let item = substitute(item,'}','"','')
                 elseif item =~ '[^<>!]=[^=]'
                     let item = substitute(item,'=','==','')
                 endif
-                let pat = '\(\S\{-}\)\(==\|=\~\|>=\|<=\|!=\|<\|>\)\(\S.*\)'
+                let pat = '\(\S\{-}\)\(==\|=\~\|!\~\|>=\|<=\|!=\|<\|>\)\(\S.*\)'
                 let mtch = matchlist(item[1:],pat)
+                let mtch[1] = toupper(mtch[1])
                 if mtch[3] =~ '^[+\-0-9.][0-9.]*$'
                     " numeric comparison
                     let b:v.my_if_list[i] = (item[0]=='-' ? '!' : '') . '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
