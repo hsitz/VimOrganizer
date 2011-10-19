@@ -338,7 +338,7 @@ function! OrgTodoSetup(todolist_str)
         endif
         let i += 1
     endwhile
-    let b:v.todoMatch = '^\*\+\s*\('.b:v.todoMatch[:-2] . ')'
+    let b:v.todoMatch = '^\*\+\s*\zs\('.b:v.todoMatch[:-2] . ')'
     let b:v.todoDoneMatch = '^\*\+\s*\('.b:v.todoDoneMatch[:-2] . ')'
     let b:v.todoNotDoneMatch = '^\*\+\s*\('.b:v.todoNotDoneMatch[:-2] . ')'
     let b:v.fulltodos = todolist
@@ -1681,6 +1681,7 @@ function! s:GetProperties(hl,withtextinfo,...)
     endif
 
     let result1['LINE'] = hl
+    let result1['LEVEL'] = s:Ind(hl) - 1
     "let linetext = getline(hl)
     let result1['ITEM'] = linetext
     let result1['FILE'] = expand("%:t")
@@ -1754,7 +1755,11 @@ function! s:GetDateVals(line)
         let mtest1 = '<\zs'.b:v.dateMatch.'.*\ze>'
         let mtest2 = '\[\zs'.b:v.dateMatch.'.*\ze\]'
         if ltext =~ mtest1
-            let mydate = matchstr(ltext, mtest1)
+            "let mydate = matchstr(ltext, '<\d\d\d\d-\d\d-\d\d') . '>'
+            "let mydate = substitute(ltext, '\(<\d\d\d\d-\d\d-\d\d\) \s\s\s\( \d\d:\d\d\)*','\1\2','')
+            let mymatch = matchlist(ltext, '.\{-}\(<\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*')
+            let mydate = mymatch[1] . mymatch[2] . '>'
+            "let mydate = mymatch[1] . (exists('mymatch[2]') ? mymatch[2] : '') . '>'
             if ltext =~ 'DEADLINE'
                 let dtype = 'DEADLINE'
             elseif ltext =~ 'SCHEDULED'
@@ -1765,7 +1770,8 @@ function! s:GetDateVals(line)
                 let dtype = 'TIMESTAMP'
             endif
         elseif ltext =~ mtest2
-            let mydate = matchstr(ltext, mtest2)
+            "let mydate = matchstr(ltext, mtest2)
+            let mydate = substitute(ltext, '\(\[\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*','\1\2','')
             let dtype = 'TIMESTAMP_IA'
         else
             break
@@ -2111,9 +2117,17 @@ function! s:OrgIfExpr()
     " operation
     let ifstring_list = [[]]
     let test_str = g:org_search_spec
+    if test_str[0] !~ '[+-]'
+        let test_str = '+' . test_str
+    endif
+
     let ndx=0
     while 1
-        let m = matchlist(test_str,'^\(|\|[+-]\w*\|[+-]\w\{-}[!<>\=]=*".\{-}"\|[+-]\w\{-}[=<>!]=*[0-9+-.][0-9.]*\)\(.*\)')
+        let m = matchlist(test_str,'^\(|'
+                    \ .  '\|[+-]\w\{-}[!<>\=]=*".\{-}"'
+                    \ .  '\|[+-]\w\{-}[=<>!]=*[0-9+-.][0-9.]*'
+                    \ .  '\|[+-]\w*\)' 
+                    \ .  '\(.*\)')
         if m[1] == '|'
             call add(ifstring_list,[])
             let ndx += 1
@@ -2129,20 +2143,9 @@ function! s:OrgIfExpr()
         endif
     endwhile
         
-    "let str = substitute(g:org_search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
-    "" preprocess for an OR bar, add '+' before it
-    "let str = substitute(str,'\([^\\]\)|\([+-]\)','\1+|\2','g')
-    "+home+work+DEADLINE="<2011-10-08>"-NUMPROP=-23.41
-
-    "let str = substitute(str,'\([+-]\)','~\1','g')
-    "let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
-    "
-    "let ifstring_list = split(str,'+|')
-
     let result_if_list = []
     for ifstr in ifstring_list
 
-        "let b:v.my_if_list = split(ifstr,'\~')
         let b:v.my_if_list = ifstr
         let ifexpr = ''
         " okay, right now we have split list with each item prepended by + or -
@@ -2173,23 +2176,23 @@ function! s:OrgIfExpr()
                 endif
                 let pat = '\(\S\{-}\)\(==\|=\~\|>=\|<=\|!=\|<\|>\)\(\S.*\)'
                 let mtch = matchlist(item[1:],pat)
-                "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
-                if mtch[3] =~ '^\d\+$'
+                if mtch[3] =~ '^[+\-0-9.][0-9.]*$'
                     " numeric comparison
-                    let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
+                    let b:v.my_if_list[i] = (item[0]=='-' ? '!' : '') . '(get(lineprops,"' . mtch[1] . '") ' . mtch[2]. mtch[3] . ')'
                 else
                     " string comparison
-                    let rightside="'".mtch[3]."'"
-                    let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
-                                \ . '&& (get(lineprops,"' . mtch[1] . '","") != "")'
-                    "let b:v.my_if_list[i] = '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. '"' . mtch[3] . '")'
+                    let rightside="'".mtch[3][1:-2]."'"
+                    let b:v.my_if_list[i] = (item[0]=='-' ? '!' : '') . '(get(lineprops,"' . mtch[1] . '","") ' . mtch[2]. rightside. ')'
+                             " line below is addd on to exclude headings not
+                             " having an entry at all from the comparison
+                             "   \ . '&& (get(lineprops,"' . mtch[1] . '","") != "")'
                 endif
                 let i += 1
                 " loop to next item
                 continue
             endif
 
-            " do todo or tag item
+            " it must be a todo or tag item
             if item[0] ==? '+'
                 let op = '=~'
             elseif item[0] ==? '-'
@@ -2208,6 +2211,7 @@ function! s:OrgIfExpr()
                 let item = '(thisline ' . op . " '" . b:v.todoMatch . "')"
                 let b:v.my_if_list[i] = item
             else
+                "not a todo so we treat it as a tag item
                 let item = '(thisline ' . op . " ':" . item[1:] . ":')"
                 let b:v.my_if_list[i] = item
             endif
