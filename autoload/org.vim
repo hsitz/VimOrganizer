@@ -34,6 +34,8 @@ function! org#SetOrgFileType()
 			endif
 			
 			call OrgProcessConfigLines()
+			exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+			exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 		
                 endif
         "endif

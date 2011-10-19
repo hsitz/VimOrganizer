@@ -5102,9 +5102,13 @@ function! OrgFoldText(...)
         let v:foldhighlight = level_highlight
         if matchstr(origline, b:v.todoMatch) ># ''
             let this_todo = matchstr(origline, '^\*\+ \zs\S*')
-            let v:todohighlight = hlID(this_todo)
+            if hlID(this_todo) > 0
+               let v:todohighlight = hlID(this_todo) 
+            else
+                let v:todohighlight = ('* ' . this_todo =~ b:v.todoDoneMatch) ? hlID('DONETODO') : hlID('NOTDONETODO')
+            endif
         else
-            let v:todohighlight = 0
+            let v:todohighlight=0
         endif
     endif
     return l:line
@@ -6224,6 +6228,11 @@ function! OrgSetColors()
     endif
     hi! Org_Full_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
     hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+
+    "hi! GENERICTODO guifg=pink ctermfg=lightred
+    hi! DONETODO guifg=green ctermfg=green
+    hi! NOTDONETODO guifg=orange ctermfg=lightred
+
 
     hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
     hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
