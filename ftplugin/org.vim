@@ -2109,19 +2109,41 @@ function! s:OrgIfExpr()
     " two wrapper subst statements around middle 
     " subst are to make dates work properly with substitute/split
     " operation
-    let str = substitute(g:org_search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
-    " preprocess for an OR bar, add '+' before it
-    let str = substitute(str,'\([^\\]\)|\([+-]\)','\1+|\2','g')
+    let ifstring_list = [[]]
+    let test_str = g:org_search_spec
+    let ndx=0
+    while 1
+        let m = matchlist(test_str,'^\(|\|[+-]\w*\|[+-]\w\{-}[!<>\=]=*".\{-}"\|[+-]\w\{-}[=<>!]=*[0-9+-.][0-9.]*\)\(.*\)')
+        if m[1] == '|'
+            call add(ifstring_list,[])
+            let ndx += 1
+            let test_str = m[2]
+        elseif m[1] ># ''
+            call add(ifstring_list[ndx],m[1])
+            let test_str = m[2]
+            if test_str == ''
+                break
+            endif
+        else
+            break
+        endif
+    endwhile
+        
+    "let str = substitute(g:org_search_spec,'\(\d\{4}\)-\(\d\d\)-\(\d\d\)','\1xx\2xx\3','g')
+    "" preprocess for an OR bar, add '+' before it
+    "let str = substitute(str,'\([^\\]\)|\([+-]\)','\1+|\2','g')
+    "+home+work+DEADLINE="<2011-10-08>"-NUMPROP=-23.41
 
-    let str = substitute(str,'\([+-]\)','~\1','g')
-    let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
-    
-    let ifstring_list = split(str,'+|')
+    "let str = substitute(str,'\([+-]\)','~\1','g')
+    "let str = substitute(str,'\(\d\{4}\)xx\(\d\d\)xx\(\d\d\)','\1-\2-\3','g')
+    "
+    "let ifstring_list = split(str,'+|')
 
     let result_if_list = []
     for ifstr in ifstring_list
 
-        let b:v.my_if_list = split(ifstr,'\~')
+        "let b:v.my_if_list = split(ifstr,'\~')
+        let b:v.my_if_list = ifstr
         let ifexpr = ''
         " okay, right now we have split list with each item prepended by + or -
         " now change each item to be a pattern match equation in parens
@@ -2144,10 +2166,12 @@ function! s:OrgIfExpr()
                 continue
             endif
             if item =~ '\S.*[=><]\S.*'
-                if item =~ '[^<>!]=[^=]'
+                if item =~ '[^<>!]=\\('
+                    let item = substitute(item,'=','=~','')
+                elseif item =~ '[^<>!]=[^=]'
                     let item = substitute(item,'=','==','')
                 endif
-                let pat = '\(\S\{-}\)\(==\|>=\|<=\|!=\|<\|>\)\(\S.*\)'
+                let pat = '\(\S\{-}\)\(==\|=\~\|>=\|<=\|!=\|<\|>\)\(\S.*\)'
                 let mtch = matchlist(item[1:],pat)
                 "let b:v.my_if_list[i] = '(lineprops["' . mtch[1] . '"] ' . mtch[2]. '"' . mtch[3] . '")'
                 if mtch[3] =~ '^\d\+$'
