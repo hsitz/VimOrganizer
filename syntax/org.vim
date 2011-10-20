@@ -68,6 +68,9 @@ if has("conceal")
 	syn region Org_Half_Link concealends matchgroup=linkends start='\[\[' end=']]' contains=FullLink
 	syn region Org_Full_Link concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
 endif	
+"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+
 " ***********************************************
 " section below is example for having subregions
 " of code in an .org file that use syntax highlighting

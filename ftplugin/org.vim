@@ -46,9 +46,18 @@ let b:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
-let b:v.buffer_columns = 'TAGS,%-30s'
+if exists('g:global_column_defaults') 
+    let b:v.buffer_columns = g:global_column_defaults' 
+else
+    let b:v.buffer_columns = 'TAGS,%-30s'
+endif
 let w:sparse_on = 0
-let b:v.columnview = 0
+if exists('g:global_column_view') && g:global_column_view==1
+    let b:v.columnview = 1
+else
+    let b:v.columnview = 0
+endif
+
 let b:v.clock_to_logbook = 1
 let b:v.messages = []
 let b:v.global_cycle_levels_to_show=4
@@ -96,7 +105,9 @@ let b:v.suppress_list_indent=0
 " org file is opened
 if !exists('g:org_loaded')
 
-let g:org_custom_column_settings = ['DEADLINE,%-14s,TAGS,%-35s'] 
+if !exists('g:org_custom_column_options')
+    let g:org_custom_column_options = ['DEADLINE,%-14s,TAGS,%-35s'] 
+endif
 
 if !exists('g:org_custom_colors')
     let g:org_custom_colors=[]
@@ -339,8 +350,8 @@ function! OrgTodoSetup(todolist_str)
         let i += 1
     endwhile
     let b:v.todoMatch = '^\*\+\s*\zs\('.b:v.todoMatch[:-2] . ')'
-    let b:v.todoDoneMatch = '^\*\+\s*\('.b:v.todoDoneMatch[:-2] . ')'
-    let b:v.todoNotDoneMatch = '^\*\+\s*\('.b:v.todoNotDoneMatch[:-2] . ')'
+    let b:v.todoDoneMatch = '^\*\+\s*\zs\('.b:v.todoDoneMatch[:-2] . ')'
+    let b:v.todoNotDoneMatch = '^\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
     let b:v.fulltodos = todolist
 
     for item in keys( b:v.tododict )
@@ -1348,6 +1359,7 @@ function! OrgShowSubs(number,withtext)
     else
         call s:DoFullCollapse(line('.'))
     endif
+    normal ztkj
 endfunction
 
 function! s:ShowSubs(number,withtext)
@@ -1593,7 +1605,8 @@ function! OrgCycle()
         normal! za
     endif
     " position to center of screen with cursor in col 0
-    normal! z.
+    "normal! z.
+    normal! ztkj
 endfunction
 let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
@@ -2122,17 +2135,27 @@ function! s:OrgIfExpr()
     endif
 
     let ndx=0
+    let result_if_list = []
+    try
     while 1
+" text string
+" curly bracket reg ex string
+" numeric comparison
+" single operand -- TAG or TODO
+
         let m = matchlist(test_str,'^\(|'
-                    \ .  '\|[+-]\w\{-}[!<>\=]=*".\{-}"'
-                    \ .  '\|[+-]\w\{-}[!\=]=*{.\{-}}'
-                    \ .  '\|[+-]\w\{-}[=<>!]=*[0-9+-.][0-9.]*'
-                    \ .  '\|[+-]\w*\)' 
+                    \ .  '\|[+-]\w\{-}[!<>\=]=*".\{-}"'         
+                    \ .  '\|[+-]\w\{-}[!\=]=*{.\{-}}'           
+                    \ .  '\|[+-]\w\{-}[=<>!]=*[0-9+-.][0-9.]*'  
+                    \ .  '\|[+-]\w*\)'                          
                     \ .  '\(.*\)')
         if m[1] == '|'
             call add(ifstring_list,[])
             let ndx += 1
             let test_str = m[2]
+            if test_str !~ '+\|-'
+                let test_str = '+' . test_str
+            endif
         elseif m[1] ># ''
             call add(ifstring_list[ndx],m[1])
             let test_str = m[2]
@@ -2144,7 +2167,6 @@ function! s:OrgIfExpr()
         endif
     endwhile
         
-    let result_if_list = []
     for ifstr in ifstring_list
 
         let b:v.my_if_list = ifstr
@@ -2241,8 +2263,13 @@ function! s:OrgIfExpr()
         "return ifexpr
         call add(result_if_list, ifexpr)
     endfor
+    let succeeded=1
+finally
+    if !exists('succeeded')
+        echoerr "An error occurred, probably in the syntax of your search spec.  Recheck your search spec and try again."
+    endif
     return result_if_list
-
+endtry
 endfunction
 
 function! s:CheckIfExpr(line,ifexpr,...)
@@ -3859,10 +3886,11 @@ function! CalEdit( sdate, stime )
         return newdate 
 endfunction
 
+command OrgColumns :call OrgColumnsDashboard()
 function! OrgColumnsDashboard()
     let save_cursor = getpos('.')
     echohl WarningMsg
-    echo " Document default columns:        " . b:v.buffer_columns
+    echo " Buffer default columns:        " . b:v.buffer_columns
     echo " Current default columns:         " . b:v.org_inherited_defaults['COLUMNS']
     echo " Column view is currently:        " . (b:v.columnview==1 ? 'ON' : 'OFF')
     echo " Heading line count is currently: " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
@@ -3870,16 +3898,16 @@ function! OrgColumnsDashboard()
     echo " Press key to enter a columns command"
     echo " ------------------------------------"
     if b:v.org_inherited_defaults['COLUMNS'] != b:v.buffer_columns
-        echo " r   revert to document default columns"
+        echo " r   revert to buffer default columns"
     endif
     echo " t   toggle column view on/off"
     echo " l   line count on/off"
-    if len(g:org_custom_column_settings) > 0 
+    if len(g:org_custom_column_options) > 0 
         echo " Custom columns settings:"
     endif
     let i = 0
-    while i < len(g:org_custom_column_settings) 
-        echo " " . i . "   " . g:org_custom_column_settings[i]
+    while i < len(g:org_custom_column_options) 
+        echo " " . i . "   " . g:org_custom_column_options[i]
         let i += 1
     endwhile
     echo " ------------------------------------"
@@ -3894,7 +3922,7 @@ function! OrgColumnsDashboard()
     elseif key ==? 'l'
         let g:org_show_fold_lines = 1 - g:org_show_fold_lines
     elseif key =~ '[0-9]'
-        let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_settings[key]
+        let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_options[key]
         let b:v.columnview = 1
     else
         echo "No column option selected."
@@ -5660,7 +5688,7 @@ function! s:ProcessCapture()
     execute "bd"
 endfunction
 
-command! -buffer EditAgendaFiles :call EditAgendaFiles()
+command! EditAgendaFiles :call EditAgendaFiles()
 function! EditAgendaFiles()
     if !exists("g:agenda_files") || (g:agenda_files == [])
         call s:CurfileAgenda()
