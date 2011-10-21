@@ -214,6 +214,11 @@ function! OrgProcessConfigLines()
     let b:v.buf_tags_static_spec = ''
     let b:v.tagchars=''
     let b:v.tags_order = []
+    if g:org_tags_alist ==# ''
+        let b:v.dynamic_tags=1
+    else
+        let b:v.dynamic_tags=0
+    endif
     
     for line in b:v.org_config_lines
         if line =~ '^#+CATEGORY'
@@ -229,7 +234,11 @@ function! OrgProcessConfigLines()
             endfor
         elseif line =~ '#+TAGS:'
             let newtags = matchstr( line, '#+TAGS:\s*\zs.*') 
-            let b:v.buf_tags_static_spec .= newtags . '\n '
+            if newtags ==# ''
+                let b:v.dynamic_tags = 1
+            else
+                let b:v.buf_tags_static_spec .= newtags . ' \n '
+            endif
         elseif line =~ '\(#+TODO:\|#+SEQ_TODO:\)'
             call OrgTodoSetup(matchstr(line,'\(#+TODO:\|#+SEQ_TODO:\)\s*\zs.*'))
         endif
@@ -391,6 +400,14 @@ function! OrgTagSetup(tagspec)
                     endif
                     let i += 1
                 endwhile
+                if char ==# ''
+                    for i in range(65,90)
+                        if b:v.tagchars !~ nr2char(i)
+                            let char = nr2char(i)
+                            break
+                        endif
+                    endfor
+                endif
             endif
             let b:v.tagdict[item] = {'char':char, 'tag':tag, 'exclude':'', 'exgroup':0}
             call add(b:v.tags_order,item)

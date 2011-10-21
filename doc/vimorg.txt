@@ -918,9 +918,9 @@ a way to reveal data about a heading when it is displayed in folded mode.
 Folded heading lines in Vim are not directly editable.  (A user interface
 to allow easy editing of columns/properties is on VimOrganizer's todo list.)
 
-The default display in Vim (i.e., colmns off) merely shows the number of lines 
-in a fold along the right margin.  Column view can be turned on or off
-in each buffer, but to make each buffer default to on you can place
+The default display in VimOrganizer (i.e., colmns off) merely shows the 
+number of lines in a fold along the right margin.  Column view can be turned 
+on or off in each buffer, but to make each buffer default to on you can place
 this line in your vimrc:
 
         let g:global_column_view = 1
