@@ -41,7 +41,7 @@ let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
-let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'TAGS,%-30s'}
+let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%30TAGS'}
 let b:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
@@ -49,7 +49,7 @@ let b:v.buffer_category = ''
 if exists('g:global_column_defaults') 
     let b:v.buffer_columns = g:global_column_defaults' 
 else
-    let b:v.buffer_columns = 'TAGS,%-30s'
+    let b:v.buffer_columns = '%30TAGS'
 endif
 let w:sparse_on = 0
 if exists('g:global_column_view') && g:global_column_view==1
@@ -106,7 +106,7 @@ let b:v.suppress_list_indent=0
 if !exists('g:org_loaded')
 
 if !exists('g:org_custom_column_options')
-    let g:org_custom_column_options = ['DEADLINE,%-14s,TAGS,%-35s'] 
+    let g:org_custom_column_options = ['%15DEADLINE %35TAGS', '%35TAGS'] 
 endif
 
 if !exists('g:org_custom_colors')
@@ -158,7 +158,8 @@ let g:org_item_len=100
 let w:sparse_on = 0
 let g:org_folds = 1
 let g:org_show_fold_lines = 1
-let g:org_colview_list=['tags',30]
+let g:org_columns_default_width = 15
+let g:org_colview_list=[]
 let g:org_show_fold_dots = 0
 let g:org_show_matches_folded=1
 let g:org_indent_from_head = 0
@@ -2153,7 +2154,7 @@ function! s:OrgIfExpr()
 
     let ndx=0
     let result_if_list = []
-    try
+"try
     while 1
 " text string
 " curly bracket reg ex string
@@ -2280,12 +2281,13 @@ function! s:OrgIfExpr()
         "return ifexpr
         call add(result_if_list, ifexpr)
     endfor
-    let succeeded=1
-finally
-    if !exists('succeeded')
-        echoerr "An error occurred, probably in the syntax of your search spec.  Recheck your search spec and try again."
-    endif
-    return result_if_list
+"    let succeeded = 1
+"finally
+"    if !exists('succeeded')
+"        return []
+"    else
+        return result_if_list
+"    endif
 endtry
 endfunction
 
@@ -2391,7 +2393,6 @@ function! s:MakeResults(search_spec,...)
     " fix so copy doesn't have full path. .  .
     "call map(s:agenda_files_copy, 'matchstr(v:val,"[\\/]") > "" ? matchstr(v:val,"[^/\\\\]*$") : v:val')
     if sparse_search 
-        "execute 'let myfiles=["' . curfile . '"]'
         call OrgMakeDict()
         let ifexpr = s:OrgIfExpr()
         call s:OrgIfExprResults(ifexpr,sparse_search)
@@ -4949,6 +4950,7 @@ function! OrgMouseDate()
     call setpos(".",save_cursor)
     if found ==? 'date'
         call OrgRunAgenda(date,1,'',date)
+        " go to 8th line in agenda buf
         execute 8
     elseif found ==? 'link'
         call FollowLink(linkdict)
@@ -4960,14 +4962,15 @@ function! OrgMouseDate()
 
 endfunction
 function! s:SetColumnHead()
-
-    let result = ''
-    let i = 0
-    while i < len(g:org_colview_list)
-        let result .= '|' . s:PrePad(g:org_colview_list[i] , g:org_colview_list[i+1]) . ' ' 
-        let i += 2
-    endwhile
-    let g:org_ColumnHead = result[:-2]
+" NOT USED NOW, NEEDS to be redone since switch to using orgmode-style col
+" specs
+    "let result = ''
+    "let i = 0
+    "while i < len(g:org_colview_list)
+    "    let result .= '|' . s:PrePad(g:org_colview_list[i] , g:org_colview_list[i+1]) . ' ' 
+    "    let i += 2
+    "endwhile
+    "let g:org_ColumnHead = result[:-2]
 endfunction
 
 function! s:GetColumns(line)
@@ -4984,20 +4987,18 @@ function! s:GetColumns(line)
     let i = 0
     " get column list for this line
     if get(props,'COLUMNS') ># ''
-        let g:org_colview_list=split(props['COLUMNS'],',')
+        let g:org_colview_list=split(props['COLUMNS'],' ')
     else
         let g:org_colview_list=[]
     endif
     " build text string with column values
-    while i < len(g:org_colview_list)
-        "let result .= '|' . s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
-        let fmt = '|' . g:org_colview_list[i+1] 
-        "let result .= '|' . printf(s:PrePad(get(props,(g:org_colview_list[i]),'') , g:org_colview_list[i+1]) . ' ' 
-        let result .= printf(fmt, get(props,(g:org_colview_list[i]),'')) 
-        let i += 2
-    endwhile
+    for item in (g:org_colview_list)
+        let [ fmt, field ] = matchlist(item,'%\(\d*\)\(\S\+[^({]*\)')[1:2]
+        if field ==# 'ITEM' | continue | endif
+        let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
+        let result .= printf( '|' . fmt, get(props,field,'')) 
+    endfor
 
-    "return result[:-2]
     return result
 
 endfunction
@@ -5024,11 +5025,13 @@ function! s:AdjustItemLen()
     " called on VimResized event, adjusts length of heading when folded
     let i = 1
     let b:v.total_columns_width = 3
-    let colspec = split(b:v.org_inherited_defaults['COLUMNS'], ',')
-    while i < len(colspec)
-        let b:v.total_columns_width += matchstr(colspec[i], '\d\+')
-        let i += 2
-    endwhile
+    let colspec = split(b:v.org_inherited_defaults['COLUMNS'], ' ')
+    "while i < len(colspec)
+    for item in colspec
+        let [ flen, field ] = matchlist(item,'%\(\d*\)\(\S\+[^({]*\)')[1:2]
+        if field == 'ITEM' | continue | endif
+        let b:v.total_columns_width += (flen > 0) ? flen : g:org_columns_default_width
+    endfor
     if expand('%') !~ '__Agenda__'
         let g:org_item_len = winwidth(0) - 10 - b:v.total_columns_width
     endif
