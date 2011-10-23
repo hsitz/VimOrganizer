@@ -159,6 +159,7 @@ let w:sparse_on = 0
 let g:org_folds = 1
 let g:org_show_fold_lines = 1
 let g:org_columns_default_width = 15
+let s:org_columns_master_heading = 0
 let g:org_colview_list=[]
 let g:org_show_fold_dots = 0
 let g:org_show_matches_folded=1
@@ -942,6 +943,28 @@ function! s:OrgSubtreeLastLine_l(line)
 
 endfunction
 
+function! s:HasAncestorHeadOf(line,ancestor)
+    let ultimate = s:OrgUltimateParentHead_l(a:line)
+    if (a:line < a:ancestor) || (a:ancestor < ultimate)
+        let result = 0
+    elseif (a:line == a:ancestor)
+        let result = 1
+    else
+        let test_ancestor = s:OrgParentHead_l(a:line) 
+        while 1
+            if (test_ancestor == a:ancestor)
+               let result = 1
+               break
+            elseif test_ancestor < ultimate 
+               let result = 0
+               break
+            endif
+            let test_ancestor = s:OrgParentHead_l(test_ancestor)
+        endwhile
+    endif
+
+    return result
+endfunction
 function! s:OrgUltimateParentHead()
     " Return the line number of the parent heading, 0 for none
     return s:OrgUltimateParentHead_l(line("."))
@@ -3935,13 +3958,21 @@ function! OrgColumnsDashboard()
     redraw
     if key ==? 'r'
         let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
+        if b:v.columnview == 1
+            call ToggleColumnView()
+        endif
+        call ToggleColumnView()
     elseif key ==? 't'
-        let b:v.columnview = 1 - b:v.columnview
+        "let b:v.columnview = 1 - b:v.columnview
+        call ToggleColumnView()
     elseif key ==? 'l'
         let g:org_show_fold_lines = 1 - g:org_show_fold_lines
     elseif key =~ '[0-9]'
         let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_options[key]
-        let b:v.columnview = 1
+        if b:v.columnview == 1
+            call ToggleColumnView()
+        endif
+        call ToggleColumnView()
     else
         echo "No column option selected."
     endif
@@ -4964,7 +4995,6 @@ endfunction
 function! s:SetColumnHead()
 " NOT USED NOW, NEEDS to be redone since switch to using orgmode-style col
 " specs
-    "let result = ''
     "let i = 0
     "while i < len(g:org_colview_list)
     "    let result .= '|' . s:PrePad(g:org_colview_list[i] , g:org_colview_list[i+1]) . ' ' 
@@ -4973,7 +5003,7 @@ function! s:SetColumnHead()
     "let g:org_ColumnHead = result[:-2]
 endfunction
 
-function! s:GetColumns(line)
+function! s:OrgSetColumnList(line)
     " call GetProperties making sure it gets inherited props
     let save_inherit_setting = s:include_inherited_props
     let s:include_inherited_props = 1
@@ -4983,7 +5013,10 @@ function! s:GetColumns(line)
         let s:include_inherited_props = save_inherit_setting
     endtry
 
+    let s:org_columns_master_heading = (getline(a:line) =~ b:v.headMatch) ? a:line : 0
+    
     let result = ''
+    let g:org_column_headers = ''
     let i = 0
     " get column list for this line
     if get(props,'COLUMNS') ># ''
@@ -4991,11 +5024,34 @@ function! s:GetColumns(line)
     else
         let g:org_colview_list=[]
     endif
-    " build text string with column values
+    
+    call s:SetColumnHeaders()
+
+endfunction
+function! s:SetColumnHeaders()
+    " build g:org_column_headers
     for item in (g:org_colview_list)
-        let [ fmt, field ] = matchlist(item,'%\(\d*\)\(\S\+[^({]*\)')[1:2]
-        if field ==# 'ITEM' | continue | endif
+        let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\+[^({]*\)(*\(\d*\)*')[1:3]
         let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
+        if field ==# 'ITEM' | continue | endif
+        let g:org_column_headers .= printf( fmt, (hdr ==# '') ? field : hdr )  
+    endfor
+
+endfunction
+function! s:GetFoldColumns(line)
+    let save_inherit_setting = s:include_inherited_props
+    let s:include_inherited_props = 1
+    try
+        let props = s:GetProperties(a:line,0)
+    finally
+        let s:include_inherited_props = save_inherit_setting
+    endtry
+    " build text string with column values
+    let result = ''
+    for item in (g:org_colview_list)
+        let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\+[^({]*\)(*\(\d*\)*')[1:3]
+        let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
+        if field ==# 'ITEM' | continue | endif
         let result .= printf( '|' . fmt, get(props,field,'')) 
     endfor
 
@@ -5008,18 +5064,22 @@ function! ToggleColumnView()
     if b:v.columnview
         let winnum = bufwinnr('ColHeadBuffer')
         if winnum > 0 
-            execute "bd!" . bufnr('ColHeadBuffer')
-            "wincmd c
+            execute "bw!" . bufnr('ColHeadBuffer')
+            "execute "bd!" . bufnr('ColHeadBuffer')
         endif
         let b:v.columnview = 0
     else
+        call s:OrgSetColumnList(line('.'))
         call s:ColHeadWindow()
         let b:v.columnview = 1
     endif   
 endfunction
 function! <SID>ColumnStatusLine()
-    let part2 = s:PrePad(g:org_ColumnHead, winwidth(0)-12) 
-    return '      ITEM ' .  part2
+    if exists('g:org_column_headers')
+        let part2 = s:PrePad(g:org_column_headers, winwidth(0)-12) 
+
+        return '    ITEM ' .  part2
+    endif
 endfunction
 function! s:AdjustItemLen()
     " called on VimResized event, adjusts length of heading when folded
@@ -5145,7 +5205,11 @@ function! OrgFoldText(...)
     endif
     let offset = &fdc + 5*(&number) + (b:v.columnview ? 7 : 1)
     if b:v.columnview && (origline =~ b:v.headMatch) 
-        let l:line .= s:PrePad(s:GetColumns(foldstart), winwidth(0)-len(l:line) - offset)
+        if (s:org_columns_master_heading == 0) || s:HasAncestorHeadOf(foldstart,s:org_columns_master_heading)
+            let l:line .= s:PrePad(s:GetFoldColumns(foldstart), winwidth(0)-len(l:line) - offset)
+        else
+            let offset -= 6
+        endif
     endif
     if a:0 && (foldclosed(line('.')) > 0)
         let l:line .= s:PrePad("(" 
@@ -5607,17 +5671,17 @@ function! s:AlignSectionR(regex,skip,extra) range
 endfunction
 function! s:ColHeadWindow()
     au! BufEnter ColHeadBuffer
-    let s:AgendaBufferName = 'ColHeadBuffer'
-    call s:AgendaBufferOpen(1)
-    let s:AgendaBufferName = '__Agenda__'
-    call s:AgendaBufSetup()
-    "set nobuflisted
-    call s:SetColumnHead()
+    "let s:AgendaBufferName = 'ColHeadBuffer'
+    "call s:AgendaBufferOpen(1)
+    "let s:AgendaBufferName = '__Agenda__'
+    1split ColHeadBuffer
+    call s:ScratchBufSetup()
+    
+    "call s:SetColumnHead()
     execute "setlocal statusline=%#Search#%{<SNR>" . s:SID() . '_ColumnStatusLine()}'
-    resize 1
     set winfixheight
     set winminheight=0
-    "wincmd K
+    
     wincmd j
     " make lower window as big as possible to shrink 
     " ColHeadWindow to zero height
@@ -5630,7 +5694,8 @@ function! s:ColHeadWindow()
 endfunction
 
 function! s:ColHeadBufferEnter()
-    wincmd j
+    "prevents user from entering this buffer
+    "wincmd j
 endfunction
 " AgendaBufferOpen
 " Open the scratch buffer
@@ -5689,7 +5754,7 @@ function! s:CaptureBuffer()
     normal ggVGd
     normal i** 
     silent exec "normal o<".org#Timestamp().">"
-    call s:AgendaBufSetup()
+    call s:ScratchBufSetup()
     command! -buffer W :call s:ProcessCapture()
     normal gg$a
     
@@ -5714,7 +5779,7 @@ function! EditAgendaFiles()
         call s:CurfileAgenda()
     endif
     tabnew
-    call s:AgendaBufSetup()
+    call s:ScratchBufSetup()
     command! W :call s:SaveAgendaFiles()
     let msg = "These are your current agenda files:"
     let msg2 = "Org files in your 'g:org_agenda_select_dirs' are below."
@@ -5742,7 +5807,7 @@ function! s:SaveAgendaFiles()
     delcommand W
 endfunction
 
-function! s:AgendaBufSetup()
+function! s:ScratchBufSetup()
     setlocal buftype=nofile
     setlocal bufhidden=hide
     setlocal noswapfile
@@ -5964,7 +6029,7 @@ function! s:Timer()
     " there are numerous other keysequences that you can use
 endfunction
 
-autocmd BufNewFile __Agenda__ call s:AgendaBufSetup()
+autocmd BufNewFile __Agenda__ call s:ScratchBufSetup()
 autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
 " Command to edit the scratch buffer in the current window
 "command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
@@ -5994,6 +6059,44 @@ function! s:OrgHasEmacsVar()
     endif
     return result
 endfunction
+function! OrgEvalBlock()
+    let savecursor = getpos('.')
+    
+    let block_name = matchstr(getline(line('.')),'^#+BEGIN:\s*\zs\S\+')
+
+    if block_name ==# ''
+        echo "You aren't on BEGIN line of dynamic block."
+        return
+    endif
+    let end = search('^#+END:\s*' . block_name,'n','') 
+    let start=line('.')
+    exec (start+1) . ',' . (end-1) . 'delete'
+    exec start
+    
+    silent write!
+    let this_file = substitute(expand("%:p"),'\','/','g')
+    let this_file = substitute(this_file,' ','\ ','g')
+
+        "let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (goto-line 157 buf)(org-dblock-update)(org-narrow-to-subtree)(print \^"abcdefgh\^")(set-buffer buf)(not-modified)(kill-this-buffer)))' 
+        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (goto-line 157 buf)(org-dblock-update)(org-narrow-to-block)(write-region (point-min) (point-max) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
+        let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
+        if exists('*xolox#shell#execute')
+            silent call xolox#shell#execute(orgcmd, 1)
+        else
+          silent  exe '!' . orgcmd
+        endif
+        exec start
+        silent exe 'read ~/org-block.org'
+
+        "endif
+        "exe start .',' . end . 'read ~/org-tbl-block.org'
+        "exe start . ',' . end . 'd'
+        unsilent echo "Calculations complete."
+    "else
+        "unsilent echo "error."
+    "endif
+    call setpos('.',savecursor)
+endfunction
 function! OrgEvalTable()
     let savecursor = getpos('.')
     call search('^\s*$','b','')
@@ -6012,9 +6115,9 @@ function! OrgEvalTable()
         endif
         exe start .',' . end . 'read ~/org-tbl-block.org'
         exe start . ',' . end . 'd'
-        echo "Calculations complete."
+        unsilent echo "Calculations complete."
     else
-        echo "No #+TBLFM line at end of table, so no calculations necessary."
+        unsilent echo "No #+TBLFM line at end of table, so no calculations necessary."
     endif
     call setpos('.',savecursor)
 endfunction
@@ -6025,11 +6128,11 @@ function! OrgEval()
     if matchstr(getline(line('.')) , '^\s*|.*|\s*$' ) ># ''
         call OrgEvalTable()
     else
-        call OrgEvalBlock()
+        call OrgEvalSource()
     endif
 endfunction
 
-function! OrgEvalBlock()
+function! OrgEvalSource()
     let savecursor = getpos('.')
     let start = search('^#+begin_src','bn','') - 1
     let prev_end = search('^#+end_src','bn','') 
