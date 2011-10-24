@@ -3931,51 +3931,71 @@ command OrgColumns :call OrgColumnsDashboard()
 function! OrgColumnsDashboard()
     let save_cursor = getpos('.')
     echohl WarningMsg
-    echo " Buffer default columns:        " . b:v.buffer_columns
-    echo " Current default columns:         " . b:v.org_inherited_defaults['COLUMNS']
-    echo " Column view is currently:        " . (b:v.columnview==1 ? 'ON' : 'OFF')
-    echo " Heading line count is currently: " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
-    echo " "
-    echo " Press key to enter a columns command"
-    echo " ------------------------------------"
-    if b:v.org_inherited_defaults['COLUMNS'] != b:v.buffer_columns
-        echo " r   revert to buffer default columns"
-    endif
-    echo " t   toggle column view on/off"
-    echo " l   line count on/off"
-    if len(g:org_custom_column_options) > 0 
-        echo " Custom columns settings:"
-    endif
-    let i = 0
-    while i < len(g:org_custom_column_options) 
-        echo " " . i . "   " . g:org_custom_column_options[i]
-        let i += 1
+    let force_all = 0
+    while 1
+        echo " Buffer default columns:        " . b:v.buffer_columns
+        echo " Current default columns:         " . b:v.org_inherited_defaults['COLUMNS']
+        echo " Column view is currently:        " . (b:v.columnview==1 ? 'ON' : 'OFF')
+        echo " Heading line count is currently: " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
+        if (b:v.columnview == 0) && (force_all == 1)
+                echo " NEXT CHOICE WILL BE APPLIED TO ENTIRE BUFFER"
+        endif
+        echo " "
+        echo " Press key to enter a columns command"
+        echo " ------------------------------------"
+        if (b:v.columnview == 0) && (force_all == 0)
+                echo " f   force all of buffer to use chosen columns"
+        endif
+        if b:v.org_inherited_defaults['COLUMNS'] != b:v.buffer_columns
+            echo " r   revert to buffer default columns"
+        endif
+        echo " t   toggle column view on/off"
+        echo " l   line count on/off"
+        if len(g:org_custom_column_options) > 0 
+            echo " Custom columns settings:"
+        endif
+        let i = 0
+        while i < len(g:org_custom_column_options) 
+            echo " " . i . "   " . g:org_custom_column_options[i]
+            let i += 1
+        endwhile
+        echo " ------------------------------------"
+        echo " "
+        echohl Question
+        let key = nr2char(getchar())
+        redraw
+        
+        if key ==? 'f'
+            let force_all = 1
+            redraw
+            continue
+        endif
+
+        let master_head = (force_all == 1 ) ? 0 : line('.')
+       
+        if key ==? 'r'
+            let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
+            if b:v.columnview == 1
+                call ToggleColumnView(master_head)
+            endif
+            call ToggleColumnView(master_head)
+        elseif key ==? 't'
+            "let b:v.columnview = 1 - b:v.columnview
+            call ToggleColumnView(master_head)
+        elseif key ==? 'l'
+            let g:org_show_fold_lines = 1 - g:org_show_fold_lines
+        elseif key =~ '[0-9]'
+            let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_options[key]
+            if b:v.columnview == 1
+                call ToggleColumnView(master_head)
+            endif
+            call ToggleColumnView(master_head)
+        else
+            echo "No column option selected."
+        endif
+        break
     endwhile
-    echo " ------------------------------------"
-    echo " "
-    echohl Question
-    let key = nr2char(getchar())
-    redraw
-    if key ==? 'r'
-        let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
-        if b:v.columnview == 1
-            call ToggleColumnView()
-        endif
-        call ToggleColumnView()
-    elseif key ==? 't'
-        "let b:v.columnview = 1 - b:v.columnview
-        call ToggleColumnView()
-    elseif key ==? 'l'
-        let g:org_show_fold_lines = 1 - g:org_show_fold_lines
-    elseif key =~ '[0-9]'
-        let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_options[key]
-        if b:v.columnview == 1
-            call ToggleColumnView()
-        endif
-        call ToggleColumnView()
-    else
-        echo "No column option selected."
-    endif
+
     echohl None
     call s:AdjustItemLen()
     " redraw folded headings
@@ -5003,17 +5023,21 @@ function! s:SetColumnHead()
     "let g:org_ColumnHead = result[:-2]
 endfunction
 
-function! s:OrgSetColumnList(line)
-    " call GetProperties making sure it gets inherited props
+function! s:OrgSetColumnList(line_for_cols,...)
+    " call GetProperties making sure it gets inherited props (viz. COLUMNS)
     let save_inherit_setting = s:include_inherited_props
     let s:include_inherited_props = 1
     try
-        let props = s:GetProperties(a:line,0)
+        let props = s:GetProperties(a:line_for_cols,0)
     finally
         let s:include_inherited_props = save_inherit_setting
     endtry
 
-    let s:org_columns_master_heading = (getline(a:line) =~ b:v.headMatch) ? a:line : 0
+    if (a:0 == 1) && (a:1==0)
+        let s:org_columns_master_heading = a:1
+    else
+        let s:org_columns_master_heading = s:OrgGetHead_l(a:line_for_cols)
+    endif
     
     let result = ''
     let g:org_column_headers = ''
@@ -5058,18 +5082,17 @@ function! s:GetFoldColumns(line)
     return result
 
 endfunction
-function! ToggleColumnView()
+function! ToggleColumnView(master_head)
 
     "au! BufEnter ColHeadBuffer call s:ColHeadBufferEnter()
     if b:v.columnview
         let winnum = bufwinnr('ColHeadBuffer')
         if winnum > 0 
             execute "bw!" . bufnr('ColHeadBuffer')
-            "execute "bd!" . bufnr('ColHeadBuffer')
         endif
         let b:v.columnview = 0
     else
-        call s:OrgSetColumnList(line('.'))
+        call s:OrgSetColumnList(line('.'),a:master_head)
         call s:ColHeadWindow()
         let b:v.columnview = 1
     endif   
