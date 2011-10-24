@@ -3980,7 +3980,6 @@ function! OrgColumnsDashboard()
             endif
             call ToggleColumnView(master_head)
         elseif key ==? 't'
-            "let b:v.columnview = 1 - b:v.columnview
             call ToggleColumnView(master_head)
         elseif key ==? 'l'
             let g:org_show_fold_lines = 1 - g:org_show_fold_lines
@@ -5238,22 +5237,24 @@ function! OrgFoldText(...)
         let l:line .= s:PrePad("(" 
             \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
-    "elseif (g:org_show_fold_lines && !b:v.columnview) || (l:line =~ b:v.drawerMatch) 
     elseif (g:org_show_fold_lines ) || (l:line =~ b:v.drawerMatch) 
+        let offset = b:v.columnview ? offset : offset - 6
         let l:line .= s:PrePad("|" . s:PrePad( line_count . "|",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
     if exists('v:foldhighlight')
         let v:foldhighlight = level_highlight
-        if matchstr(origline, b:v.todoMatch) ># ''
-            let this_todo = matchstr(origline, '^\*\+ \zs\S*')
-            if hlID(this_todo) > 0
-               let v:todohighlight = hlID(this_todo) 
+        if exists('v:todohighlight')
+            if matchstr(origline, b:v.todoMatch) ># ''
+                let this_todo = matchstr(origline, '^\*\+ \zs\S*')
+                if hlID(this_todo) > 0
+                   let v:todohighlight = hlID(this_todo) 
+                else
+                    let v:todohighlight = ('* ' . this_todo =~ b:v.todoDoneMatch) ? hlID('DONETODO') : hlID('NOTDONETODO')
+                endif
             else
-                let v:todohighlight = ('* ' . this_todo =~ b:v.todoDoneMatch) ? hlID('DONETODO') : hlID('NOTDONETODO')
+                let v:todohighlight=0
             endif
-        else
-            let v:todohighlight=0
         endif
     endif
     return l:line
