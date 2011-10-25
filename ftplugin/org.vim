@@ -6422,7 +6422,7 @@ function! OrgSetColors()
     endfor
 
     "blank out foldcolumn
-    hi! FoldColumn guifg=bg guibg=bg ctermfg=fg ctermbg=bg
+    hi! FoldColumn guifg=bg guibg=bg ctermfg=bg ctermbg=bg
     "show text on SignColumn
     hi! SignColumn guibg=fg guibg=bg ctermfg=fg ctermbg=bg
 
