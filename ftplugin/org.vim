@@ -1809,11 +1809,11 @@ function! s:GetDateVals(line)
         let mtest1 = '<\zs'.b:v.dateMatch.'.*\ze>'
         let mtest2 = '\[\zs'.b:v.dateMatch.'.*\ze\]'
         if ltext =~ mtest1
-            "let mydate = matchstr(ltext, '<\d\d\d\d-\d\d-\d\d') . '>'
-            "let mydate = substitute(ltext, '\(<\d\d\d\d-\d\d-\d\d\) \s\s\s\( \d\d:\d\d\)*','\1\2','')
-            let mymatch = matchlist(ltext, '.\{-}\(<\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*')
-            let mydate = mymatch[1] . mymatch[2] . '>'
-            "let mydate = mymatch[1] . (exists('mymatch[2]') ? mymatch[2] : '') . '>'
+            "let mymatch = matchlist(ltext, '.\{-}\(<\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*')
+            "let mydate = mymatch[1] . mymatch[2] . '>'
+            let mymatch = '^\s*\(:DEADLINE:\|:SCHEDULED:\|:CLOSED:\|<\)\s*\zs.*'
+            let mydate = matchstr(ltext,mymatch)
+            let mydate = (mydate[0]=='<') ? mydate[1:-2] : mydate[:-2]
             if ltext =~ 'DEADLINE'
                 let dtype = 'DEADLINE'
             elseif ltext =~ 'SCHEDULED'
@@ -1824,8 +1824,8 @@ function! s:GetDateVals(line)
                 let dtype = 'TIMESTAMP'
             endif
         elseif ltext =~ mtest2
-            "let mydate = matchstr(ltext, mtest2)
-            let mydate = substitute(ltext, '\(\[\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*','\1\2','')
+            let mydate = matchstr(ltext, mtest2)
+            "let mydate = substitute(ltext, '\(\[\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*','\1\2','')
             let dtype = 'TIMESTAMP_IA'
         else
             break
