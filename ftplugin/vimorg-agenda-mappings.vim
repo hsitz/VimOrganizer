@@ -20,5 +20,11 @@
     nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
     nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
     nnoremap <silent> <buffer> <localleader>d  :call OrgDateDashboard()<cr>
-    nnoremap <silent> <buffer> q  :quit<cr>
+    "nnoremap <silent> <buffer> q  :sign unplace * | quit<cr>
+    nnoremap <silent> <buffer> q  :call OrgQuitAgenda()<cr>
+function! OrgQuitAgenda()
+    sign unplace *
+    quit
+endfunction
+   
     nnoremap <silent> <buffer> <c-tab>  :wincmd k<cr>

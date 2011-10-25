@@ -44,8 +44,8 @@ syntax match STARTED '\* \zsSTARTED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match DONE '\* \zsDONE' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 
 syntax match Org_Config_Line '^#+.*' containedin=Org_Block,Org_Src_Block
-syntax region Org_Block start='\c^#+begin.*$' end='^#+end' keepend contains=Org_Config_Line
-syntax region Org_Src_Block start='\c^#+begin_src.*$' end='^#+end' keepend contains=Org_Config_Line
+syntax region Org_Block start='\c^#+begin.*$' end='\c^#+end.*' keepend contains=Org_Config_Line
+syntax region Org_Src_Block start='\c^#+begin_src.*$' end='\c^#+end.*' keepend contains=Org_Config_Line
 
 syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars
 syntax match OL2 +^\(*\)\{2}\s.*+ contains=stars

@@ -2274,13 +2274,13 @@ function! s:OrgIfExpr()
             if index(b:v.todoitems,item[1:]) >= 0
                 let item = '(thisline ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
                 let b:v.my_if_list[i] = item
-            elseif item[1:] ==? 'UNFINISHED_TODOS'
+            elseif item[1:] =~? 'UNFINISHED_TODO\|UNDONE_TODO'
                 let item = '(thisline ' . op . " '" . b:v.todoNotDoneMatch . "')"
                 let b:v.my_if_list[i] = item
-            elseif item[1:] ==? 'FINISHED_TODOS'
+            elseif item[1:] =~? 'FINISHED_TODO\|DONE_TODO'
                 let item = '(thisline ' . op . " '" . b:v.todoDoneMatch . "')"
                 let b:v.my_if_list[i] = item
-            elseif item[1:] ==? 'ALL_TODOS'
+            elseif item[1:] ==? 'ANY_TODO'
                 let item = '(thisline ' . op . " '" . b:v.todoMatch . "')"
                 let b:v.my_if_list[i] = item
             else
@@ -2610,9 +2610,8 @@ function! s:ResultsToAgenda( search_type )
     if a:search_type ==? 'agenda_todo'
         let msg = "Press num to redo search: "
         let numstr= ''
-        "let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + b:v.todoitems
         nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
-        let tlist = ['ALL_TODOS','UNFINISHED_TODOS', 'FINISHED_TODOS'] + s:Union(g:org_todoitems,[])
+        let tlist = ['ANY_TODO','UNFINISHED_TODOS', 'FINISHED_TODOS'] + s:Union(g:org_todoitems,[])
         for item in tlist
             let num = index(tlist,item)
             let numstr .= '('.num.')'.item.'  '
@@ -5947,7 +5946,7 @@ function! OrgAgendaDashboard()
         endif
         try
             if key ==? 't'
-                silent execute "call OrgRunSearch('+ALL_TODOS','agenda_todo')"
+                silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
             elseif key ==? 'a'
                 silent execute "call OrgRunAgenda(s:Today(),'w')"
             elseif key ==? 'L'
@@ -6107,24 +6106,26 @@ function! s:OrgHasEmacsVar()
 endfunction
 function! OrgEvalBlock()
     let savecursor = getpos('.')
+    let save_showcmd = &showcmd | set noshowcmd
     
-    let block_name = matchstr(getline(line('.')),'^#+BEGIN:\s*\zs\S\+')
+    let block_name = matchstr(getline(line('.')),'\c^#+BEGIN:\s*\zs\S\+')
 
     if block_name ==# ''
         echo "You aren't on BEGIN line of dynamic block."
         return
     endif
-    let end = search('^#+END:\s*' . block_name,'n','') 
+    let end = search('\c^#+END','n','') 
     let start=line('.')
     exec (start+1) . ',' . (end-1) . 'delete'
     exec start
+    let line_mark = '@@@@@' . start . '@e@f@g@h'
+    exec 'normal o' . line_mark 
     
     silent write!
     let this_file = substitute(expand("%:p"),'\','/','g')
     let this_file = substitute(this_file,' ','\ ','g')
 
-        "let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (goto-line 157 buf)(org-dblock-update)(org-narrow-to-subtree)(print \^"abcdefgh\^")(set-buffer buf)(not-modified)(kill-this-buffer)))' 
-        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (goto-line 157 buf)(org-dblock-update)(org-narrow-to-block)(write-region (point-min) (point-max) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
+        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (search-forward \^"' . line_mark . '\^" )(forward-line -1)(org-dblock-update)(org-narrow-to-block)(write-region (point-min) (point-max) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
         unsilent echo "Calculating in Emacs. . . "
@@ -6135,15 +6136,12 @@ function! OrgEvalBlock()
         endif
         
         exec start
+        normal 3ddk
         silent exe 'read ~/org-block.org'
         redraw
-        "endif
-        "exe start .',' . end . 'read ~/org-tbl-block.org'
-        "exe start . ',' . end . 'd'
         unsilent echo "Block is being evaluated in Emacs. . .   Evaluation complete."
-    "else
-        "unsilent echo "error."
-    "endif
+
+        let &showcmd = save_showcmd
     call setpos('.',savecursor)
 endfunction
 function! OrgEvalTable()
@@ -6273,7 +6271,7 @@ function! OrgExportDashboard()
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            let orgpath = g:org_command_for_emacsclient . ' --eval '
+            let orgpath = g:org_command_for_emacsclient . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             " set org-mode to either auto-evaluate all exec blocks or evaluate none w/o
