@@ -22,6 +22,7 @@
 " Calendar plugin at:
 "http://www.vim.org/scripts/script.php?script_id=52
 let b:v={}
+let w:v={}
 let b:v.prevlev = 0
 let b:v.org_loaded=0
 let b:v.lasttext_lev=''
@@ -42,7 +43,7 @@ let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%30TAGS'}
-let b:v.total_columns_width = 30
+let w:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
@@ -53,9 +54,9 @@ else
 endif
 let w:sparse_on = 0
 if exists('g:global_column_view') && g:global_column_view==1
-    let b:v.columnview = 1
+    let w:v.columnview = 1
 else
-    let b:v.columnview = 0
+    let w:v.columnview = 0
 endif
 
 let b:v.clock_to_logbook = 1
@@ -148,19 +149,19 @@ let g:org_sparse_lines_after = 10
 let g:org_capture_file=''
 let g:org_log_todos=0
 let g:org_timegrid=[8,17,1]
-let g:org_colview_list = []
+let w:v.org_colview_list = []
 let s:firsttext = ''
 let g:org_supported_link_types = '\(http\|file\|mailto\)'
 let g:org_unsupported_link_types = '\(vm\|wl\|mhe\|rmail\|gnus\|bbdb\|irc\|info\|shell\|elisp\)'
 
 
-let g:org_item_len=100
+let w:v.org_item_len=100
 let w:sparse_on = 0
 let g:org_folds = 1
 let g:org_show_fold_lines = 1
 let g:org_columns_default_width = 15
 let s:org_columns_master_heading = 0
-let g:org_colview_list=[]
+let w:v.org_colview_list=[]
 let g:org_show_fold_dots = 0
 let g:org_show_matches_folded=1
 let g:org_indent_from_head = 0
@@ -1645,7 +1646,7 @@ function! OrgCycle()
     elseif getline(line(".")) =~ b:v.drawerMatch
         normal! za
     endif
-    " position to center of screen with cursor in col 0
+    " position to top of screen with cursor in col 0
     "normal! z.
     normal! ztkj
 endfunction
@@ -3929,6 +3930,11 @@ endfunction
 command OrgColumns :call OrgColumnsDashboard()
 function! OrgColumnsDashboard()
     let save_cursor = getpos('.')
+    if !exists('w:v.columnview')
+        let w:v={'columnview':0}
+        let w:v.org_item_len=100
+        let w:v.org_colview_list = []
+    endif
     if !exists('b:v.org_columns_show_headings')
         let b:v.org_columns_show_headings = 0
     endif
@@ -3939,16 +3945,16 @@ function! OrgColumnsDashboard()
     while 1
         echo " Buffer default columns:           " . b:v.buffer_columns
         echo " Current default columns:          " . b:v.org_inherited_defaults['COLUMNS']
-        echo " Column view is currently:         " . (b:v.columnview==1 ? 'ON' : 'OFF')
+        echo " Column view is currently:         " . (w:v.columnview==1 ? 'ON' : 'OFF')
         echo " Show column headers is currently: " . (b:v.org_columns_show_headings ? 'ON' : 'OFF')
         echo " Heading line count is currently:  " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
-        if (b:v.columnview == 0) && (force_all == 1)
+        if (w:v.columnview == 0) && (force_all == 1)
                 echo " NEXT CHOICE WILL BE APPLIED TO ENTIRE BUFFER"
         endif
         echo " "
         echo " Press key to enter a columns command"
         echo " ------------------------------------"
-        if (b:v.columnview == 0) && (force_all == 0)
+        if (w:v.columnview == 0) && (force_all == 0)
                 echo " f   force all of buffer to use chosen columns"
         endif
         if b:v.org_inherited_defaults['COLUMNS'] != b:v.buffer_columns
@@ -3981,7 +3987,7 @@ function! OrgColumnsDashboard()
        
         if key ==? 'r'
             let b:v.org_inherited_defaults['COLUMNS'] = b:v.buffer_columns
-            if b:v.columnview == 1
+            if w:v.columnview == 1
                 call ToggleColumnView(master_head)
             endif
             call ToggleColumnView(master_head)
@@ -3993,7 +3999,7 @@ function! OrgColumnsDashboard()
             let g:org_show_fold_lines = 1 - g:org_show_fold_lines
         elseif key =~ '[0-9]'
             let b:v.org_inherited_defaults['COLUMNS'] = g:org_custom_column_options[key]
-            if b:v.columnview == 1
+            if w:v.columnview == 1
                 call ToggleColumnView(master_head)
             endif
             call ToggleColumnView(master_head)
@@ -4005,7 +4011,7 @@ function! OrgColumnsDashboard()
 
     if b:v.org_columns_show_headings == 0
         call s:ColHeadWindow(0)
-    elseif (b:v.columnview == 1) && (bufnr('ColHeadBuffer') == -1) 
+    elseif (w:v.columnview == 1) && (bufnr('ColHeadBuffer') == -1) 
         call s:ColHeadWindow()
     endif
     echohl None
@@ -5029,8 +5035,8 @@ function! s:SetColumnHead()
 " NOT USED NOW, NEEDS to be redone since switch to using orgmode-style col
 " specs
     "let i = 0
-    "while i < len(g:org_colview_list)
-    "    let result .= '|' . s:PrePad(g:org_colview_list[i] , g:org_colview_list[i+1]) . ' ' 
+    "while i < len(w:v.org_colview_list)
+    "    let result .= '|' . s:PrePad(w:v.org_colview_list[i] , w:v.org_colview_list[i+1]) . ' ' 
     "    let i += 2
     "endwhile
     "let g:org_ColumnHead = result[:-2]
@@ -5057,9 +5063,9 @@ function! s:OrgSetColumnList(line_for_cols,...)
     let i = 0
     " get column list for this line
     if get(props,'COLUMNS') ># ''
-        let g:org_colview_list=split(props['COLUMNS'],' ')
+        let w:v.org_colview_list=split(props['COLUMNS'],' ')
     else
-        let g:org_colview_list=[]
+        let w:v.org_colview_list=[]
     endif
     
     call s:SetColumnHeaders()
@@ -5068,7 +5074,7 @@ endfunction
 function! s:SetColumnHeaders()
     " build g:org_column_headers
     let g:org_column_headers = ''
-    for item in (g:org_colview_list)
+    for item in (w:v.org_colview_list)
         let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\([^\s)]*\)')[1:3]
         let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
         if field ==# 'ITEM' 
@@ -5089,7 +5095,7 @@ function! s:GetFoldColumns(line)
     endtry
     " build text string with column values
     let result = ''
-    for item in (g:org_colview_list)
+    for item in (w:v.org_colview_list)
         let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\(\S*\))*')[1:3]
         let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
         if field ==# 'ITEM' | continue | endif
@@ -5102,16 +5108,16 @@ endfunction
 function! ToggleColumnView(master_head)
 
     "au! BufEnter ColHeadBuffer call s:ColHeadBufferEnter()
-    if b:v.columnview
+    if w:v.columnview
         let winnum = bufwinnr('ColHeadBuffer')
         if winnum > 0 
             execute "bw!" . bufnr('ColHeadBuffer')
         endif
-        let b:v.columnview = 0
+        let w:v.columnview = 0
     else
         call s:OrgSetColumnList(line('.'),a:master_head)
         call s:ColHeadWindow()
-        let b:v.columnview = 1
+        let w:v.columnview = 1
     endif   
 endfunction
 function! <SID>ColumnStatusLine()
@@ -5123,17 +5129,22 @@ function! <SID>ColumnStatusLine()
 endfunction
 function! s:AdjustItemLen()
     " called on VimResized event, adjusts length of heading when folded
+    if !exists('w:v.columnview')
+        let w:v={'columnview':0}
+        let w:v.org_item_len=100
+        let w:v.org_colview_list = []
+    endif
     let i = 1
-    let b:v.total_columns_width = 3
+    let w:v.total_columns_width = 3
     let colspec = split(b:v.org_inherited_defaults['COLUMNS'], ' ')
     "while i < len(colspec)
     for item in colspec
         let [ flen, field ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)')[1:2]
         if field == 'ITEM' | continue | endif
-        let b:v.total_columns_width += (flen > 0) ? flen : g:org_columns_default_width
+        let w:v.total_columns_width += (flen > 0) ? flen : g:org_columns_default_width
     endfor
     if expand('%') !~ '__Agenda__'
-        let g:org_item_len = winwidth(0) - 10 - b:v.total_columns_width
+        let w:v.org_item_len = winwidth(0) - 10 - ((w:v.columnview==1) ? w:v.total_columns_width : 0)
     endif
 endfunction
 au VimResized * call s:AdjustItemLen()
@@ -5227,8 +5238,11 @@ function! OrgFoldText(...)
         let line_count = line_count - 1
     elseif l:line[0] ==? '#'
         let level_highlight = hlID('VisualNOS')
+    elseif w:v.columnview==1
+        let mytrim = w:v.org_item_len
+        let line = line[:mytrim]
     else
-        let mytrim = g:org_item_len
+        let mytrim = w:v.org_item_len
         let line = line[:mytrim]
     endif
     if exists('w:sparse_on') && w:sparse_on && (a:0 == 0) 
@@ -5243,8 +5257,8 @@ function! OrgFoldText(...)
     if g:org_show_fold_dots 
         let l:line .= '...'
     endif
-    let offset = &fdc + 5*(&number) + (b:v.columnview ? 7 : 1)
-    if b:v.columnview && (origline =~ b:v.headMatch) 
+    let offset = &fdc + 5*(&number) + (w:v.columnview ? 7 : 1)
+    if w:v.columnview && (origline =~ b:v.headMatch) 
         if (s:org_columns_master_heading == 0) || s:HasAncestorHeadOf(foldstart,s:org_columns_master_heading)
             let l:line .= s:PrePad(s:GetFoldColumns(foldstart), winwidth(0)-len(l:line) - offset)
         else
@@ -5256,7 +5270,7 @@ function! OrgFoldText(...)
             \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
             \ winwidth(0)-len(l:line) - offset) 
     elseif (g:org_show_fold_lines ) || (l:line =~ b:v.drawerMatch) 
-        let offset = (b:v.columnview && l:line =~ b:v.drawerMatch) ? offset - 6 : offset 
+        let offset = (w:v.columnview && l:line =~ b:v.drawerMatch) ? offset - 6 : offset 
         let l:line .= s:PrePad("|" . s:PrePad( line_count . "|",5),
                     \ winwidth(0)-len(l:line) - offset) 
     endif
@@ -5951,6 +5965,9 @@ function! OrgAgendaDashboard()
             if key ==? 't'
                 silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
             elseif key ==? 'a'
+                if (g:org_search_spec ==# '') 
+                    let g:org_search_spec = b:v.agenda_default_search_spec
+                endif
                 silent execute "call OrgRunAgenda(s:Today(),'w')"
             elseif key ==? 'L'
                 silent execute "call s:Timeline()"
@@ -6787,8 +6804,9 @@ vmenu &Org.&Editing.&Italic\ (/)<tab>,ci            "zdi/<C-R>z/<ESC>l
 vmenu &Org.&Editing.&Underline\ (_)<tab>,cu         "zdi_<C-R>z_<ESC>l
 vmenu &Org.&Editing.&Code\ (=)<tab>,cc              "zdi=<C-R>z=<ESC>l
 amenu &Org.&Editing.-Sep22- :
-amenu &Org.&Editing.Narrow\ &Codeblock<tab>,nc :silent call NarrowCodeBlock(line('.'))<cr>
-amenu &Org.&Editing.Narrow\ Outline\ &Subtree<tab>,ns :silent call NarrowOutline(line('.'))<cr>
+amenu &Org.&Editing.&Narrow<tab>,na :silent call NarrowCodeBlock(line('.'))<cr>
+"amenu &Org.&Editing.Narrow\ &Codeblock<tab>,nc :silent call NarrowCodeBlock(line('.'))<cr>
+"amenu &Org.&Editing.Narrow\ Outline\ &Subtree<tab>,ns :silent call NarrowOutline(line('.'))<cr>
 amenu &Org.&Refile.&Refile\ to\ Point<tab>,rh :call OrgRefile(line('.'))<cr>
 amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
 amenu &Org.&Refile.&Jump\ to\ Persistent\ Point<tab>,rx :call OrgJumpToRefilePointPersistent()<cr>
@@ -6870,7 +6888,10 @@ function! MenuCycle()
     call OrgCycle()
 endfunction
 
-nmap <silent> <buffer>   <s-CR>               :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+nmap <silent> <buffer> <s-CR>    :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+if !has('gui_running')
+    nmap <silent> <buffer> <localleader>nt   :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+endif
 execute "source " . expand("<sfile>:p:h") . '/vimorg-main-mappings.vim'
 
 " below is autocmd to change tw for lines that have comments on them

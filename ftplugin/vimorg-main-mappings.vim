@@ -101,7 +101,7 @@ nnoremap <silent> <buffer> <localleader>cb   i**<ESC>h
 "nnoremap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
 "nnoremap <silent> <buffer> <localleader>ns :call NarrowOutline(line('.'))<cr>
 "nnoremap <silent> <buffer> <localleader>nc :call NarrowCodeBlock(line('.'))<cr>
-nnoremap <silent> <buffer> <localleader>n :call NarrowCodeBlock(line('.'))<cr>
+nnoremap <silent> <buffer> <localleader>na :call NarrowCodeBlock(line('.'))<cr>
 nnoremap <silent> <buffer> <localleader>m :call OrgColumnsDashboard()<cr>
 " ----------------------------------------
 " table commands
@@ -136,25 +136,25 @@ imap <silent> <buffer>   <s-CR>          <c-r>=OrgNewHead('same',1)<CR>
 nnoremap <silent> <buffer>   <s-c-CR>        :call OrgNewHead('levelup')<CR>
 nnoremap <silent> <buffer>   <c-CR>          :call OrgNewHead('leveldown')<CR>
 nnoremap <silent> <buffer>   <CR>            :call OrgEnterFunc()<CR>
-noremap <silent> <buffer> <c-left>           :call OrgShowLess(line("."))<CR>
-noremap <silent> <buffer> <c-right>          :call OrgShowMore(line("."))<CR>
-noremap <silent> <buffer> <c-a-left>         :call OrgMoveLevel(line("."),'left')<CR>
-noremap <silent> <buffer> <c-a-right>        :call OrgMoveLevel(line("."),'right')<CR>
-noremap <silent> <buffer> <c-a-up>           :call OrgMoveLevel(line("."),'up')<CR>
-noremap <silent> <buffer> <c-a-down>         :call OrgMoveLevel(line("."),'down')<CR>
-noremap <silent> <buffer> <a-end>            :call OrgNavigateLevels("end")<CR>
-noremap <silent> <buffer> <a-home>           :call OrgNavigateLevels("home")<CR>
-noremap <silent> <buffer> <a-up>             :call OrgNavigateLevels("up")<CR>
-noremap <silent> <buffer> <a-down>           :call OrgNavigateLevels("down")<CR>
-noremap <silent> <buffer> <a-left>           :call OrgNavigateLevels("left")<CR>
-noremap <silent> <buffer> <a-right>          :call OrgNavigateLevels("right")<CR>
-noremap <silent> <buffer> <localleader>le    :call EditLink()<cr>
-noremap <silent> <buffer> <localleader>lf    :call FollowLink(OrgGetLink())<cr>
-noremap <silent> <buffer> <localleader>ln    :/]]<cr>
-noremap <silent> <buffer> <localleader>lp    :?]]<cr>
-noremap <silent> <buffer> <localleader>lc    :set conceallevel=3\|set concealcursor=nc<cr>
-noremap <silent> <buffer> <localleader>la    :set conceallevel=3\|set concealcursor=c<cr>
-noremap <silent> <buffer> <localleader>lx    :set conceallevel=0<cr>
+nnoremap <silent> <buffer> <c-left>           :call OrgShowLess(line("."))<CR>
+nnoremap <silent> <buffer> <c-right>          :call OrgShowMore(line("."))<CR>
+nnoremap <silent> <buffer> <c-a-left>         :call OrgMoveLevel(line("."),'left')<CR>
+nnoremap <silent> <buffer> <c-a-right>        :call OrgMoveLevel(line("."),'right')<CR>
+nnoremap <silent> <buffer> <c-a-up>           :call OrgMoveLevel(line("."),'up')<CR>
+nnoremap <silent> <buffer> <c-a-down>         :call OrgMoveLevel(line("."),'down')<CR>
+nnoremap <silent> <buffer> <a-end>            :call OrgNavigateLevels("end")<CR>
+nnoremap <silent> <buffer> <a-home>           :call OrgNavigateLevels("home")<CR>
+nnoremap <silent> <buffer> <a-up>             :call OrgNavigateLevels("up")<CR>
+nnoremap <silent> <buffer> <a-down>           :call OrgNavigateLevels("down")<CR>
+nnoremap <silent> <buffer> <a-left>           :call OrgNavigateLevels("left")<CR>
+nnoremap <silent> <buffer> <a-right>          :call OrgNavigateLevels("right")<CR>
+nnoremap <silent> <buffer> <localleader>le    :call EditLink()<cr>
+nnoremap <silent> <buffer> <localleader>lf    :call FollowLink(OrgGetLink())<cr>
+nnoremap <silent> <buffer> <localleader>ln    :/]]<cr>
+nnoremap <silent> <buffer> <localleader>lp    :?]]<cr>
+nnoremap <silent> <buffer> <localleader>lc    :set conceallevel=3\|set concealcursor=nc<cr>
+nnoremap <silent> <buffer> <localleader>la    :set conceallevel=3\|set concealcursor=c<cr>
+nnoremap <silent> <buffer> <localleader>lx    :set conceallevel=0<cr>
 nnoremap <silent> <buffer>  <localleader>,e  :call OrgSingleHeadingText("expand")<CR>
 nnoremap <silent> <buffer>  <localleader>,E  :call OrgBodyTextOperation(1,line("$"),"expand")<CR>
 nnoremap <silent> <buffer>  <localleader>,C  :call OrgBodyTextOperation(1,line("$"),"collapse")<CR>
@@ -163,3 +163,16 @@ nnoremap <silent> <buffer>   zc              :call OrgDoSingleFold(line("."))<CR
 "map <buffer>   <localleader>,,           :source $HOME/.vim/ftplugin/org.vim<CR>
 "map! <buffer>  <localleader>w            <Esc>:w<CR>a
 
+" below are alternate mappings for terminals, which
+" don't support some of the above key combinations
+nnoremap <silent> <buffer> ,<tab>            :call OrgGlobalCycle()<cr>
+nnoremap <silent> <buffer> <localleader>zu    :call OrgNavigateLevels("up")<CR>
+nnoremap <silent> <buffer> <localleader>zd    :call OrgNavigateLevels("down")<CR>
+nnoremap <silent> <buffer> <localleader>zl    :call OrgNavigateLevels("left")<CR>
+nnoremap <silent> <buffer> <localleader>zr    :call OrgNavigateLevels("right")<CR>
+nnoremap <silent> <buffer> <localleader>zL    :call OrgMoveLevel(line("."),'left')<CR>
+nnoremap <silent> <buffer> <localleader>zR    :call OrgMoveLevel(line("."),'right')<CR>
+nnoremap <silent> <buffer> <localleader>zU    :call OrgMoveLevel(line("."),'up')<CR>
+nnoremap <silent> <buffer> <localleader>zD    :call OrgMoveLevel(line("."),'down')<CR>
+nnoremap <silent> <buffer>  <localleader>np  :call OrgNewHead('levelup')<CR>
+nnoremap <silent> <buffer>  <localleader>ns  :call OrgNewHead('leveldown')<CR>
