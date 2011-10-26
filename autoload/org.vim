@@ -26,16 +26,16 @@ function! org#SetOrgFileType()
                 if &filetype != 'org'
                         execute "set filetype=org"
 			
-			if !exists('g:org_todo_setup')
-				let g:org_todo_setup = 'TODO | DONE'
-			endif
-			if !exists('g:org_tag_setup')
-				let g:org_tag_setup = '{home(h) work(w)}'
-			endif
-			
-			call OrgProcessConfigLines()
-			exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
-			exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"			if !exists('g:org_todo_setup')
+"				let g:org_todo_setup = 'TODO | DONE'
+"			endif
+"			if !exists('g:org_tag_setup')
+"				let g:org_tag_setup = '{home(h) work(w)}'
+"			endif
+"			
+"			call OrgProcessConfigLines()
+"			exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"			exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 		
                 endif
         "endif
