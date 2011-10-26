@@ -5069,10 +5069,13 @@ function! s:SetColumnHeaders()
     " build g:org_column_headers
     let g:org_column_headers = ''
     for item in (g:org_colview_list)
-        let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\(\S*\))*')[1:3]
+        let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\([^\s)]*\)')[1:3]
         let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
-        if field ==# 'ITEM' | continue | endif
-        let g:org_column_headers .= printf( fmt, (hdr ==# '') ? field : hdr )  
+        if field ==# 'ITEM' 
+           let s:org_column_item_head = (hdr=='') ? 'ITEM' : hdr
+           continue 
+        endif
+        let g:org_column_headers .= printf('|' . fmt, (hdr ==# '') ? field : hdr )  
     endfor
 
 endfunction
@@ -5113,9 +5116,9 @@ function! ToggleColumnView(master_head)
 endfunction
 function! <SID>ColumnStatusLine()
     if exists('g:org_column_headers')
-        let part2 = s:PrePad(g:org_column_headers, winwidth(0)-12) 
+        let part2 = s:PrePad(g:org_column_headers, winwidth(0)-13) 
 
-        return '    ITEM ' .  part2
+        return '   ' . s:org_column_item_head .  part2
     endif
 endfunction
 function! s:AdjustItemLen()
@@ -6125,7 +6128,8 @@ function! OrgEvalBlock()
     let this_file = substitute(expand("%:p"),'\','/','g')
     let this_file = substitute(this_file,' ','\ ','g')
 
-        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (search-forward \^"' . line_mark . '\^" )(forward-line -1)(org-dblock-update)(org-narrow-to-block)(write-region (point-min) (point-max) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
+    let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (search-forward \^"' . line_mark . '\^" )(forward-line -1)(org-dblock-update)(beginning-of-line)(set-mark (point))(re-search-forward \^"^#\\+END\^")(end-of-line)(write-region (mark) (point) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
+        "let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (search-forward \^"' . line_mark . '\^" )(forward-line -1)(org-dblock-update)(org-narrow-to-block)(write-region (point-min) (point-max) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
         unsilent echo "Calculating in Emacs. . . "
@@ -6134,7 +6138,7 @@ function! OrgEvalBlock()
         else
           silent  exe '!' . orgcmd
         endif
-        
+        let g:orgcmd = orgcmd
         exec start
         normal 3ddk
         silent exe 'read ~/org-block.org'
