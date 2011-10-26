@@ -6129,6 +6129,7 @@ function! OrgEvalBlock()
     let this_file = substitute(this_file,' ','\ ','g')
 
     let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (search-forward \^"' . line_mark . '\^" )(forward-line -1)(org-dblock-update)(beginning-of-line)(set-mark (point))(re-search-forward \^"^#\\+END\^")(end-of-line)(write-region (mark) (point) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
+    " line below was using org-narrow-to-block, which may use again
         "let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . this_file . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (search-forward \^"' . line_mark . '\^" )(forward-line -1)(org-dblock-update)(org-narrow-to-block)(write-region (point-min) (point-max) \' . s:cmd_line_quote_fix . '"~/org-block.org\' . s:cmd_line_quote_fix . '")(set-buffer buf) (not-modified) (kill-this-buffer)))' 
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
@@ -6178,12 +6179,20 @@ function! OrgEvalTable()
 endfunction
 function! OrgEval()
     if s:OrgHasEmacsVar() == 0
+        call confirm('VimOrganizer has not been configured to make calls to Emacs.'
+                  \ . "\nPlease see :h vimorg-emacs-setup.") 
        return
     endif
-    if matchstr(getline(line('.')) , '^\s*|.*|\s*$' ) ># ''
+    let line = getline(line('.'))
+    if line =~ '\c^#+BEGIN:'
+        call OrgEvalBlock()
+    elseif line =~ '^\s*|.*|\s*$'
         call OrgEvalTable()
-    else
+    elseif line =~ '\c^#+BEGIN_'
         call OrgEvalSource()
+    else    
+        unsilent echo "No evaluation done.  You must be in a table, or on an initial "
+             \ . "\nblock line that begins in col 0 with #+BEGIN . . ."
     endif
 endfunction
 
