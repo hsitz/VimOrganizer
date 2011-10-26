@@ -5129,6 +5129,10 @@ function! <SID>ColumnStatusLine()
 endfunction
 function! s:AdjustItemLen()
     " called on VimResized event, adjusts length of heading when folded
+    if bufname("%") =~ '__Agenda__'
+        return
+    endif
+
     if !exists('w:v.columnview')
         let w:v={'columnview':0}
         let w:v.org_item_len=100
@@ -5143,9 +5147,10 @@ function! s:AdjustItemLen()
         if field == 'ITEM' | continue | endif
         let w:v.total_columns_width += (flen > 0) ? flen : g:org_columns_default_width
     endfor
-    if expand('%') !~ '__Agenda__'
+    
+    "if bufname("%") !~ '__Agenda__'
         let w:v.org_item_len = winwidth(0) - 10 - ((w:v.columnview==1) ? w:v.total_columns_width : 0)
-    endif
+    "endif
 endfunction
 au VimResized * call s:AdjustItemLen()
 
