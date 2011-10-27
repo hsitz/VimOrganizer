@@ -47,6 +47,9 @@ let w:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
+if !exists('g:org_agenda_default_search_spec')
+    let g:org_agenda_default_search_spec = 'ANY_TODO'
+endif
 if exists('g:global_column_defaults') 
     let b:v.buffer_columns = g:global_column_defaults' 
 else
@@ -5991,10 +5994,10 @@ function! OrgAgendaDashboard()
             if key ==? 't'
                 silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
             elseif key ==? 'a'
-                if (g:org_search_spec ==# '') 
-                    let g:org_search_spec = b:v.agenda_default_search_spec
-                endif
-                silent execute "call OrgRunAgenda(s:Today(),'w')"
+                "if (g:org_search_spec ==# '') 
+                    "let g:org_search_spec = g:agenda_default_search_spec
+                "endif
+                silent execute "call OrgRunAgenda(s:Today(),'w', g:org_agenda_default_search_spec)"
             elseif key ==? 'L'
                 silent execute "call s:Timeline()"
             elseif key ==? 'c'

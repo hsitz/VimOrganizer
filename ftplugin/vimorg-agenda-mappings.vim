@@ -24,7 +24,8 @@
     nnoremap <silent> <buffer> q  :call OrgQuitAgenda()<cr>
 function! OrgQuitAgenda()
     sign unplace *
-    quit
+    bw
+    "quit
 endfunction
    
     nnoremap <silent> <buffer> <c-tab>  :wincmd k<cr>
