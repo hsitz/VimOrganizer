@@ -577,6 +577,30 @@ Refile, jump to persistent point
                            refile point.
 
 ------------------------------------------------------------------------
+Keybindings                              *vimorg-keybindings*
+                                         *vimorg-terminal-keybindings*
+
+Keybindings are a bit of a moving target.  I'm happy to hear from people
+who think they've found better command bindings.  You can look up bindings
+(1) in this help file, (2) in the menu in g(raphical)vim, which lists
+binding next to command you choose, and/or in the vimorg-main-mappings.vim 
+and vimorg-agenda-mappings.vim scripts in the ftplugin directory.  A few
+mappings, mostly agenda stuff, are also made in the main org.vim ftplugin
+file.  The keybindings are messy and will be cleaned up at some point.
+
+TERMINAL KEYBINDINGS.  It's important to understand that many of the 
+default bindings are NOT available in many or all versions of vim running
+on terminals.  This is the fault of the terminal for not handling the 
+particular key combination.  Here's a link to an Org-mode webpage listing
+common key combinations that are not available in terminals, with suggested
+Emacs alternatives.  Vim keybindings are of course different (no crazy
+chord combinations), but the suggestions there might give you ideas for
+mappings you want to do for yourself:
+http://orgmode.org/manual/TTY-keys.html#TTY-keys
+
+Below are the alternate mappings already in VimOrganizer for the most
+commonly-used key combinations that aren't available in terminals:
+------------------------------------------------------------------------
 Hyperlinks                               *vimorg-hyperlinks* *vimorg-links*
 
 VimOrganizer uses the same hyperlink markup style as Org-mode, but doesn't

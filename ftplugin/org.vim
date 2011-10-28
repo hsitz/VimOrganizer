@@ -6250,9 +6250,9 @@ function! s:OrgTableEvalOptions()
                             \ 'row_up': 'org-table-move-row-up',
                             \ 'row_delete': 'org-table-kill-row',
                             \ 'row_insert': 'org-table-insert-row',
-                            \ 'hline_insert': 'org-table-insert-hline',
-                            \ 'cell_evaluate' : 'org-table-maybe-eval-formula',
-                            \ 'table_recalculate' : 'org-table-recalculate-buffer-tables'
+                            \ 'hline_insert': 'org-table-insert-hline'
+                            "\ 'cell_evaluate' : 'org-table-maybe-eval-formula',
+                            "\ 'table_recalculate' : 'org-table-recalculate-buffer-tables'
                             "\ 'table_coordinates_toggle' : 'org-table-toggle-coordinate-overlays'
                             \ }
 endfunction
@@ -6273,8 +6273,13 @@ function! OrgEvalTable(...)
     "if getline(line('.'))[0:6] == '#+TBLFM'
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        "let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (interactive)(beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')(org-table-maybe-eval-formula)' . opt_cmd . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
-        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (interactive)(beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')' . opt_cmd . '(save-buffer buf)(kill-buffer buf)))' 
+        let part1 = '(let ((org-confirm-babel-evaluate nil)'
+                   \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
+                   \  . '(progn (interactive)(beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
+                   \  . '(org-table-maybe-eval-formula)' 
+                   \  . opt_cmd
+                   \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
         unsilent echo "Calculating in Emacs. . . "
