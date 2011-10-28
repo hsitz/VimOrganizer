@@ -138,8 +138,8 @@ nnoremap <silent> <buffer> <c-left>           :call OrgShowLess(line("."))<CR>
 nnoremap <silent> <buffer> <c-right>          :call OrgShowMore(line("."))<CR>
 nnoremap <silent> <buffer> <c-a-left>         :call OrgMoveLevel(line("."),'left')<CR>
 nnoremap <silent> <buffer> <c-a-right>        :call OrgMoveLevel(line("."),'right')<CR>
-nnoremap <silent> <buffer> <c-a-up>           :call OrgMoveLevel(line("."),'up')<CR>
-nnoremap <silent> <buffer> <c-a-down>         :call OrgMoveLevel(line("."),'down')<CR>
+nnoremap <silent> <buffer> <c-a-up>           :<C-U>call OrgMoveLevel(line("."),'up',v:count1)<CR>
+nnoremap <silent> <buffer> <c-a-down>         :<C-U>call OrgMoveLevel(line("."),'down',v:count1)<CR>
 nnoremap <silent> <buffer> <a-end>            :call OrgNavigateLevels("end")<CR>
 nnoremap <silent> <buffer> <a-home>           :call OrgNavigateLevels("home")<CR>
 nnoremap <silent> <buffer> <a-up>             :call OrgNavigateLevels("up")<CR>
@@ -168,7 +168,7 @@ nnoremap <silent> <buffer> <localleader>zl    :call OrgNavigateLevels("left")<CR
 nnoremap <silent> <buffer> <localleader>zr    :call OrgNavigateLevels("right")<CR>
 nnoremap <silent> <buffer> <localleader>zL    :call OrgMoveLevel(line("."),'left')<CR>
 nnoremap <silent> <buffer> <localleader>zR    :call OrgMoveLevel(line("."),'right')<CR>
-nnoremap <silent> <buffer> <localleader>zU    :call OrgMoveLevel(line("."),'up')<CR>
-nnoremap <silent> <buffer> <localleader>zD    :call OrgMoveLevel(line("."),'down')<CR>
+nnoremap <silent> <buffer> <localleader>k    :<c-u>call OrgMoveLevel(line("."),'up',v:count1)<CR>
+nnoremap <silent> <buffer> <localleader>j    :<c-u>call OrgMoveLevel(line("."),'down',v:count1)<CR>
 nnoremap <silent> <buffer>  <localleader>np  :call OrgNewHead('levelup')<CR>
 nnoremap <silent> <buffer>  <localleader>ns  :call OrgNewHead('leveldown')<CR>

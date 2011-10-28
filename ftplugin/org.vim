@@ -1432,11 +1432,35 @@ function! s:ShowSubs(number,withtext)
     call setpos(".",save_cursor)
 endfunction
 
-function! OrgMoveLevel(line, direction)
+" 2 args of start line num and direction ('up' or 'down')
+"command -nargs=* OrgMoveLevel :call OrgMoveLevel(<f-args>,v:count1)
+nmap <buffer> <localleader>,q :<C-U>call OrgMoveLevel(line('.'),'up',v:count1)<cr>
+
+function! OrgMoveLevel(line, direction,...)
+    if a:0>=1
+        let mycount = a:1
+    else
+        let mycount = 1
+    endif
     " move a heading tree up, down, left, or right
     let lastline = s:OrgSubtreeLastLine_l(a:line)
     if a:direction ==? 'up'
-        let l:headabove = s:OrgPrevSiblingHead()
+        let l:headabove = a:line
+        let count_message = ''
+        for i in range( 1, mycount)
+            let lasthead = l:headabove
+            let l:headabove = s:OrgPrevSiblingHead_l(l:headabove)
+            if l:headabove  > 0
+                let count_message = 'Moved up ' . i . ' levels.' 
+            elseif i == 1
+                " break with no message here
+                break
+            else
+                let l:headabove = lasthead
+                if i <= mycount | let count_message .= '  No more siblings above.' | endif
+                break
+            endif
+        endfor
         if l:headabove > 0 
             let l:lines = getline(line("."), lastline)
             call s:DoFullCollapse(a:line)
@@ -1444,15 +1468,31 @@ function! OrgMoveLevel(line, direction)
             call append(l:headabove-1,l:lines)
             execute l:headabove
             call s:ShowSubs(1,0)
-        else 
+            echo count_message
+        else
             echo "No sibling heading above in this subtree."
         endif
     elseif a:direction ==? 'down'
-        let l:headbelow = s:OrgNextSiblingHead()
+        let l:headbelow = a:line
+        let count_message = ''
+        for i in range(1, mycount)
+            let lasthead = l:headbelow
+            let l:headbelow = s:OrgNextSiblingHead_l(l:headbelow)
+            if l:headbelow  > 0
+                let count_message = 'Moved down ' . i . ' levels.' 
+            elseif i == 1
+                " break with no message here
+                break
+            else
+                let l:headbelow = lasthead
+                if i <= mycount | let count_message .= '  No more siblings below.' | endif
+                break
+            endif
+        endfor
         if l:headbelow > 0 
             let endofnext = s:OrgSubtreeLastLine_l(l:headbelow)
             let lines = getline(line("."),lastline)
-            call append(endofnext,lines)
+            silent call append(endofnext,lines)
             execute endofnext + 1
             " set mark and go back to delete original subtree
             normal ma
@@ -1461,6 +1501,7 @@ function! OrgMoveLevel(line, direction)
             silent normal! dd
             normal g'a
             call s:ShowSubs(1,0)
+            echo count_message
         else 
             echo "No sibling below in this subtree."
         endif
