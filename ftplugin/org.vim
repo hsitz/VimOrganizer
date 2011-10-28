@@ -6236,16 +6236,45 @@ function! OrgEvalBlock()
         let &showcmd = save_showcmd
     call setpos('.',savecursor)
 endfunction
-function! OrgEvalTable()
+"command -buffer -nargs=? OrgTblEvalCmd :call OrgEvalTable(<f-args>)
+command! -buffer -nargs=? -complete=customlist,s:OrgTableOptionList OrgTblEval :call OrgEvalTable(<f-args>)
+function! s:OrgTableOptionList(A,L,P)
+    return keys(s:OrgTableEvalOptions())
+endfunction
+function! s:OrgTableEvalOptions()
+    return  { 'col_right':'org-table-move-column-right',
+                            \ 'col_left': 'org-table-move-column-left',
+                            \ 'col_delete': 'org-table-delete-column',
+                            \ 'col_insert': 'org-table-insert-column',
+                            \ 'row_down': 'org-table-move-row-down',
+                            \ 'row_up': 'org-table-move-row-up',
+                            \ 'row_delete': 'org-table-kill-row',
+                            \ 'row_insert': 'org-table-insert-row',
+                            \ 'hline_insert': 'org-table-insert-hline',
+                            \ 'cell_evaluate' : 'org-table-maybe-eval-formula',
+                            \ 'table_recalculate' : 'org-table-recalculate-buffer-tables'
+                            "\ 'table_coordinates_toggle' : 'org-table-toggle-coordinate-overlays'
+                            \ }
+endfunction
+function! OrgEvalTable(...)
+    let options = s:OrgTableEvalOptions()
+    if a:0 == 1
+        let opt = a:1
+        let opt_cmd = '(' . options[opt] . ')'
+    else
+        let opt_cmd = ''
+    endif
     let savecursor = getpos('.')
     call search('^\s*$','b','')
     let start=line('.')
+    let line_offset = savecursor[1] - start + 1
     " find first line after table block and check for formulas
     call search('^\(\s*|\)\@!','','')
     "if getline(line('.'))[0:6] == '#+TBLFM'
         let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        "let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (interactive)(beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')(org-table-maybe-eval-formula)' . opt_cmd . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . '))) (progn (interactive)(beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')' . opt_cmd . '(save-buffer buf)(kill-buffer buf)))' 
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
         unsilent echo "Calculating in Emacs. . . "
