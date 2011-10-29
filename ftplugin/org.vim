@@ -6254,7 +6254,8 @@ function! s:OrgTableEvalOptions()
                             \ 'row_sort_region_numeric': 'org-table-sort-lines nil ?n',
                             \ 'row_sort_region_alpha_reverse': 'org-table-sort-lines nil ?A',
                             \ 'row_sort_region_numeric_reverse': 'org-table-sort-lines nil ?N',
-                            \ 'row_hline_insert': 'org-table-insert-hline' }
+                            \ 'row_hline_insert': 'org-table-insert-hline',
+                           \  'convert_region_to_table':'org-table-convert-region (point-min) (point-max)'  }
 endfunction
 function! OrgTableDashboard()
     if s:OrgHasEmacsVar() == 0
@@ -6266,8 +6267,8 @@ function! OrgTableDashboard()
     let mydict = { 'l':'col_left', 'r':'col_right', 'e':'col_delete', 'o':'col_insert',
             \     'd':'row_down', 'u':'row_up', 'x':'row_delete', 
             \     'i':'row_insert', 'a':'row_sort_region_alpha', 'A':'row_sort_region_alpha_reverse',
-            \     'n':'row_sort_region_numeric', 'N':'row_sort_region_numeric', 'h':'row_hline_insert'
-            \      } 
+            \     'n':'row_sort_region_numeric', 'N':'row_sort_region_numeric', 'h':'row_hline_insert',
+            \     'v':'convert_region_to_table' } 
     echo " --------------------------------"
     echo " Press key for table  operation:"
     echo " --------------------------------"
@@ -6290,7 +6291,7 @@ function! OrgTableDashboard()
     let &showcmd = save_showcmd
 
 endfunction
-function! OrgEvalTable(...)
+function! OrgEvalTable(...) range
     let options = s:OrgTableEvalOptions()
     if a:0 == 1
         let opt = a:1
@@ -6299,21 +6300,33 @@ function! OrgEvalTable(...)
         let opt_cmd = ''
     endif
     let savecursor = getpos('.')
-    call search('^\s*$','b','')
-    let start=line('.')
+    if a:firstline == a:lastline
+        call search('^\s*$','b','')
+        let start=line('.')
+        call search('^\(\s*|\)\@!','','')
+        "if getline(line('.'))[0:6] == '#+TBLFM'
+            let end=line('.')
+    else
+        let start=a:firstline
+        let end  =a:lastline
+    endif
     let line_offset = savecursor[1] - start + 1
     " find first line after table block and check for formulas
-    call search('^\(\s*|\)\@!','','')
-    "if getline(line('.'))[0:6] == '#+TBLFM'
-        let end=line('.')
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
-        let part1 = '(let ((org-confirm-babel-evaluate nil)'
-                   \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
-                   \  . '(progn (beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
-                   \  . '(org-table-maybe-eval-formula)' 
-                   \  . opt_cmd
-                   \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
-
+        if opt != 'convert_region_to_table'
+            let part1 = '(let ((org-confirm-babel-evaluate nil)'
+                       \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
+                       \  . '(progn (beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
+                       \  . '(org-table-maybe-eval-formula)' 
+                       \  . opt_cmd
+                       \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+        else
+            let part1 = '(let ((org-confirm-babel-evaluate nil)'
+                       \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
+                       \  . '(progn (beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
+                       \  . '(goto-char (point-min))(set-mark (point))(goto-char (point-max))' . opt_cmd
+                       \  . '(save-buffer buf)(kill-buffer buf)))' 
+        endif
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
         unsilent echo "Calculating in Emacs. . . "
