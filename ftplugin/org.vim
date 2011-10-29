@@ -6236,11 +6236,11 @@ function! OrgEvalBlock()
         let &showcmd = save_showcmd
     call setpos('.',savecursor)
 endfunction
-"command -buffer -nargs=? OrgTblEvalCmd :call OrgEvalTable(<f-args>)
-command! -buffer -nargs=? -complete=customlist,s:OrgTableOptionList OrgTblEval :call OrgEvalTable(<f-args>)
+
 function! s:OrgTableOptionList(A,L,P)
     return keys(s:OrgTableEvalOptions())
 endfunction
+command! -buffer -nargs=? -complete=customlist,s:OrgTableOptionList OrgTblEval :call OrgEvalTable(<f-args>)
 function! s:OrgTableEvalOptions()
     return  { 'col_right':'org-table-move-column-right',
                             \ 'col_left': 'org-table-move-column-left',
@@ -6250,11 +6250,45 @@ function! s:OrgTableEvalOptions()
                             \ 'row_up': 'org-table-move-row-up',
                             \ 'row_delete': 'org-table-kill-row',
                             \ 'row_insert': 'org-table-insert-row',
-                            \ 'hline_insert': 'org-table-insert-hline'
-                            "\ 'cell_evaluate' : 'org-table-maybe-eval-formula',
-                            "\ 'table_recalculate' : 'org-table-recalculate-buffer-tables'
-                            "\ 'table_coordinates_toggle' : 'org-table-toggle-coordinate-overlays'
-                            \ }
+                            \ 'row_sort_region_alpha': 'org-table-sort-lines nil ?a',
+                            \ 'row_sort_region_numeric': 'org-table-sort-lines nil ?n',
+                            \ 'row_sort_region_alpha_reverse': 'org-table-sort-lines nil ?A',
+                            \ 'row_sort_region_numeric_reverse': 'org-table-sort-lines nil ?N',
+                            \ 'row_hline_insert': 'org-table-insert-hline' }
+endfunction
+function! OrgTableDashboard()
+    if s:OrgHasEmacsVar() == 0
+       return
+    endif
+    let save_more = &more | set nomore
+    let save_showcmd = &showcmd | set noshowcmd
+    " show export dashboard
+    let mydict = { 'l':'col_left', 'r':'col_right', 'e':'col_delete', 'o':'col_insert',
+            \     'd':'row_down', 'u':'row_up', 'x':'row_delete', 
+            \     'i':'row_insert', 'a':'row_sort_region_alpha', 'A':'row_sort_region_alpha_reverse',
+            \     'n':'row_sort_region_numeric', 'N':'row_sort_region_numeric', 'h':'row_hline_insert'
+            \      } 
+    echo " --------------------------------"
+    echo " Press key for table  operation:"
+    echo " --------------------------------"
+    echo " COLUMN:  [l] Move left  [r] Move right  [e] Delete  [o] Insert"
+    echo " ROW:     [d] Move down  [u] Move up     [x] Delete  [i] Insert"
+    echo " "
+    echo " RowSort: [a] alpha(a-z)     [A] alpha(z-a)"
+    echo "          [n] numeric(1..9)  [N] numeric(9-1)"
+    echo ""
+    echo "          [h] insert horizontal line"
+    echo " "
+    let key = nr2char(getchar())
+    for item in keys(mydict)
+        if (item ==# key) 
+            exec 'OrgTblEval ' . mydict[item]
+            break
+        endif
+    endfor
+    let &more = save_more
+    let &showcmd = save_showcmd
+
 endfunction
 function! OrgEvalTable(...)
     let options = s:OrgTableEvalOptions()
@@ -6275,7 +6309,7 @@ function! OrgEvalTable(...)
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
         let part1 = '(let ((org-confirm-babel-evaluate nil)'
                    \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
-                   \  . '(progn (interactive)(beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
+                   \  . '(progn (beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
                    \  . '(org-table-maybe-eval-formula)' 
                    \  . opt_cmd
                    \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
@@ -6285,14 +6319,14 @@ function! OrgEvalTable(...)
         unsilent echo "Calculating in Emacs. . . "
 
         if exists('*xolox#shell#execute')
-            silent call xolox#shell#execute(orgcmd, 1)
+            silent let myx = xolox#shell#execute(orgcmd . '| cat', 1)
         else
             silent exe '!' . orgcmd
         endif
         exe start .',' . end . 'read ~/org-tbl-block.org'
         exe start . ',' . end . 'd'
         redraw
-        unsilent echo "Calculating in Emacs. . .   Calculations complete."
+        unsilent echo "Calculating in Emacs. . .   Calculations complete. " 
     "else
     "    unsilent echo "No #+TBLFM line at end of table, so no calculations necessary."
     "endif
@@ -6405,7 +6439,7 @@ function! OrgExportDashboard()
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            let orgpath = g:org_command_for_emacsclient . ' -n --eval '
+            let orgpath = g:org_command_for_emacsclient . ' --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             " set org-mode to either auto-evaluate all exec blocks or evaluate none w/o
@@ -6437,7 +6471,7 @@ function! OrgExportDashboard()
             redraw
             echo "Export in progress. . . "
             if exists('*xolox#shell#execute')
-                silent! call xolox#shell#execute(orgcmd, 1)
+                silent! let g:expmsg = xolox#shell#execute(orgcmd . ' | cat ', 1)
             else
                 "execute '!' . orgcmd
                 silent! execute '!' . orgcmd
