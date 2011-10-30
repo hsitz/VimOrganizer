@@ -5544,13 +5544,8 @@ function! s:OrgAgendaToBuf()
     execute g:showndx
     normal! zv
     if getline(line('.')) =~ b:v.headMatch
-        "restrict to headings
-        "execute g:showndx
+        "restrict to headings only
         call s:OrgExpandSubtree(g:showndx,0)
-    "else
-    "    " will show text as well as heading
-    "    execute g:showndx
-    "    normal! zv
     endif
     normal! z.
     normal V
@@ -6293,6 +6288,8 @@ function! s:OrgTableEvalOptions()
                             \ 'row_hline_insert': 'org-table-insert-hline',
                            \  'convert_region_to_table':'org-table-convert-region (point-min) (point-max)'  }
 endfunction
+
+command! -buffer -nargs=0 OrgTableDashboard :call OrgTableDashboard()
 function! OrgTableDashboard()
     if s:OrgHasEmacsVar() == 0
        return
@@ -6301,18 +6298,22 @@ function! OrgTableDashboard()
     let save_showcmd = &showcmd | set noshowcmd
     " different dashboard for "in table" and "not in table"
     " show export dashboard
-    echohl MoreMsg
-    echo " --------------------------------"
-    echo " Press key for table  operation:"
-    echo " --------------------------------"
     if getline(line('.')) =~ '^\s*$'
         let rows_cols = input("Create new table (enter rows, columns): ")
         if rows_cols =~ '^\d\+\s*,\s*\d\+$'
             let [rows,cols] = split(rows_cols,',')
             call org#tbl#create(cols,rows)
+        elseif rows_cols =~ '^\d\+\s\+\d\+$'
+            let [rows,cols] = split(rows_cols,' ')
+            call org#tbl#create(cols,rows)
         endif
         return
-    elseif getline(line('.')) !~ b:v.tableMatch
+    endif
+    echohl MoreMsg
+    echo " --------------------------------"
+    echo " Press key for table  operation:"
+    echo " --------------------------------"
+    if getline(line('.')) !~ b:v.tableMatch
         let mydict = {  't' : 'convert_region_to_table'}  
         echo " [t]  Create (t)able from current block" 
     else
@@ -6518,7 +6519,7 @@ function! OrgExportDashboard()
             let exportfile = expand('%:t') 
             silent exec 'write'
 
-            let orgpath = g:org_command_for_emacsclient . ' --eval '
+            let orgpath = g:org_command_for_emacsclient . ' -n --eval '
             let g:myfilename = substitute(expand("%:p"),'\','/','g')
             let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
             " set org-mode to either auto-evaluate all exec blocks or evaluate none w/o
@@ -6550,7 +6551,8 @@ function! OrgExportDashboard()
             redraw
             echo "Export in progress. . . "
             if exists('*xolox#shell#execute')
-                silent! let g:expmsg = xolox#shell#execute(orgcmd . ' | cat ', 1)
+                "silent! let g:expmsg = xolox#shell#execute(orgcmd . ' | cat ', 1)
+                silent! call xolox#shell#execute(orgcmd , 1)
             else
                 "execute '!' . orgcmd
                 silent! execute '!' . orgcmd

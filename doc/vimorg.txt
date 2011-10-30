@@ -704,7 +704,112 @@ return to original buffer.  See help for |NarrowRegion| for more information.
 ------------------------------------------------------------------------
 Tables in VimOrganizer                             *vimorg-tables-editing*
 
-VimOrganizer uses the table code from the excellent VimWiki project.  
+Tables in VimOrganizer work very much like they work in Org-mode.  
+VimOrganizer uses some of the table code from the excellent VimWiki project.
+Other major parts of the table functionality come from calling directly
+to Org-mode in Emacs to evaluate or manipulate a table.
+
+Regardless of the editing functionality available in VimOrganizer,
+the behavior of tables in export will be identical to what it is
+in Org-mode, since exports are in fact done by Org-mode.
+
+Table operations are accessed through the Table Dashboard.  You can open
+the dashboard with the command :OrgTableDashboard or the key sequence
+,b.  The table dashboard is context-sensitive.  Operations accessible 
+on the table dashboard are as follows:
+
+1. When cursor is on a blank line    You are prompted to create
+                                     a new table, which you can do
+                                     by specifying rows and columns.
+
+2. When cursor is on non-table text  You will be prompted to create a
+                                     table from the block of text you
+                                     are on.  The block is defined as
+                                     the area between the previous
+                                     blank line and the next blank
+                                     line.  This operation calls out
+                                     to Org-mode and processes the 
+                                     text block with the elisp
+                                     function 'org-convert-table-region'.
+                                     The text will be split into a
+                                     table based on the following rules:
+
+                                     a. If every line contains at least 
+                                        one TAB character, the function
+                                        assumes that the material is tab 
+                                        separated.
+                                     b. If every line contains a comma, 
+                                        comma-separated values (CSV) are 
+                                        assumed. 
+                                     c. If neither of above apply, lines 
+                                        are split at whitespace into fields.
+
+3. When cursor is on a table.  In this case a full dashboard is shown.
+                               All user options call out to Org-mode
+                               in Emacs to process the table.  This is
+                               done even for relatively simple options,
+                               since the #+TBLFM line may change.  See
+                               Org-mode documenation regading these
+                               options and how tables and spreadsheet
+                               functionality works:
+                               http://orgmode.org/manual/Tables.html#Tables
+
+     Dashboard operations:     All of these operations depend on the 
+                               position of the cusor within the table.
+
+     'COLUMN' operatons:  l -- move column left
+                          r -- move column right
+                          e -- delete column
+                          o -- insert column
+
+     'ROW' operations     d -- move row down
+                          u -- move row up
+                          x -- delete row
+                          i -- insert row
+
+     Insert horiontal line  -- h will insert a line below cursor
+
+     'RowSort' operations:  all of the row sort operations operate
+                            on the current 'row-region' of the table.
+                            A row region is the range of rows including
+                            the cursor row up to (1) beginning-of-table
+                            or a horizontal line above, and down to (2) the
+                            end-of-table or a horizontal line below.
+
+                            Available sorts are
+                              a  -- alphabetical, a to z
+                              A  -- reverse alphabetical, z-a
+                              n  -- numeric, low to high
+                              N  -- numeric, high to low
+
+------------------------------------------------------------------------
+Table Evaluation                           *vimorg-table-evaluation*
+
+Spreadsheet functionality is supported by calling out to Org-mode
+in Emacs.  You cause this by putting the cursor in a table and
+choosing '(T)able, E(v)aluate Table' from the menu in gvim, or 
+by pressing |,v|.  Evaluation will do two things:
+
+    (1)  If cursor is in a table cell with a valid row/col
+         formula, it will be moved into the #+TBLFM string.
+    (2)  Formulas defined in the TBLFM string will be 
+         evaluated and results will be placed in appropriate
+         cells in the table.
+
+Since the table is evaluated in Emacs, all of the spreadsheet 
+formulas are evaluated as specified in the Org-mode manual:
+http://orgmode.org/manual/The-spreadsheet.html#The-spreadsheet
+
+NOTE:  Be sure to note that the default evaluation does _NOT_
+       follow the rule of equal precedence of multiplication
+       and decision.  Instead, division has lower precedence
+       than multiplication:
+
+             2/3*4 == 2 / (3 * 4)
+
+       See:  http://orgmode.org/manual/Formula-syntax-for-Calc.html#Formula-syntax-for-Calc 
+
+
 ------------------------------------------------------------------------
 Searches and the Agenda                    *vimorg-agenda* *vimorg-searches*
 
@@ -938,7 +1043,7 @@ Column view                                              *vimorg-column-view*
 
 Column view in VimOrganizer is similar to the feature having the same name
 in Org-mode, but different in important ways. At its core it simply offers
-a way to reveal data about a heading when it is displayed in folded mode.
+a way to reveal data about a heading when it is displayed as a fold.
 Folded heading lines in Vim are not directly editable.  (A user interface
 to allow easy editing of columns/properties is on VimOrganizer's todo list.)
 
@@ -949,16 +1054,25 @@ this line in your vimrc:
 
         let g:global_column_view = 1
 
+Specification of COLUMNS is similar to Org-mode, except that ITEM is
+always included, although length settings for ITEM are always ignored.
+This is because the ITEM display is automatically truncated to make
+space for the other columns, and ITEM will automatically expand or
+contract if you resize the Vim window.  The column definition string 
+format is identical to that used by Org-mode, although the optional
+'summary-type' attribute is currently ignored in VimOrganizer. See: 
+http://orgmode.org/manual/Defining-columns.html#Defining-columns
+
 The built-in global default for column view is to show any TAGS flush
-left in a 30 character column.  You can modify that be setting a global 
+left in a 35 character column.  You can modify that be setting a global 
 default in your vimrc.  The built-in default would look like this:
 
-        let g:global_column_defaults = 'TAGS,%-30s'
+        let g:global_column_defaults = '%ITEM %35TAGS'
 
 A default that would show the DEADLINE value in addition to TAGS might
 look like this:
 
-        let g:global_column_defaults = 'DEADLINE,%-14s,TAGS,%-30s'
+        let g:global_column_defaults = '%ITEM %15DEADLINE %30TAGS'
 
 --------------------------------------------------------------------------
 Columns Dashboard                                   *vimorg-columns-dashboard*
@@ -973,7 +1087,8 @@ allows you to change them:
                               line in a document.
     current default columns -- the current settings, which may reflect
                                custom default settings
-    column view on          --  will be ON/OFF
+    column view on          -- will be ON/OFF
+    Show column headers     -- will be ON/OFF
     heading line count      -- will be ON/OFF, refers to whether the
                                count of heading lines shows at right
                                margin for a folded heading.  Can be
@@ -981,9 +1096,15 @@ allows you to change them:
 
     Operations on dashboard
     -----------------------
+           f    --- force all of buffer to use settings.  If
+                    not chosen then (1) only the current subtree will be
+                    placed into column, or (2) entire buffer
+                    will be in column view if cursor is in 
+                    front of the first heading in the document.
            r    --- revert to buffer defaults, if defaults have
                     been changed
            t    --- toggle column view ON/OFF
+           h    --- toggle column headings ON/OFF
            l    --- toggle line count ON/OFF
      
                                           *org_columns_custom_list*
@@ -993,8 +1114,8 @@ allows you to change them:
      defines a list have two custom column strings, one having a 
      DEADLINE and a TAGS column, the second having just a DEADLINE column:
 
-          let *g:org_custom_column_options* = ['DEADLINE,%-14s,TAGS,%-30s',
-                           \ 'DEADLINE,%-14s']
+          let *g:org_custom_column_options* = ['%ITEM %14DEADLINE %30TAGS',
+                           \ '%ITEM %14DEADLINE']
 
      g:org_custom_column_options is a list containing column format
      strings.  Each format string will be listed on the dashboard
@@ -1020,15 +1141,18 @@ COLUMNS property                                 *vimorg-columns-property*
 
 Columns properties work like how they work in Org-mode.  You can set
 a COLUMNS property in the property block of a heading.  That setting
-will (1) override any default or custom settings for the buffer, and
-(2) be inherited by subheadings of of that heading.  For example,
-all of the headings below would display folded lines with just
-a DEADLINE column, regardless of what the settings are in the rest
-of the document:
+will (1) override any default or custom settings for the buffer (unless
+you enter a buffer-wide columns mode with cursor not on the heading), and
+(2) be inherited by subheadings of of that heading.  (Also, you
+can force entire buffer to use a headings COLUMNS property by
+choosing 'f' on columns dashboard.)  For example, entering columns
+mode withe the cursor on 'Heading One' below below would display 
+folded lines with just a DEADLINE column, regardless of what the 
+settings were in the rest of the document:
 
        * Heading One
          :PROPERTIES:
-         :COLUMNS: DEADLINE,%-14s
+         :COLUMNS: %ITEM %14DEADLINE
          :END:
        ** Subhead One
           Text for Subhead One
