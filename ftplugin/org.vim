@@ -43,7 +43,7 @@ let b:v.tagMatch = '\(:\S*:\)\s*$'
 let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
-let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%30TAGS'}
+let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%40ITEM %30TAGS'}
 let w:v.total_columns_width = 30
 
 let b:v.buf_tags_static_spec = ''
@@ -54,7 +54,7 @@ endif
 if exists('g:global_column_defaults') 
     let b:v.buffer_columns = g:global_column_defaults' 
 else
-    let b:v.buffer_columns = '%30TAGS'
+    let b:v.buffer_columns = '%40ITEM %30TAGS'
 endif
 let w:sparse_on = 0
 "if exists('g:global_column_view') && g:global_column_view==1
@@ -111,7 +111,7 @@ let b:v.suppress_list_indent=0
 if !exists('g:org_loaded')
 
 if !exists('g:org_custom_column_options')
-    let g:org_custom_column_options = ['%15DEADLINE %35TAGS', '%35TAGS'] 
+    let g:org_custom_column_options = ['%ITEM %15DEADLINE %35TAGS', '%ITEM %35TAGS'] 
 endif
 
 if !exists('g:org_custom_colors')
@@ -6442,6 +6442,7 @@ function! OrgExportDashboard()
     " show export dashboard
     "let mydict = { 't':'template', 'a':'ascii', 'n':'latin1', 'u':'utf8',
     let mydict = { 't':'template', 'a':'ascii', 'A':'ascii', 'o':'odt', 'O':'odt-and-open',
+            \     'n':'latin1', 'N':'latin1', 'u':'utf8','U':'utf8',
             \     'h':'html', 'b':'html-and-open', 'l':'latex', 
             \     'f':'freemind', 'j':'taskjuggler', 'k':'taskjuggler-and-open',
             \     'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle',  
@@ -6450,7 +6451,7 @@ function! OrgExportDashboard()
     echo " --------------------------------"
     echo " [t]   insert the export options template block"
     echo " "
-    echo " [a]  export as ASCII    [A] ASCII and open in buffer"
+    echo " [a/n/u]  export as ASCII/Latin1/utf8  [A/N/U] ...and open in buffer"
     echo " "
     echo " [h] export as HTML"
     echo " [b] export as HTML and open in browser"
@@ -6540,8 +6541,9 @@ function! OrgExportDashboard()
                     \ ,'#+XSLT: '
                     \ ]
         silent call append(line('.')-1,template)
-    elseif key ==# 'A'
+    elseif key =~# 'A\|N\|U'
         exec 'split ' . expand('%:r') . '.txt'
+        normal gg
     endif
 
     let &more = save_more
