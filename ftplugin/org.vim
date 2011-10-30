@@ -6683,11 +6683,11 @@ function! OrgSetColors()
 
     "hi! GENERICTODO guifg=pink ctermfg=lightred
     hi! DONETODO guifg=green ctermfg=green
-    hi! NOTDONETODO guifg=orange ctermfg=lightred
+    hi! NOTDONETODO guifg=red ctermfg=lightred
 
 
-    hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
-    hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
+    "hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
+    "hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
 
     "user can define OrgCustomColors() in vimrc for above items, these will be executed
     "here and override the defaults above.
