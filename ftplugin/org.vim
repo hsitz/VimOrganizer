@@ -5138,7 +5138,7 @@ function! s:SetColumnHeaders()
     let g:org_column_headers = ''
     let w:v.org_column_item_head = ''
     for item in (w:v.org_colview_list)
-        let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\([^\s)]*\)')[1:3]
+        let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\([^ )]*\)')[1:3]
         let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
         if field ==# 'ITEM' 
            let w:v.org_column_item_head = (hdr=='') ? 'ITEM' : hdr
@@ -6630,9 +6630,11 @@ function! OrgSetColors()
     endfor
 
     "blank out foldcolumn
-    hi! FoldColumn guifg=bg guibg=bg ctermfg=bg ctermbg=bg
+    hi! FoldColumn guifg=bg guibg=bg 
+    "ctermfg=bg ctermbg=bg
     "show text on SignColumn
-    hi! SignColumn guibg=fg guibg=bg ctermfg=fg ctermbg=bg
+    hi! SignColumn guibg=fg guibg=bg 
+    "ctermfg=fg ctermbg=bg
 
     " various text item "highlightings" are below
     " change to suit your taste and put in OrgCustomColors() (see below)
@@ -6657,6 +6659,7 @@ function! OrgSetColors()
     endif
     hi! Org_Full_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
     hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+    highlight OrgColumnHeadings guibg=#444444 guifg=#aaaaaa gui=underline
 
     "hi! GENERICTODO guifg=pink ctermfg=lightred
     hi! DONETODO guifg=green ctermfg=green
@@ -7065,7 +7068,6 @@ endif
 call OrgProcessConfigLines()
 exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
-highlight OrgColumnHeadings guibg=#444444 guifg=#aaaaaa gui=underline
 
 "Menu stuff
 function! MenuCycle()
