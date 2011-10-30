@@ -6909,6 +6909,8 @@ function! NarrowCodeBlock(line)
     " function first tests if inside src block, and if so
     " narrows the code block.  If not, then
     " tests for headline and narrows the heading subtree
+    " save buf vars to put in new org buffer if subtree narrowing
+    let main_buf_vars = b:v
     execute a:line
     call search('^#+begin_src','b','')
     let start=line('.') + 1
@@ -6938,6 +6940,7 @@ function! NarrowCodeBlock(line)
             execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
             " then set ftype in new buffer
             set ft=org
+            let b:v = main_buf_vars
             let &winwidth=start_width*2/3
         else
             execute a:line

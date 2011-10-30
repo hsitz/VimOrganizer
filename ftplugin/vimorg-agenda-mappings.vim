@@ -25,6 +25,10 @@
 function! OrgQuitAgenda()
     sign unplace *
     bw
+    if bufnr('ColHeadBuffer') > -1
+	"it's showing a buffer line, push back up . . .
+	resize 100
+    endif
     "quit
 endfunction
    
