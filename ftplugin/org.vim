@@ -3995,6 +3995,8 @@ function! OrgColumnsDashboard()
     set nomore
     let force_all = 0
     while 1
+        echohl MoreMsg
+        echo "=========================================="
         echo " Buffer default columns:           " . b:v.buffer_columns
         echo " Current default columns:          " . w:v.org_current_columns
         echo " Column view is currently:         " . (w:v.columnview==1 ? 'ON' : 'OFF')
@@ -4087,15 +4089,16 @@ function! OrgDateDashboard()
     else
         let props = s:GetProperties(line('.'),0)
     endif
-    echohl WarningMsg
-    echo " Press key for a date command:"
-    echo " --------------------------------"
-    echo " d   set DEADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
-    echo " s   set SCHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
-    echo " c   set CLOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
-    echo " t   set TIMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
-    echo " g   set date at cursor"
-    echo " "
+    echohl MoreMsg
+    echo " ================================="
+    echo " Press key, for a date command:"
+    echo " ---------------------------------"
+    echo " d   set D,EADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
+    echo " s   set S,CHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
+    echo " c   set C,LOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
+    echo " t   set T,IMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
+    echo " g   set d,ate at cursor"
+    echo " "        ,
     echo " "
     echohl Question
     let key = nr2char(getchar())
@@ -6002,6 +6005,9 @@ function! OrgAgendaDashboard()
         let restrict = 0
         let saved_afiles = []
         while 1
+            echohl MoreMsg
+            echo ""
+            echo " ================================"
             echo " Press key for an agenda command:"
             echo " --------------------------------"
             echo " a   Agenda for current week"
@@ -6019,6 +6025,7 @@ function! OrgAgendaDashboard()
                 echo "     Will restrict to current buffer.  Press a key to choose search..."
             endif
             echo ""
+            echohl None
             let key = nr2char(getchar())
             redraw
             if key == '<'
@@ -6274,10 +6281,18 @@ function! OrgTableDashboard()
     let save_showcmd = &showcmd | set noshowcmd
     " different dashboard for "in table" and "not in table"
     " show export dashboard
+    echohl MoreMsg
     echo " --------------------------------"
     echo " Press key for table  operation:"
     echo " --------------------------------"
-    if getline(line('.')) !~ b:v.tableMatch
+    if getline(line('.')) =~ '^\s*$'
+        let rows_cols = input("Create new table (enter rows, columns): ")
+        if rows_cols =~ '^\d\+\s*,\s*\d\+$'
+            let [rows,cols] = split(rows_cols,',')
+            call org#tbl#create(cols,rows)
+        endif
+        return
+    elseif getline(line('.')) !~ b:v.tableMatch
         let mydict = {  't' : 'convert_region_to_table'}  
         echo " [t]  Create (t)able from current block" 
     else
@@ -6295,6 +6310,7 @@ function! OrgTableDashboard()
         echo "          [h] insert horizontal line"
     endif
     echo " "
+    echohl None
     let key = nr2char(getchar())
     for item in keys(mydict)
         if key == 't'
@@ -6447,6 +6463,7 @@ function! OrgExportDashboard()
             \     'f':'freemind', 'j':'taskjuggler', 'k':'taskjuggler-and-open',
             \     'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle',  
             \     'F':'current-file', 'P':'current-project', 'E':'all' } 
+    echohl MoreMsg
     echo " Press key for export operation:"
     echo " --------------------------------"
     echo " [t]   insert the export options template block"
@@ -6472,6 +6489,7 @@ function! OrgExportDashboard()
     echo " [P] publish current project"
     echo " [E] publish all projects"
     echo " "
+    echohl None
     let key = nr2char(getchar())
     for item in keys(mydict)
         if (item ==# key) && (item !=# 't')
@@ -6682,7 +6700,8 @@ call OrgSetColors()
 
 "Section for refile and archive funcs
 function! OrgRefileDashboard()
-    echohl WarningMsg
+    echohl MoreMsg
+    echo " ================================"
     echo " Press key for a refile command:"
     echo " --------------------------------"
     echo " h   refile heading (including subtree) to point"
@@ -6949,25 +6968,25 @@ function! NarrowCodeBlock(line)
     endif
 endfunction
 " Org Menu Entries
-amenu &Org.&View.Entire\ &Document.To\ Level\ &1<tab>,,1 :set foldlevel=1<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &2<tab>,,2 :set foldlevel=2<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &3<tab>,,3 :set foldlevel=3<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &4<tab>,,4 :set foldlevel=4<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &5<tab>,,5 :set foldlevel=5<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &6<tab>,,6 :set foldlevel=6<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &7<tab>,,7 :set foldlevel=7<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &8<tab>,,8 :set foldlevel=8<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &9<tab>,,9 :set foldlevel=9<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
+amenu &Org.&View.Entire\ &Document.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
 amenu &Org.&View.Entire\ &Document.Expand\ Level\ &All :set foldlevel=99999<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &1<tab>,1 :silent call OrgShowSubs(1,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &2<tab>,2 :silent call OrgShowSubs(2,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &3<tab>,3 :silent call OrgShowSubs(3,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &4<tab>,4 :silent call OrgShowSubs(4,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &5<tab>,5 :silent call OrgShowSubs(5,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &6<tab>,6 :silent call OrgShowSubs(6,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &7<tab>,7 :silent call OrgShowSubs(7,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &8<tab>,8 :silent call OrgShowSubs(8,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &9\ \ \ \ \ \ <tab>,9 :silent call OrgShowSubs(9,0)cr>
+amenu &Org.&View.&Subtree.To\ Level\ &1<tab>,,1 :silent call OrgShowSubs(1,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &2<tab>,,2 :silent call OrgShowSubs(2,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &3<tab>,,3 :silent call OrgShowSubs(3,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &4<tab>,,4 :silent call OrgShowSubs(4,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &5<tab>,,5 :silent call OrgShowSubs(5,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &6<tab>,,6 :silent call OrgShowSubs(6,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &7<tab>,,7 :silent call OrgShowSubs(7,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &8<tab>,,8 :silent call OrgShowSubs(8,0)<cr>
+amenu &Org.&View.&Subtree.To\ Level\ &9\ \ \ \ \ \ <tab>,,9 :silent call OrgShowSubs(9,0)cr>
 amenu &Org.-Sep1- :
 amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or\ <s-cr>) :call OrgNewHead('same')<cr>
 amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
@@ -7008,9 +7027,10 @@ amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
 amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
 amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
 amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
-amenu &Org.&Table.&Create<tab>,bc :call org#tbl#create()<cr>
-amenu &Org.&Table.Column\ &Left<tab>,bl :call org#tbl#move_column_left()<cr>
-amenu &Org.&Table.Column\ &Right<tab>,br :call org#tbl#move_column_right()<cr>
+amenu &Org.&Table\ Menu<tab>,b :call OrgTableDashboard()<cr>
+"amenu &Org.&Table.&Create<tab>,bc :call org#tbl#create()<cr>
+"amenu &Org.&Table.Column\ &Left<tab>,bl :call org#tbl#move_column_left()<cr>
+"amenu &Org.&Table.Column\ &Right<tab>,br :call org#tbl#move_column_right()<cr>
 amenu &Org.-Sep3- :
 amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
 amenu &Org.Edit\ TA&GS<tab>,et  :call OrgTagsEdit()<cr>

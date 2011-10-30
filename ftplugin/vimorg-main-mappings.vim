@@ -27,6 +27,7 @@ nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 " dl is for the date on the current line
 noremap <buffer> <localleader>x :call OrgExportDashboard()<cr>
 noremap <buffer> <localleader>d :call OrgDateDashboard()<cr>
+noremap <buffer> <localleader>b :call OrgTableDashboard()<cr>
 "noremap <silent> <buffer> <localleader>dg :call OrgGenericDateEdit()<cr>
 "noremap <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
 "noremap <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
@@ -83,17 +84,17 @@ nnoremap <buffer> <expr> <localleader>/ '/^\*\{1,' . &foldlevel . '\} .*'
 
 " set reasonable max limit of 12 for '0' command below, because it iterates
 " each for each level, just assume 12 is max. . .
-noremap <silent> <buffer>   ;0   :call OrgShowSubs(12,0)<CR>
-noremap <silent> <buffer>   ;9   :call OrgShowSubs(9,0)<CR>
-noremap <silent> <buffer>   ;8   :call OrgShowSubs(8,0)<CR>
-noremap <silent> <buffer>   ;7   :call OrgShowSubs(7,0)<CR>
-noremap <silent> <buffer>   ;6   :call OrgShowSubs(6,0)<CR>
-noremap <silent> <buffer>   ;5   :call OrgShowSubs(5,0)<CR>
-noremap <silent> <buffer>   ;4   :call OrgShowSubs(4,0)<CR>
-noremap <silent> <buffer>   ;3   :call OrgShowSubs(3,0)<CR>
-noremap <silent> <buffer>   ;2   :call OrgShowSubs(2,0)<CR>
-noremap <silent> <buffer>   ;1   :call OrgShowSubs(1,0)<CR>
-noremap <silent> <buffer>   ;;   :call OrgShowSubs(1,0)<CR>
+noremap <silent> <buffer>   <localleader>,0   :call OrgShowSubs(12,0)<CR>
+noremap <silent> <buffer>   <localleader>,9   :call OrgShowSubs(9,0)<CR>
+noremap <silent> <buffer>   <localleader>,8   :call OrgShowSubs(8,0)<CR>
+noremap <silent> <buffer>   <localleader>,7   :call OrgShowSubs(7,0)<CR>
+noremap <silent> <buffer>   <localleader>,6   :call OrgShowSubs(6,0)<CR>
+noremap <silent> <buffer>   <localleader>,5   :call OrgShowSubs(5,0)<CR>
+noremap <silent> <buffer>   <localleader>,4   :call OrgShowSubs(4,0)<CR>
+noremap <silent> <buffer>   <localleader>,3   :call OrgShowSubs(3,0)<CR>
+noremap <silent> <buffer>   <localleader>,2   :call OrgShowSubs(2,0)<CR>
+noremap <silent> <buffer>   <localleader>,1   :call OrgShowSubs(1,0)<CR>
+noremap <silent> <buffer>   <localleader>,;   :call OrgShowSubs(1,0)<CR>
 
 
 "nnoremap <silent> <buffer> <localleader>no :call NarrowOutline(line('.'))<cr>
@@ -106,13 +107,13 @@ nnoremap <silent> <buffer> <localleader>m :call OrgColumnsDashboard()<cr>
 au InsertEnter *.org :call org#tbl#reset_tw(line("."))
 au InsertLeave *.org :call org#tbl#format(line("."))
 command! -buffer -nargs=* OrgTable call org#tbl#create(<f-args>)
-nnoremap <silent> <buffer> <localleader>bc :call org#tbl#create()<cr>
+"nnoremap <silent> <buffer> <localleader>bc :call org#tbl#create()<cr>
 command! -buffer OrgTableAlignQ call org#tbl#align_or_cmd('gqq')
 command! -buffer OrgTableAlignW call org#tbl#align_or_cmd('gww')
 command! -buffer OrgTableMoveColumnLeft call org#tbl#move_column_left()
-nnoremap <silent> <buffer> <localleader>bl :call org#tbl#move_column_left()<cr>
+"nnoremap <silent> <buffer> <localleader>bl :call org#tbl#move_column_left()<cr>
 command! -buffer OrgTableMoveColumnRight call org#tbl#move_column_right()
-nnoremap <silent> <buffer> <localleader>br :call org#tbl#move_column_right()<cr>
+"nnoremap <silent> <buffer> <localleader>br :call org#tbl#move_column_right()<cr>
 
 " table function mappings
 inoremap <buffer> <expr> <CR> org#tbl#kbd_cr()
