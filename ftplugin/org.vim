@@ -31,11 +31,12 @@ let maplocalleader = ","        " Org key mappings prepend single comma
 let s:sfile = expand("<sfile>:p:h")
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
+let b:v.tableMatch = '^\(\s*|.*|\s*$\|#+TBLFM\)'
 let b:v.taglineMatch = '^\s*:\S\+:\s*$'
 let b:v.headMatchLevel = '^\(\*\)\{level}\s'
 let b:v.propMatch = '^\s*:\s*\(PROPERTIES\)'
 let b:v.propvalMatch = '^\s*:\s*\(\S*\)\s*:\s*\(\S.*\)\s*$'
-let b:v.drawerMatch = '^\s*:\s*\(PROPERTIES\|LOGBOOK\)'
+let b:v.drawerMatch = '^\s*:\(PROPERTIES\|LOGBOOK\)'
 let b:v.levelstars = 1
 let b:v.effort=['0:05','0:10','0:15','0:30','0:45','1:00','1:30','2:00','4:00']
 let b:v.tagMatch = '\(:\S*:\)\s*$'
@@ -185,7 +186,7 @@ let s:AgendaBufferName = "__Agenda__"
 let s:sparse_lines = {}
 
 "testing stuff
-function CustomSearchesSetup()
+function! CustomSearchesSetup()
     let g:org_custom_searches = [
                 \    { 'name':"Next week's agenda", 'type':'agenda', 
                 \                'agenda_date':'+1w','agenda_duration':'w'}
@@ -195,7 +196,7 @@ function CustomSearchesSetup()
                 \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
                 \           ]
 endfunction
-function RunCustom(searchnum)
+function! RunCustom(searchnum)
     let mydict = g:org_custom_searches[a:searchnum]
     if mydict.type ==? 'agenda'
         call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
@@ -1211,7 +1212,7 @@ function! s:FoldStatus(line)
     return l:status
 endfunction 
 
-function OrgEnterFunc()
+function! OrgEnterFunc()
     let syn_items = synstack(line('.'),col('.'))
     call map(syn_items, "synIDattr(v:val,'name')")
     if (index(syn_items,'Org_Full_Link') >= 0) || ( index(syn_items,'Org_Half_Link') >= 0)
@@ -1710,8 +1711,11 @@ function! OrgGlobalCycle()
     "    call setpos('.',s)
     "    let s:orgskipthirdcycle = 1
     else
+        let save_cursor = getpos('.')
         set foldlevel=9999
+        silent exec 'g/' . b:v.drawerMatch . '/normal! zc'
         let s:orgskipthirdcycle = 0
+        call setpos('.',save_cursor)
     endif
 endfunction
 function! s:LastTextLine(headingline)
@@ -3724,7 +3728,8 @@ function! s:OrgExpandLevelText(startlevel, endlevel)
     while search(l:mypattern, 'cW') > 0
         execute line(".") + 1
         while getline(line(".")) =~ b:v.drawerMatch
-            execute line(".") + 1
+           execute line(".") + 1
+           normal! j
         endwhile
         if s:IsText(line(".")) 
             normal zv
@@ -3972,7 +3977,7 @@ function! CalEdit( sdate, stime )
         return newdate 
 endfunction
 
-command OrgColumns :call OrgColumnsDashboard()
+command! OrgColumns :call OrgColumnsDashboard()
 function! OrgColumnsDashboard()
     let save_cursor = getpos('.')
     if !exists('w:v.columnview')
@@ -5155,9 +5160,13 @@ function! s:GetFoldColumns(line)
     let result = ''
     for item in (w:v.org_colview_list)
         let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\(\S*\))*')[1:3]
-        let fmt = (fmt ==# '') ? '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
         if field ==# 'ITEM' | continue | endif
-        let result .= printf( '|' . fmt, get(props,field,'')) 
+        let fldtext = get(props,field,'')
+        let fmt = (fmt ==# '') ? g:org_columns_default_width :  fmt 
+        " truncate text if too long
+        let fldtext = (len(fldtext)<=fmt) ? fldtext : (fldtext[:fmt-3] . '..')
+        "let fmt = '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
+        let result .= printf( '|%-'.fmt.'s', fldtext,'') 
     endfor
 
     return result
@@ -5809,7 +5818,7 @@ function! s:ColHeadWindow(itemhead,...)
     1split ColHeadBuffer
     call s:ScratchBufSetup()
     
-    execute "setlocal statusline=%#Search#%{<SNR>" . s:SID() . '_ColumnStatusLine()}'
+    execute "setlocal statusline=%#OrgColumnHeadings#%{<SNR>" . s:SID() . '_ColumnStatusLine()}'
     set winfixheight
     set winminheight=0
     let w:v = {'org_column_item_head': a:itemhead}
@@ -6263,26 +6272,42 @@ function! OrgTableDashboard()
     endif
     let save_more = &more | set nomore
     let save_showcmd = &showcmd | set noshowcmd
+    " different dashboard for "in table" and "not in table"
     " show export dashboard
-    let mydict = { 'l':'col_left', 'r':'col_right', 'e':'col_delete', 'o':'col_insert',
-            \     'd':'row_down', 'u':'row_up', 'x':'row_delete', 
-            \     'i':'row_insert', 'a':'row_sort_region_alpha', 'A':'row_sort_region_alpha_reverse',
-            \     'n':'row_sort_region_numeric', 'N':'row_sort_region_numeric', 'h':'row_hline_insert',
-            \     'v':'convert_region_to_table' } 
     echo " --------------------------------"
     echo " Press key for table  operation:"
     echo " --------------------------------"
-    echo " COLUMN:  [l] Move left  [r] Move right  [e] Delete  [o] Insert"
-    echo " ROW:     [d] Move down  [u] Move up     [x] Delete  [i] Insert"
-    echo " "
-    echo " RowSort: [a] alpha(a-z)     [A] alpha(z-a)"
-    echo "          [n] numeric(1..9)  [N] numeric(9-1)"
-    echo ""
-    echo "          [h] insert horizontal line"
+    if getline(line('.')) !~ b:v.tableMatch
+        let mydict = {  't' : 'convert_region_to_table'}  
+        echo " [t]  Create (t)able from current block" 
+    else
+        let mydict = { 'l':'col_left', 'r':'col_right', 'e':'col_delete', 'o':'col_insert',
+                \     'd':'row_down', 'u':'row_up', 'x':'row_delete', 
+                \     'i':'row_insert', 'a':'row_sort_region_alpha', 'A':'row_sort_region_alpha_reverse',
+                \     'n':'row_sort_region_numeric', 'N':'row_sort_region_numeric', 'h':'row_hline_insert'
+                \      } 
+        echo " COLUMN:  [l] Move left  [r] Move right  [e] Delete  [o] Insert"
+        echo " ROW:     [d] Move down  [u] Move up     [x] Delete  [i] Insert"
+        echo " "
+        echo " RowSort: [a] alpha(a-z)     [A] alpha(z-a)"
+        echo "          [n] numeric(1..9)  [N] numeric(9-1)"
+        echo ""
+        echo "          [h] insert horizontal line"
+    endif
     echo " "
     let key = nr2char(getchar())
     for item in keys(mydict)
-        if (item ==# key) 
+        if key == 't'
+            let thisline = getline(line('.'))
+            if thisline !~ '^\s*$'
+                let firstline = search('^\s*$','nb','') + 1
+                let lastline = search('^\s*$','n','') - 1
+                exec firstline . ',' . lastline . 'call OrgEvalTable(mydict[item])'
+            else
+                echo "You aren't in a block of text."
+            endif
+            break
+        elseif (key =~# item) 
             exec 'OrgTblEval ' . mydict[item]
             break
         endif
@@ -6291,6 +6316,7 @@ function! OrgTableDashboard()
     let &showcmd = save_showcmd
 
 endfunction
+
 function! OrgEvalTable(...) range
     let options = s:OrgTableEvalOptions()
     if a:0 == 1
@@ -6414,7 +6440,8 @@ function! OrgExportDashboard()
     let save_more = &more | set nomore
     let save_showcmd = &showcmd | set noshowcmd
     " show export dashboard
-    let mydict = { 't':'template', 'a':'ascii', 'n':'latin-1', 'u':'utf-8',
+    "let mydict = { 't':'template', 'a':'ascii', 'n':'latin1', 'u':'utf8',
+    let mydict = { 't':'template', 'a':'ascii', 'A':'ascii', 'o':'odt', 'O':'odt-and-open',
             \     'h':'html', 'b':'html-and-open', 'l':'latex', 
             \     'f':'freemind', 'j':'taskjuggler', 'k':'taskjuggler-and-open',
             \     'p':'pdf', 'd':'pdf-and-open', 'D':'docbook', 'g':'tangle',  
@@ -6423,7 +6450,7 @@ function! OrgExportDashboard()
     echo " --------------------------------"
     echo " [t]   insert the export options template block"
     echo " "
-    echo " [a/n/u]  export as ASCII/Latin-1/UTF-8"
+    echo " [a]  export as ASCII    [A] ASCII and open in buffer"
     echo " "
     echo " [h] export as HTML"
     echo " [b] export as HTML and open in browser"
@@ -6432,9 +6459,9 @@ function! OrgExportDashboard()
     echo " [p] export as LaTeX and process to PDF"
     echo " [d] . . . and open PDF file"
     echo " "
+    echo " [o] export as ODT        [O] as ODT and open"
     echo " [D] export as DocBook"
     echo " [V] export as DocBook, process to PDF, and open"
-    echo " "
     echo " [x] export as XOXO       [j] export as TaskJuggler"
     echo " [m] export as Freemind   [k] export as TaskJuggler and open"
 
@@ -6491,9 +6518,6 @@ function! OrgExportDashboard()
             endif
             redraw
             echo "Export in progress. . . Export complete."
-            "call s:UndoUnconvertTags()
-            "let g:org_emacs_autoconvert = 0
-            "silent exec 'write'
             break
         endif
     endfor
@@ -6516,7 +6540,10 @@ function! OrgExportDashboard()
                     \ ,'#+XSLT: '
                     \ ]
         silent call append(line('.')-1,template)
+    elseif key ==# 'A'
+        exec 'split ' . expand('%:r') . '.txt'
     endif
+
     let &more = save_more
     let &showcmd = save_showcmd
 
@@ -6865,7 +6892,7 @@ setlocal fillchars=|,
 "Section Narrow Region
 let g:nrrw_rgn_vert=1
 let g:nrrw_custom_options={'wrap':0}
-command -buffer Narrow :call NarrowCodeBlock(line('.'))
+command! -buffer Narrow :call NarrowCodeBlock(line('.'))
 
 function! NarrowCodeBlock(line)
     if exists(":NarrowRegion") == 0
@@ -7038,6 +7065,7 @@ endif
 call OrgProcessConfigLines()
 exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+highlight OrgColumnHeadings guibg=#444444 guifg=#aaaaaa gui=underline
 
 "Menu stuff
 function! MenuCycle()
