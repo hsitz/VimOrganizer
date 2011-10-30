@@ -25,8 +25,11 @@
 function! OrgQuitAgenda()
     sign unplace *
     bw
+    call clearmatches()
+    let b:v.chosen_agenda_heading = 0
     if bufnr('ColHeadBuffer') > -1
-	"it's showing a buffer line, push back up . . .
+	"main window has column headings window that
+	"is now showing a blank buffer line, push back up . . .
 	resize 100
     endif
     "quit

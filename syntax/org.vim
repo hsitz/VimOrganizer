@@ -15,6 +15,8 @@
 " No warranty, express or implied.
 " *** *** Use At-Your-Own-Risk *** ***
 
+" THIS FUNC is only for variable stars per level, currently
+" not exposed to users
 function! s:SynStars(perlevel)
 	let b:levelstars = a:perlevel
 	exe 'syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars'

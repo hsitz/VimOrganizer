@@ -45,6 +45,7 @@ let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%40ITEM %30TAGS'}
 let w:v.total_columns_width = 30
+let b:v.chosen_agenda_heading = 0
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
@@ -5356,7 +5357,11 @@ function! OrgFoldText(...)
                     \ winwidth(0)-len(l:line) - offset) 
     endif
     if exists('v:foldhighlight')
-        let v:foldhighlight = level_highlight
+        if foldstart == b:v.chosen_agenda_heading
+            let v:foldhighlight = hlID('Org_Chosen_Agenda_Heading' . (myind>6 ? '' : myind-1))
+        else
+            let v:foldhighlight = level_highlight
+        endif
         if exists('v:todohighlight')
             if matchstr(origline, b:v.todoMatch) ># ''
                 let this_todo = matchstr(origline, '^\*\+ \zs\S*')
@@ -5534,15 +5539,29 @@ function! s:OrgAgendaToBuf()
     "call s:LocateFile(g:tofile . '.org')
     wincmd x
     "let new_buf=bufnr("%")
-    execute g:showndx
     "setlocal cursorline
     set foldlevel=1
+    execute g:showndx
     normal! zv
+    if getline(line('.')) =~ b:v.headMatch
+        "restrict to headings
+        "execute g:showndx
+        call s:OrgExpandSubtree(g:showndx,0)
+    "else
+    "    " will show text as well as heading
+    "    execute g:showndx
+    "    normal! zv
+    endif
     normal! z.
     normal V
     redraw
     sleep 100m
     normal V
+    let b:v.chosen_agenda_heading = s:OrgGetHead()
+    call clearmatches()
+    let headlevel = s:Ind(b:v.chosen_agenda_heading)
+    let headlevel = (headlevel > 6) ? '' : headlevel-1
+    call matchadd('Org_Chosen_Agenda_Heading' . headlevel,'\%' . b:v.chosen_agenda_heading .'l')
     "wincmd j
     execute bufnr('Agenda').'wincmd w'
     "wincmd c
@@ -6109,6 +6128,7 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
+    "
    " call matchadd( 'Todos', '^\s*:\zs.*\ze:')
     call matchadd('TODO', '^.*\* \zsTODO')
     call matchadd('STARTED', '^.*\* \zsSTARTED')
@@ -6674,6 +6694,17 @@ function! OrgSetColors()
     hi! Org_Bold gui=bold guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Lnumber guifg=#999999 ctermfg=gray
+    for i in range(1,5)
+        let hlstring = org#GetGroupHighlight('OL' . i)
+        if hlstring =~ 'guibg'
+            let hlstring = substitute(hlstring,'guibg=\S+','guibg=#444444','')
+        else
+            let hlstring = hlstring . ' guibg=#444444'
+        endif
+        exec 'hi! Org_Chosen_Agenda_Heading' . i . ' ' . hlstring
+    endfor
+    hi! Org_Chosen_Agenda_Heading guibg=#444444
+
     if has("conceal")
         hi! default linkends guifg=blue ctermfg=blue
     endif
