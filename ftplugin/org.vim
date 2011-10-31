@@ -5305,7 +5305,8 @@ function! OrgFoldText(...)
     let l:nextline = getline(foldstart + 1)
     let myind = s:Ind(foldstart)
 
-    let level_highlight = hlID(b:v.foldcolors[myind])
+    "let level_highlight = hlID(b:v.foldcolors[myind])
+    let level_highlight = hlID('OL' . (myind-1) . 'Folded')
 
     " get rid of header prefix
     let l:line = substitute(l:line,'^\*\+\s*','','g')
@@ -6124,7 +6125,6 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
     "
-   " call matchadd( 'Todos', '^\s*:\zs.*\ze:')
     call matchadd('TODO', '^.*\* \zsTODO')
     call matchadd('STARTED', '^.*\* \zsSTARTED')
     call matchadd('DONE', '^.*\* \zsDONE')
@@ -6652,8 +6652,11 @@ function! OrgSetColors()
     for pair in [ ['OL1','Statement'], ['OL2','Identifier'], ['OL3','Constant'],
             \     ['OL4','Comment'],   ['OL5','Special'] ]
         execute 'hi clear ' . pair[0]
+        execute 'hi clear ' . pair[0] .'Folded'
         execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
+        execute 'hi ' . pair[0] . 'Folded ' . org#GetGroupHighlight( pair[1] )
         execute 'hi ' . pair[0] . ' gui=NONE'
+        execute 'hi ' . pair[0] . 'Folded gui=NONE'
     endfor
     " set up highlights to use for headlines
     " involves create new set of highlights to 
@@ -6696,16 +6699,6 @@ function! OrgSetColors()
     hi! Org_Bold gui=bold guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Lnumber guifg=#999999 ctermfg=gray
-    for i in range(1,5)
-        let hlstring = org#GetGroupHighlight('OL' . i)
-        if hlstring =~ 'guibg'
-            let hlstring = substitute(hlstring,'guibg=\S+','guibg=#444444','')
-        else
-            let hlstring = hlstring . ' guibg=#444444'
-        endif
-        exec 'hi! Org_Chosen_Agenda_Heading' . i . ' ' . hlstring
-    endfor
-    hi! Org_Chosen_Agenda_Heading guibg=#444444
 
     if has("conceal")
         hi! default linkends guifg=blue ctermfg=blue
@@ -6727,6 +6720,18 @@ function! OrgSetColors()
     if exists('*OrgCustomColors')
         call OrgCustomColors()
     endif
+    " this for block and line after set highlights for headings in main
+    " buffer when they're selected in Agenda.  Used in OrgFoldText().
+    for i in range(1,5)
+        let hlstring = org#GetGroupHighlight('OL' . i)
+        if hlstring =~ 'guibg'
+            let hlstring = substitute(hlstring,'guibg=\S+','guibg=#444444','')
+        else
+            let hlstring = hlstring . ' guibg=#444444'
+        endif
+        exec 'hi! Org_Chosen_Agenda_Heading' . i . ' ' . hlstring
+    endfor
+    hi! Org_Chosen_Agenda_Heading guibg=#444444
 endfunction
 autocmd ColorScheme  * :silent! call OrgSetColors()
 call OrgSetColors()
@@ -7060,10 +7065,8 @@ amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
 amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
 amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
 amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
-amenu &Org.&Table\ Menu<tab>,b :call OrgTableDashboard()<cr>
-"amenu &Org.&Table.&Create<tab>,bc :call org#tbl#create()<cr>
-"amenu &Org.&Table.Column\ &Left<tab>,bl :call org#tbl#move_column_left()<cr>
-"amenu &Org.&Table.Column\ &Right<tab>,br :call org#tbl#move_column_right()<cr>
+amenu &Org.&Table.$Table\ Dashboard<tab>,b :call OrgTableDashboard()<cr>
+amenu &Org.&Table.E$valuate\ Table<tab>,v :call OrgTableDashboard()<cr>
 amenu &Org.-Sep3- :
 amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
 amenu &Org.Edit\ TA&GS<tab>,et  :call OrgTagsEdit()<cr>
