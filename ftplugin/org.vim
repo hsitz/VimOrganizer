@@ -132,6 +132,10 @@ if has('win32') || has('win64')
 else
     let s:cmd_line_quote_fix = ''
 endif
+let g:org_todos_done_dict = {}
+let g:org_todos_notdone_dict = {}
+let g:org_agenda_todos_done_pattern = ''
+let g:org_agenda_todos_notdone_pattern = ''
 let g:org_clock_history=[]
 let g:org_reverse_note_order = 0
 let g:org_html_app=''
@@ -342,8 +346,10 @@ function! OrgTodoSetup(todolist_str)
             let b:v.todoMatch .= newtodo . '\|'
             if i < len(todolist) - 1
                 let b:v.todoNotDoneMatch .= newtodo . '\|'
+                let g:org_todos_notdone_dict[newtodo] = 1
             else
                 let b:v.todoDoneMatch .= newtodo . '\|'
+                let g:org_todos_done_dict[newtodo] = 1
             endif
         else
             "item is itself a list
@@ -359,8 +365,10 @@ function! OrgTodoSetup(todolist_str)
                 let b:v.todoMatch .= thisitem . '\|'
                 if i < len(todolist) - 1
                     let b:v.todoNotDoneMatch .= thisitem . '\|'
+                    let g:org_todos_notdone_dict[thisitem] = 1
                 else
                     let b:v.todoDoneMatch .= thisitem . '\|'
+                    let g:org_todos_done_dict[thisitem] = 1
                 endif
                 let j += 1
             endwhile
@@ -2646,7 +2654,7 @@ function! s:ResultsToAgenda( search_type )
     map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
+    nmap <silent> <buffer> ,r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
     call matchadd( 'OL1', '\s\+\*\{1}.*$' )
@@ -6103,12 +6111,12 @@ function! s:AgendaBufHighlight()
     hi Upcoming guifg=yellow
     hi DateType guifg=#dd66bb
     hi Locator guifg=#333333
-"    hi Todos guifg=pink
+
     hi Dayline guifg=#44aa44 gui=underline
     hi Weekendline guifg=#55ee55 gui=underline
     syntax match Scheduled '\(Scheduled:\|\dX:\)\zs.*$'
     syntax match Deadline '\(Deadline:\|\d d.:\)\zs.*$'
-   " let todoMatchInAgenda = '\s*\*\+\s*\zs\(TODO\|DONE\|STARTED\)\ze'
+  
    call s:AgendaHighlight()
     let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
     let wkendtextpat = '^S\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
@@ -6125,12 +6133,18 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
     "
-    call matchadd('TODO', '^.*\* \zsTODO')
-    call matchadd('STARTED', '^.*\* \zsSTARTED')
-    call matchadd('DONE', '^.*\* \zsDONE')
-    call matchadd('NEXT', '^.*\* \zsNEXT')
-    call matchadd('CANCELED', '^.*\* \zsCANCELED')
-
+    "call matchadd('TODO', '^.*\* \zsTODO')
+    "call matchadd('STARTED', '^.*\* \zsSTARTED')
+    "call matchadd('DONE', '^.*\* \zsDONE')
+    "call matchadd('NEXT', '^.*\* \zsNEXT')
+    "call matchadd('CANCELED', '^.*\* \zsCANCELED')
+    for item in keys(g:org_todos_done_dict)
+        call matchadd('DONETODO','^.*\* \zs' . item)
+    endfor
+    for item in keys(g:org_todos_notdone_dict)
+        call matchadd('NOTDONETODO','^.*\* \zs' . item)
+    endfor
+    
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
 
 endfunction
@@ -6656,7 +6670,7 @@ function! OrgSetColors()
         execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
         execute 'hi ' . pair[0] . 'Folded ' . org#GetGroupHighlight( pair[1] )
         execute 'hi ' . pair[0] . ' gui=NONE'
-        execute 'hi ' . pair[0] . 'Folded gui=NONE'
+        execute 'hi ' . pair[0] . 'Folded gui=bold'
     endfor
     " set up highlights to use for headlines
     " involves create new set of highlights to 
@@ -6667,12 +6681,12 @@ function! OrgSetColors()
     " folded OL3 uses WildMenu
     " folded OL4 uses DiffAdd
     " folded OL5 uses DiffChange
-    for pair in [ ['Folded','Statement'], ['WarningMsg','Identifier'], ['WildMenu','Constant'],
-            \     ['DiffAdd','Comment'],   ['DiffChange','Special'] ]
-        execute 'hi clear ' . pair[0]
-        execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
-        execute 'hi ' . pair[0] . ' gui=bold'
-    endfor
+    "for pair in [ ['Folded','Statement'], ['WarningMsg','Identifier'], ['WildMenu','Constant'],
+    "        \     ['DiffAdd','Comment'],   ['DiffChange','Special'] ]
+    "    execute 'hi clear ' . pair[0]
+    "    execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
+    "    execute 'hi ' . pair[0] . ' gui=bold'
+    "endfor
 
     "blank out foldcolumn
     hi! FoldColumn guifg=bg guibg=bg 
