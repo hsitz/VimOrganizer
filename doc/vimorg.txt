@@ -1160,6 +1160,68 @@ settings were in the rest of the document:
           Some text for Subhead Two
 
 ==============================================================================
+VimOrganizer Export                                  *vimorg-export*
+                                                     *vimorg-print*
+                                                     *vimorg-export-to-html*
+                                                     *vimorg-export-to-pdf*
+
+VimOrganizer calls out to Org-mode in Emacs for all exports.  To print
+a VimOrganizer file the recommended method is to export to a format that
+is better for printing.
+
+The VimOrganizer Export Dashboard is similar to Org-mode's export
+dispatcher, and the best way to learn about it is to read the Org-mode 
+documentation:
+http://orgmode.org/manual/Exporting.html#Exporting
+
+                                              *vimorg-export-microsoft-word*
+                                              *vimorg-export-opendocument*
+                                              *vimorg-export-openoffice*
+                                              *vimorg-export-docx*
+The Export Dashboard includes an option for export to OpenDocument
+format.  This option creates an odt document that can then be 
+edited by (recent version) of Microsoft Word or OpenOffice.  
+Once into Word, OpenOffice, or LibreOffice the document can 
+be saved as a .doc or .docx file.
+Export of items into odt supports objects like images, tables,
+and footnotes in addition to highlighting and other simple formatting.  
+The odt export currently (November 2011) requires special configuration
+of your Emacs install.  Instructions are here:
+http://orgmode.org/manual/OpenDocumentText-export.html#OpenDocumentText-export
+
+                                              *vimorg-publishing*
+As in Org-mode, the VimOrganizer's Export Dashboard also includes
+options for "publishing" a "project".  A "project" is a set of
+related documents that you set up to be automatically exported
+together, which is called "publishing" the project.  The
+publishing options on the VimOrganizer's Export Dashboard simply
+simply call Emacs to process files so the Org-mode documentation for 
+publishing is best way to learn about them.  Publishing requires
+some fairly simple configuration consisting of lisp statements
+added to the .emacs file, which is Emacs' counterpart to Vim's vimrc:
+http://orgmode.org/manual/Publishing.html#Publishing
+
+                                              *vimorg-tangling*
+                                              *vimorg-literate-programming*
+Another option on VimOrganizer's Dashboard is 'tangle'.  This operation
+extracts source code blocks from an org document and saves them so
+they're in format that can be (1) executed by an interpreter or 
+(2) compiled, depending on the source block language.  This provides
+a way to use VimOrganizer as an editor for 'literate programming'.
+See: http://en.wikipedia.org/wiki/Literate_programming
+Documentation for tangling can be found in Org-mode's manual:
+http://orgmode.org/manual/Extracting-source-code.html#Extracting-source-code
+
+                                                 *vimorg-export-options*
+Finally, one option on the Export Dashboard simply inserts a template
+of option lines into your document.  This template can be inserted anywhere
+in your document, but is typically placed at the very beginning.  It 
+provides a default set of export-related options that you can modify 
+as you wish.  For more information on all the options see this page:
+http://orgmode.org/manual/Export-options.html#Export-options
+
+
+==============================================================================
 3. VimOrganizer Feedback                                      *vimorg-feedback*
 
 Feedback is always welcome. If you like the plugin, please rate it at the
