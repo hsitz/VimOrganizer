@@ -81,6 +81,7 @@ noremap <silent> <buffer>   <localleader>, :call OrgExpandWithoutText(1)<CR>
 "noremap <silent> <buffer>   <localleader>/ :let @/='exec call OrgExpandWithoutText(1)<CR>
 "noremap <silent> <buffer>   <localleader>/ :let @a='/^\*\{1,' . &foldlevel . '\} .*'|call LevSearch()<cr>
 nnoremap <buffer> <expr> <localleader>/ '/^\*\{1,' . &foldlevel . '\} .*'
+nnoremap <buffer> <expr> <localleader>? '?^\*\{1,' . &foldlevel . '\} .*'
 
 " set reasonable max limit of 12 for '0' command below, because it iterates
 " each for each level, just assume 12 is max. . .

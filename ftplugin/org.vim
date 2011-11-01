@@ -45,6 +45,11 @@ let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%40ITEM %30TAGS'}
 let w:v.total_columns_width = 30
+let w:v.columnview = 0
+let w:v.org_item_len = 100 
+let w:v.org_colview_list = [] 
+let w:v.org_current_columns = ''
+let w:v.org_column_item_head = ''
 let b:v.chosen_agenda_heading = 0
 
 let b:v.buf_tags_static_spec = ''
@@ -5672,6 +5677,9 @@ endfunction
 
 function! OrgFoldLevel(line)
     " called as foldexpr to determine the fold level of a line.
+    if exists('g:flist')
+        call add(g:flist,a:line)
+    endif
     if g:org_folds == 0
         return 0
     endif
@@ -5731,10 +5739,14 @@ function! OrgFoldLevel(line)
                 "don't just back up, recalc previous lines
                 " to set variables correctly
                 let prevhead = s:OrgPrevHead_l(a:line)
+                if prevhead == 0
+                    " shortcircuit here, it's blank line prior to any head
+                    return -1
+                endif
                 let i = prevhead
-                for item in range(prevhead,a:line-1)
-                    call OrgFoldLevel(item)
-                endfor
+                "for item in range(prevhead,a:line-1)
+                "    call OrgFoldLevel(item)
+                "endfor
             endif
             "let b:v.prevlev = s:Ind(s:OrgPrevHead_l(a:line))
         endif
@@ -5763,9 +5775,11 @@ function! OrgFoldLevel(line)
             let b:v.lev = (b:v.prevlev + 2)
         endif   
 
-        "if l:nexttext =~ b:v.headMatch
-        "if l:nexttext[0] ==? '*'
-        if l:nexttext =~ '^\*\+\s'
+        if l:nexttext =~ '^\* '
+            " this is for perf reasons, closing fold
+            " back to zero avoids foldlevel calls sometimes
+            let b:v.lev = '<0'
+        elseif l:nexttext =~ '^\*\+\s'
             let b:v.lev = '<' . string(l:nextAbsLevel)
         endif
 
@@ -6133,16 +6147,14 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
     "
-    "call matchadd('TODO', '^.*\* \zsTODO')
-    "call matchadd('STARTED', '^.*\* \zsSTARTED')
-    "call matchadd('DONE', '^.*\* \zsDONE')
-    "call matchadd('NEXT', '^.*\* \zsNEXT')
-    "call matchadd('CANCELED', '^.*\* \zsCANCELED')
     for item in keys(g:org_todos_done_dict)
-        call matchadd('DONETODO','^.*\* \zs' . item)
+        call matchadd('DONETODO','^.*\* \zs' . item .' ')
     endfor
     for item in keys(g:org_todos_notdone_dict)
-        call matchadd('NOTDONETODO','^.*\* \zs' . item)
+        call matchadd('NOTDONETODO','^.*\* \zs' . item . ' ')
+    endfor
+    for item in keys(g:org_todo_custom_highlights)
+        call matchadd(item, '^.*\* \zs' . item . ' ')
     endfor
     
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
@@ -7102,6 +7114,20 @@ amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
 amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
 
+for item in keys(g:org_todo_custom_highlights)
+    let d = g:org_todo_custom_highlights
+    if has('gui_running')
+        let fg = get(d[item], 'guifg')
+        let bg = get(d[item], 'guibg')
+        exec 'hi! ' . item . ((fg>#'')  ? ' guifg=' . fg : '') . ((bg>#'') ? ' guibg=' . bg : '')
+    else
+        let fg = get(d[item], 'guifg')
+        let bg = get(d[item], 'guibg')
+        exec 'hi! ' . item . ((fg>#'')  ? ' ctermfg=' . fg : '') . ((bg>#'') ? ' ctermbg=' . bg : '')
+    endif
+    exec 'syntax match ' . item . ' ' .  '+^.*\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
+    "call matchadd(item, '^.*\* \zs' . item . ' ')
+endfor
 "*********************************************************************
 "*********************************************************************
 "  'endif' below is special 'endif' closing the 'if !exists(org_loaded)
