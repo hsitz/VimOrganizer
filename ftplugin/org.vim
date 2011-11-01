@@ -1706,8 +1706,9 @@ function! OrgCycle()
     elseif getline(line(".")) =~ b:v.drawerMatch
         normal! za
     elseif getline(line('.')) =~ '^\s*|.*|\s*$'
-        " we're in a table
+        " we're in a table, do tab and short circuit
         exec "normal i\tl"
+        return
     endif
     " position to top of screen with cursor in col 0
     "normal! z.
@@ -6406,20 +6407,22 @@ function! OrgEvalTable(...) range
         let opt = a:1
         let opt_cmd = '(' . options[opt] . ')'
     else
+        let opt = 'just_eval'
         let opt_cmd = ''
     endif
     let savecursor = getpos('.')
     if a:firstline == a:lastline
-        call search('^\s*$','b','')
+        " get start, end for whole table
+        call search('^\s*[^|]','b','')
         let start=line('.')
         call search('^\(\s*|\)\@!','','')
-        "if getline(line('.'))[0:6] == '#+TBLFM'
-            let end=line('.')
+        let end=line('.')
     else
         let start=a:firstline
         let end  =a:lastline
     endif
     let line_offset = savecursor[1] - start + 1
+    "let line_offset = savecursor[1] - start 
     " find first line after table block and check for formulas
         exe start . ',' . end . 'w! ~/org-tbl-block.org'
         if opt != 'convert_region_to_table'
@@ -6427,7 +6430,7 @@ function! OrgEvalTable(...) range
                        \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
                        \  . '(progn (beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
                        \  . '(org-table-maybe-eval-formula)' 
-                       \  . '(unwind-protect ' . opt_cmd 
+                       \  . ((opt=='just_eval') ? '' : '(unwind-protect ') . opt_cmd 
                        \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf))))' 
         else
             let part1 = '(let ((org-confirm-babel-evaluate nil)'
