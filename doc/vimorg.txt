@@ -842,34 +842,110 @@ the colors a colorscheme sets for the following syntax items:
                 Outline Level 4   -   Comment
                 Outline Level 5   -   Special
 
-If a colorscheme works okay but you want to change highlighting for
-an outline level's headings, the best way is to edit the highlighting 
-for the associated associated syntax item in the colorscheme.
-
 Many elements in VimOrganizer documents have highlighting that is not
 affected by generic colorschemes.  These include items like TODO
 keywords, tags, properties, configuration lines, etc.
+-------------------------------------------------------------------
+                                          *vimorg-customizing-colors*
+The main way to change highlighting is to add a special function to your
+vimrc.  This function is called when a VimOrganizer file is loaded
+and whenever a colorscheme is changed.  It provides a spot to write
+your own highlight statements (see  |highlight| ) to override the
+default settings.
+
+function! OrgCustomColors()
+    " various Org syntax item highlighting statements are below
+    " these are the current defaults.  Uncomment and edit a line if you
+    " want different highlighting fof the element
+
+    " below are defaults for any TODOS you define.  TODOS that
+    " come before the | in a definition will use  'NOTDONETODO'
+    " and those that come after are DONETODO
+    "hi! DONETODO guifg=green ctermfg=green
+    "hi! NOTDONETODO guifg=red ctermfg=lightred
+
+    " heading level highlighting is done in pairs, one for the
+    " heading when unfoled and one for folded.  Default is to make
+    " them the same except for the folded version being bold:
+    " assign OL1 pair for level 1, OL2 pair for level 2, etc.
+    "hi! OL1 guifg=somecolor guibg=somecolor 
+    "hi! OL1Folded guifg=somecolor guibg=somecolor gui=bold
 
 
+    " tags are lines below headings that have :colon:separated:tags:
+    "hi! Org_Tag guifg=lightgreen ctermfg=blue
+
+    "  lines that begin with '#+' in column 0 are config lines
+    "hi! Org_Config_Line guifg=darkgray ctermfg=magenta
+
+    "drawers are :PROPERTIES: and :LOGBOOK: lines and their associated
+    " :END: lines
+    "hi! Org_Drawer guifg=pink ctermfg=magenta
+    "hi! Org_Drawer_Folded guifg=pink ctermfg=magenta gui=bold cterm=bold
+
+    " this applies to value names in :PROPERTIES: blocks 
+    "hi! Org_Property_Value guifg=pink ctermfg=magenta
+
+    " three lines below apply to different kinds of blocks
+    "hi! Org_Block guifg=#555555 ctermfg=magenta
+    "hi! Org_Src_Block guifg=#555555 ctermfg=magenta
+    "hi! Org_Table guifg=#888888 guibg=#333333 ctermfg=magenta
+
+    " dates are date specs between angle brackets (<>) or square brackets ([])
+    "hi! Org_Date guifg=magenta ctermfg=magenta gui=underline cterm=underline
+
+    " Org_Star is used to "hide" initial asterisks in a heading
+    "hi! Org_Star guifg=#444444 ctermfg=darkgray
+
+    "hi! Props guifg=#ffa0a0 ctermfg=gray
+
+    " bold, itals, underline, and code are highlights applied
+    " to character formatting
+    "hi! Org_Code guifg=darkgray gui=bold ctermfg=14
+    "hi! Org_Itals gui=italic guifg=#aaaaaa ctermfg=lightgray
+    "hi! Org_Bold gui=bold guifg=#aaaaaa ctermfg=lightgray
+    "hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
+    "hi! Org_Lnumber guifg=#999999 ctermfg=gray
+
+    " these lines apply to links: [[link]], and [[link][link desc]]
+    "if has("conceal")
+    "    hi! default linkends guifg=blue ctermfg=blue
+    "endif
+    "hi! Org_Full_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+    "hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
+
+    "  applies to the Heading line that can be displayed in column view
+    "highlight OrgColumnHeadings guibg=#444444 guifg=#aaaaaa gui=underline
+
+endfunction
+----------------------------------------------------------------------
+Custom TODO highlighting                    *vimorg-custom-todo-highlights*
+
+VimOrganizer will automatically highlight DONETODOs and NOTDONETODOs with
+a default color, or color you assign in OrgCustomColors().  If you
+want to assign custom highlighting for one or more TODOs then
+you need to create a dictionary with appropriate values.
+Below is an illustration:
 
 
+   Problem:  You want to create custom highlights for the NEXT 
+             and WAITING todos in the todo setup of:
+             'TODO NEXT WAITING | DONE CANCELED'
 
-                Outline Level 1   -   Statement
-        
-    for pair in [ ['OL1','Statement'], ['OL2','Identifier'], ['OL3','Constant'],
-            \     ['OL4','Comment'],   ['OL5','Special'] ]
+   Solution:  put statement like the one below in OrgCustomColors()
+              function in your vimrc, (or somewhere in vimrc below
+              the OrgCustomColors() func, if any):
 
-
-
-
-
-
-
-
-
-
-
-
+       let g:org_todo_custom_highlights = 
+               \     { 'NEXT': { 'guifg':'#888888', 'guibg':'#222222',
+               \              'ctermfg':'gray', 'ctermbg':'darkgray'}
+               \      'WAITING': { 'guifg':'red', 
+               \                 'ctermfg':'red' } }
+                        
+   NOTE:  (1) Vim is very picky about punctuation in dictionary assignments.
+          Note that each of the items in the statement above is a string.
+          (2) You can override one or more of the highlight items:
+              guifg, guibg, ctermfg, ctermbg  
 
 ========================================================================
 Searches and the Agenda                    *vimorg-agenda* *vimorg-searches*
@@ -1253,20 +1329,20 @@ of your Emacs install.  Instructions are here:
 http://orgmode.org/manual/OpenDocumentText-export.html#OpenDocumentText-export
 
                                               *vimorg-publishing*
-As in Org-mode, the VimOrganizer's Export Dashboard also includes
-options for "publishing" a "project".  A "project" is a set of
+As in Org-mode, VimOrganizer's Export Dashboard also includes
+options for "publishing" a project.  A "project" is a set of
 related documents that you set up to be automatically exported
 together, which is called "publishing" the project.  The
-publishing options on the VimOrganizer's Export Dashboard simply
+publishing options on the VimOrganizer's Export Dashboard 
 simply call Emacs to process files so the Org-mode documentation for 
-publishing is best way to learn about them.  Publishing requires
-some fairly simple configuration consisting of lisp statements
+publishing is best way to learn about them.  Setting up a project
+requires some fairly simple configuration using lisp statements
 added to the .emacs file, which is Emacs' counterpart to Vim's vimrc:
 http://orgmode.org/manual/Publishing.html#Publishing
 
                                               *vimorg-tangling*
                                               *vimorg-literate-programming*
-Another option on VimOrganizer's Dashboard is 'tangle'.  This operation
+Another option on the Export Dashboard is 'tangle'.  This operation
 extracts source code blocks from an org document and saves them so
 they're in format that can be (1) executed by an interpreter or 
 (2) compiled, depending on the source block language.  This provides
@@ -1285,7 +1361,7 @@ http://orgmode.org/manual/Export-options.html#Export-options
 
 
 ==============================================================================
-3. VimOrganizer Feedback                                      *vimorg-feedback*
+VimOrganizer Feedback                                      *vimorg-feedback*
 
 Feedback is always welcome. If you like the plugin, please rate it at the
 vim-page:

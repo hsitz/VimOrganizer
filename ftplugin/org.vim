@@ -1705,6 +1705,9 @@ function! OrgCycle()
         call s:OrgCycle(line("."))
     elseif getline(line(".")) =~ b:v.drawerMatch
         normal! za
+    elseif getline(line('.')) =~ '^\s*|.*|\s*$'
+        " we're in a table
+        exec "normal i\tl"
     endif
     " position to top of screen with cursor in col 0
     "normal! z.
@@ -1712,6 +1715,11 @@ function! OrgCycle()
 endfunction
 let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
+    if getline(line('.')) =~ '^\s*|.*|\s*$'
+        "short circuit if we're in table
+        exec "normal i\<s-tab>l"
+        return
+    endif
     if exists('w:sparse_on') && w:sparse_on
         call s:ClearSparseTree()
     endif
@@ -5328,7 +5336,7 @@ function! OrgFoldText(...)
 
     if l:line =~ b:v.drawerMatch
         "let level_highlight = hlID('Title')
-        let level_highlight = hlID('Org_Drawer_Bold')
+        let level_highlight = hlID('Org_Drawer_Folded')
         let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
         let line_count = line_count - 1
@@ -6134,11 +6142,16 @@ function! s:AgendaBufHighlight()
    call s:AgendaHighlight()
     let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
     let wkendtextpat = '^S\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
-    call matchadd( 'AOL1', '\*\{1} .*$' )
-    call matchadd( 'AOL2', '\*\{2} .*$') 
-    call matchadd( 'AOL3', '\*\{3} .*$' )
-    call matchadd( 'AOL4', '\*\{4} .*$' )
-    call matchadd( 'AOL5', '\*\{5} .*$' )
+    syntax match AOL1 ' \*\{1} .*$'
+    syntax match AOL2 ' \*\{2} .*$'
+    syntax match AOL3 ' \*\{3} .*$'
+    syntax match AOL4 ' \*\{4} .*$'
+    syntax match AOL5 ' \*\{5} .*$'
+    "call matchadd( 'AOL1', '\*\{1} .*$' )
+    "call matchadd( 'AOL2', '\*\{2} .*$') 
+    "call matchadd( 'AOL3', '\*\{3} .*$' )
+    "call matchadd( 'AOL4', '\*\{4} .*$' )
+    "call matchadd( 'AOL5', '\*\{5} .*$' )
     
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
@@ -6147,15 +6160,22 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
     "
-    for item in keys(g:org_todos_done_dict)
-        call matchadd('DONETODO','^.*\* \zs' . item .' ')
-    endfor
-    for item in keys(g:org_todos_notdone_dict)
-        call matchadd('NOTDONETODO','^.*\* \zs' . item . ' ')
-    endfor
-    for item in keys(g:org_todo_custom_highlights)
-        call matchadd(item, '^.*\* \zs' . item . ' ')
-    endfor
+    let donepat = ' \*\+ \zs\(' . join(keys(g:org_todos_done_dict),'\|') . '\) '
+    exec "syntax match DONETODO /" . donepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
+    let notdonepat = ' \*\+ \zs\(' . join(keys(g:org_todos_notdone_dict),'\|') . '\) '
+    exec "syntax match NOTDONETODO /" . notdonepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
+"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+    "for item in keys(g:org_todos_done_dict)
+    "    call matchadd('DONETODO','^.*\* \zs' . item .' ')
+    "endfor
+    "for item in keys(g:org_todos_notdone_dict)
+    "    call matchadd('NOTDONETODO','^.*\* \zs' . item . ' ')
+    "endfor
+    call s:OrgCustomTodoHighlights()
+    "for item in keys(g:org_todo_custom_highlights)
+    "    call matchadd(item, '^.*\* \zs' . item . ' ')
+    "endfor
     
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
 
@@ -6407,8 +6427,8 @@ function! OrgEvalTable(...) range
                        \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
                        \  . '(progn (beginning-of-line ' . line_offset . ')(forward-char ' . savecursor[2] .')'
                        \  . '(org-table-maybe-eval-formula)' 
-                       \  . opt_cmd
-                       \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf)))' 
+                       \  . '(unwind-protect ' . opt_cmd 
+                       \  . '(org-table-recalculate-buffer-tables)(save-buffer buf)(kill-buffer buf))))' 
         else
             let part1 = '(let ((org-confirm-babel-evaluate nil)'
                        \  . '(buf (find-file \' . s:cmd_line_quote_fix . '"~/org-tbl-block.org\' . s:cmd_line_quote_fix . '"' . ')))'
@@ -6419,6 +6439,8 @@ function! OrgEvalTable(...) range
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
         redraw
         unsilent echo "Calculating in Emacs. . . "
+
+        let g:orgcmd = orgcmd
 
         if exists('*xolox#shell#execute')
             silent let myx = xolox#shell#execute(orgcmd . '| cat', 1)
@@ -6667,6 +6689,30 @@ function! OrgSetEmphasis( emph_char ) range
     endif
 endfunction
 
+function! s:OrgCustomTodoHighlights()
+    for item in keys(g:org_todo_custom_highlights)
+        let d = g:org_todo_custom_highlights
+        if has('gui_running')
+            let fg = get(d[item], 'guifg')
+            let bg = get(d[item], 'guibg')
+            exec 'hi! ' . item . ((fg>#'')  ? ' guifg=' . fg : '') . ((bg>#'') ? ' guibg=' . bg : '')
+        else
+            let fg = get(d[item], 'guifg')
+            let bg = get(d[item], 'guibg')
+            exec 'hi! ' . item . ((fg>#'')  ? ' ctermfg=' . fg : '') . ((bg>#'') ? ' ctermbg=' . bg : '')
+        endif
+
+        " xxxx todo put back in containedins, do synclears? check order?
+        if bufname('%')=='__Agenda__'
+            exec 'syntax match ' . item . ' ' .  '+ \*\+ \zs' . item . ' +' 
+            " containedin=AOL1'
+        else
+            exec 'syntax match ' . item . ' ' .  '+^.*\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
+        endif
+        "call matchadd(item, '^.*\* \zs' . item . ' ')
+    endfor
+endfunction
+
 function! OrgSetColors()
     " Set highlights for outline headings.  These are set from existing
     " highlights in a colorscheme:
@@ -6710,7 +6756,7 @@ function! OrgSetColors()
     " various text item "highlightings" are below
     " change to suit your taste and put in OrgCustomColors() (see below)
     hi! Org_Drawer guifg=pink ctermfg=magenta
-    hi! Org_Drawer_Bold guifg=pink ctermfg=magenta gui=bold cterm=bold
+    hi! Org_Drawer_Folded guifg=pink ctermfg=magenta gui=bold cterm=bold
     hi! Org_Property_Value guifg=pink ctermfg=magenta
     hi! Org_Block guifg=#555555 ctermfg=magenta
     hi! Org_Src_Block guifg=#555555 ctermfg=magenta
@@ -6746,6 +6792,9 @@ function! OrgSetColors()
     if exists('*OrgCustomColors')
         call OrgCustomColors()
     endif
+
+    call s:OrgCustomTodoHighlights()
+
     " this for block and line after set highlights for headings in main
     " buffer when they're selected in Agenda.  Used in OrgFoldText().
     for i in range(1,5)
@@ -7114,20 +7163,6 @@ amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
 amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
 
-for item in keys(g:org_todo_custom_highlights)
-    let d = g:org_todo_custom_highlights
-    if has('gui_running')
-        let fg = get(d[item], 'guifg')
-        let bg = get(d[item], 'guibg')
-        exec 'hi! ' . item . ((fg>#'')  ? ' guifg=' . fg : '') . ((bg>#'') ? ' guibg=' . bg : '')
-    else
-        let fg = get(d[item], 'guifg')
-        let bg = get(d[item], 'guibg')
-        exec 'hi! ' . item . ((fg>#'')  ? ' ctermfg=' . fg : '') . ((bg>#'') ? ' ctermbg=' . bg : '')
-    endif
-    exec 'syntax match ' . item . ' ' .  '+^.*\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
-    "call matchadd(item, '^.*\* \zs' . item . ' ')
-endfor
 "*********************************************************************
 "*********************************************************************
 "  'endif' below is special 'endif' closing the 'if !exists(org_loaded)
