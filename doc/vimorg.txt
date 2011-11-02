@@ -2,7 +2,7 @@
 A clone of Emacs' Org-mode for Vim
 
 Author:  Herbert Sitz <hesitz@gmail.com>
-Version: 0.30, 2011 Oct 20 
+Version: 0.30, 2011 Nov 02 
 
 Copyright: (c) 2010, 2011 by Herbert Sitz
            The VIM LICENSE applies to code in the VimOrganizer project,
@@ -12,44 +12,46 @@ Copyright: (c) 2010, 2011 by Herbert Sitz
 ==============================================================================
 1. Contents                                           *VimOrganizer*  *vimorg*
 
-  1.  Contents.....................................: |VimOrganizer|
-  2.  VimOrganizer Overview........................: |vimorg-overview|
-  3.  Document Structure...........................: |vimorg-document-structure|
-  4.  File compatibility with Org-mode.............: |vimorg-org-compatibility|
-  5.  Vimorg / Emacs Interaction ..................: |vimorg-emacs-interaction|
-  6.  Vimorg / Org-mode Conversion.................: |vimorg-org-conversion|
-  7.  Vimorg Metadata .............................: |vimorg-metadata|
+      Contents.....................................: |VimOrganizer|
+      VimOrganizer Overview........................: |vimorg-overview|
+      Document Structure...........................: |vimorg-document-structure|
+      File compatibility with Org-mode.............: |vimorg-org-compatibility|
+      Vimorg / Emacs Interaction ..................: |vimorg-emacs-interaction|
+      Vimorg / Org-mode Conversion.................: |vimorg-org-conversion|
+      Vimorg Metadata .............................: |vimorg-metadata|
                                                      |vimorg-tag-metadata|
                                                      |vimorg-todo-metadata|
                                                      |vimorg-property-metadata|
                                                      |vimorg-date-metadata|
+                                                     |vimorg-categories|
 
-  8.  Vimorg Commands .............................: |vimorg-commands|
+      Vimorg Commands .............................: |vimorg-commands|
 
       Modifying view of the outline structure        |vimorg-view-commands|
       Adding new headings                            |vimorg-new-headings|
       Heading Navigation                             |vimorg-navigation|
       Editing Document Structure                     |vimorg-structure-editing|
       Character formatting                           |vimorg-character-formatting|
+      Footnotes                                      |vimorg-footnotes|
       Refiling                                       |vimorg-refile-heading|
       Hyperlinks                                     |vimorg-hyperlinks|
       Narrowing Regions                              |vimorg-narrowing|
       Tables in VimOrganizer                         |vimorg-tables-editing|
 
-      Colorschemes and highlighting                  |vimorg-colors|*
-  9.  Code and spreadsheet evaluation in Emacs.....: |vimorg-code-eval|  
+      Colorschemes and highlighting                  |vimorg-colors|
+      Code and spreadsheet evaluation in Emacs.....: |vimorg-code-eval|  
                                                      |vimorg-spreadsheet-eval|  
             
-  9.  Searches and the Agenda .....................: |vimorg-agenda|  
+      Searches and the Agenda .....................: |vimorg-agenda|  
          agenda
          Setting the agenda files
          sparse tree
          custom searches
 
-  9.  Column view..................................: |vimorg-column-view|  
- 10.  Exporting and Printing.......................: |vimorg-export|
+     Column view..................................: |vimorg-column-view|  
+     Exporting and Printing.......................: |vimorg-export|
 
-  4.  Feedback.....................................: |vimorg-feedback|
+     Feedback.....................................: |vimorg-feedback|
 
 ==============================================================================
 2. *VimOrganizer_Overview*                                 *vimorg-overview*
@@ -81,8 +83,9 @@ when editing with Org-mode in Emacs.
 VimOrganizer doesn't have much documentation yet.  The best way to learn how
 to use VimOrganizer is to learn the basics of Emacs' Org-mode.  VimOrganizer
 uses the same basic concepts but implements them within the context of Vim
-,and with a reduced feature set.  Org-mode's main documentation and support
-newsgroup are found here:
+and with a reduced feature set.  (Parts of this help file were
+copied from Org-mode's documentation.)  Org-mode's main documentation and 
+support newsgroup are found here:
 Org-mode Main Manual:  http://orgmode.org/manual/index.html
 Org-mode Compact Guide: http://orgmode.org/guide/index.html
 Org-mode support newsgroup:  http://news.gmane.org/gmane.emacs.orgmode 
@@ -265,7 +268,7 @@ fail.
 Thus, at least for the time being, the user must manually start Emacs before
 using Emacs features from VimOrganizer, and in the running Emacs instance must
 issue the server-start command, either by putting it in the .emacs file or by
-issuing the command manually within Emacs (M-x server-start).
+issuing the command manually within Emacs (alt-x server-start).
 
 ----------------------------------------------------------------------------
 
@@ -417,6 +420,53 @@ beneath the heading, immediately after any tag line, and immediately before
 any PROPERTIES block.  Dates added in other locations will be searched 
 when using VimOrganizer's searches, but they aren't strictly speaking part
 of the 'metadata block' that immediately follows a heading.
+-------------------------------------------------------------------------
+Categories                                             *vimorg-categories*
+
+Categories are yet another form of metadata in Org files.  Categories
+are useful because a headings 'Category' is displayed as the first column
+of dsta in a heading line in Agenda results.  (Remember that there
+is limited space for display, try to keep category names less than 
+10 characters.)  By default a heading's Category will be its file name. 
+However you can change this in several ways.
+
+First, you can establish a new category for an entire document by 
+placing a category config line at the top of the document.  All
+headings in the document will inherit it as their default.  Like 
+all config lines, it must begin in the leftmost column of the buffer,
+e.g.,:
+
+#+CATEGORY: MyCategory
+
+All headings in the document would no display that as the first column
+when they are part of an agenda result.
+
+Second, you can override a document's default category by giving a 
+heading a category property, like this:
+------------------------
+* Heading One
+  :PROPERTIES:
+  :CATEGORY: NewCategory
+  :END:
+** Subheading One
+** Subheading TWo
+* Heading Two
+------------------------
+In the snippet above, Heading One's category would be 'NewCategory'. 
+Categories are inherited by subheadings, so Subheading One and Sub-
+heading Two would also be 'NewCategory'.  Heading Two, on the other
+hand, would inherit the category from a config line, if any, or it's
+category would be the file name (excluding the . and extension).
+
+You can read more about how categories work here:
+http://orgmode.org/manual/Categories.html#Categories
+NOTE:  Although Org-mode still supports multiple category config
+lines in a document, each affecting text occurring after it (and 
+before another category config line), VimOrganizer does not 
+suppor this.  You can put one CATEGORY config line in a document and
+it will be inherited by any heading that does not have a CATEGORY
+property (or inherit a CATEGORY property from an ancestor heading).
+
 =============================================================================
 VimOrganizer commands                                        *vimorg-commands*
 
@@ -512,6 +562,13 @@ documents with specially formatted text.  Text can be selected
 prior to issuing command to wrap text in markup or just issue
 the command then add text between the markup delimiters.
 
+NOTE: these delimiters do NOT format phrases that span 
+over a line break, they are for same line only.  If you
+want to format over two or more lines you need to apply 
+to each word in the lines (for safety when reformatting)
+or to the begin and end of each line (which will pose
+problems upon reformatting).
+
 Bold text                uses * delimiters
 ,cb
 
@@ -525,7 +582,7 @@ Code text                uses = delimiters to specify
 ,cc                      monospaced unformatted text
 
 ----------------------------------------------------
-Footnotes                     *vimorg-footnotes*
+Footnotes                                    *vimorg-footnotes*
 
 VimOrganizer has no special support for footnotes yet.  However footnotes can
 still be easily included, and upon export will be properly positioned
@@ -1103,6 +1160,12 @@ you can issue from the dashboard:
            specification in command line and retrieves headings
            with matching metadata. See |vimorg-tags-search| .
 
+
+--------------------------------------------------------------------
+Keys in the Agenda                             *vimorg-agenda-keys*
+
+Some keys have special operation in the Agenda:
+
       <enter>    -- pressing <enter> on a heading in agenda
                     will (1) switch (if necessary) to show
                     the chosen heading's buffer in window
@@ -1186,7 +1249,7 @@ Tags/TODO/Property search                  *vimorg-tags-search*
                     _no_ initial '^'.) 
 
            You may also search for properties at the search string.  Properties
-           may be ones you have entered yourself ( see vimorg-properties ) or
+           may be ones you have entered yourself ( see |vimorg-properties| ) or
            one of a set of special properties that all headings have.  E.g.,
            'LEVEL' is a built-in property that indicates the outline level of a
            heading, so you could do this:
@@ -1199,7 +1262,7 @@ Tags/TODO/Property search                  *vimorg-tags-search*
            the user has entered a 'WITH' property and an 'EFFORT'
            property for some headings:
 
-          +work-boss+EFFORT<2+WITH={Sarah\|George}+DEADLINE>="<2011-11-13>"
+          +work-boss+EFFORT<2+WITH={Sarah\|George}+DEADLINE>="2011-11-13"
  
           The type of comparison done depends on how the comparison value is written:
 
