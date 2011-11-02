@@ -3,9 +3,10 @@ is compiled with support for folding and tabs.  Conceal will
 be taken advantage of if working with Vim73 supporting conceal.  
 (Also, I STRONGLY suggest that you apply a patch to Vim so that 
 folded headings can have level-dependent highlighting, 
-patch for Vim73 is in contrib directory of the download.  If I hadn't been
-able to make Vim do this I would have bitten the bullet and moved
-to Emacs, as much as I hate working in Emacs.)
+patch for Vim73 is in contrib directory of the download.  If you're on
+Windows contact me and I should be able to provide you with an 
+executable.  If I hadn't been able to make Vim do this I would have 
+bitten the bullet and moved to Emacs, as much as I hate working in Emacs.)
  
 VimOrganizer is a Vim filetype plugin that attempts to clone Emacs' Org-mode.  
 It is currently (November 2011) in an alpha-stage, both in terms of (1) the 
@@ -17,6 +18,7 @@ Some of the ADDITIONS AND IMPROVEMENTS since previous (December 2010) version:
    -- Org menu in gvim.
    -- "Dashboards" to assist with Date entry, Columns, Tables,
       Agenda searches, and exporting.
+   -- VimOrganizer help file to install in Vim.
    -- Better compatibility with Org-mode files.  Open, edit, and save same 
       files in Org-mode and/or VimOrganizer with (some) of the functionality and
       configuration-specific options of Org-mode supported in VimOrganizer.
@@ -43,7 +45,7 @@ Some of the ADDITIONS AND IMPROVEMENTS since previous (December 2010) version:
    -- "Live" block evaluation (when a running Emacs server is available) 
    -- Support for nearly all the export types and export options 
       available in Org-mode (when running Emacs server is available)
-   -- Call out to an Emacs server to do (literate programming) "tangling".
+   -- Call out to an Emacs server to do "tangling" (literate programming).
    -- Many bug fixes and small improvements
 
 Org-mode, and thus VimOrganizer, is a text-editor plugin/application that can 
@@ -96,7 +98,10 @@ Installation instructions:
 
 Install as you would any other ftplugin, with downloaded files going in their 
 respective directories under your .vim (Linux/Mac) or vimfiles (Windows)
-directory.  Also:
+directory.  Run helptags to generate the helptags file so items can 
+be accessed in the Vim help system. 
+
+ALSO, make sure you have installed the plugins listed below:
 
 1.  Make sure you have Calendar.vim installed.  
     (Calendar.vim comes included in the /plugin/ directory as part of 
@@ -112,7 +117,7 @@ into VimOrganizer:
 3.  The Utl "Universal Text Linking" plugin.  Find and install it from here:
     http://www.vim.org/scripts/script.php?script_id=293
 
-Also, if you are running on Windows another plugin will be useful:
+If you are running on Windows another plugin will be useful:
 
 4.  If you're running on Windows then you may want to get Peter Rodding's 
     shell.vim plugin.  It's not necessary, but if you have installed
@@ -120,6 +125,13 @@ Also, if you are running on Windows another plugin will be useful:
     the annoying Windows command prompt window pop up when VimOrganizer 
     calls out to Emacs/Org-mode.
     http://www.vim.org/scripts/script.php?script_id=3123
+
+FINALLY, install Emacs.  Not necessary for basic outlining, agenda
+searches, and other basic stuff, but it is necessary to do exports
+to html and PDF (which you will definitely want) as well as other
+advanced stuff.  Don't be afraid, install is simply and configuration
+is not hard.  Find Emacs here:
+http://www.gnu.org/software/emacs/
 
 It's possible to use VimOrganizer productively without having any of the 
 plugins above installed.  Certain features will be unavailable, though, and 
