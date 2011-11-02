@@ -393,8 +393,8 @@ function! OrgTodoSetup(todolist_str)
         execute 'map <silent> <buffer> <localleader>t' . item_char . 
                 \  ' :call OrgSequenceTodo(line(''.''),''' . item_char . ''')<cr>'
     endfor
-    map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
-    map <silent> <buffer> <localleader><space> :call OrgSequenceTodo(line('.'))<cr>
+"    map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
+"    map <silent> <buffer> <localleader><space> :call OrgSequenceTodo(line('.'))<cr>
 
 endfunction
 function! s:CurfileAgenda()
