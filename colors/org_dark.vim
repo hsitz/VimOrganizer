@@ -43,9 +43,9 @@ hi boldtext gui=bold guifg=#aaaaaa ctermfg=lightgray
 hi undertext gui=underline guifg=#aaaaaa ctermfg=lightgray
 hi lnumber guifg=#999999 ctermfg=gray
 
-hi TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
-hi CANCELED guifg=red guibg=NONE ctermfg=red ctermbg=NONE
-hi STARTED guifg=yellow guibg=NONE ctermfg=yellow ctermbg=NONE
-hi NEXT guifg=cyan guibg=NONE ctermfg=cyan ctermbg=NONE
-hi DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
+"hi TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
+"hi CANCELED guifg=red guibg=NONE ctermfg=red ctermbg=NONE
+"hi STARTED guifg=yellow guibg=NONE ctermfg=yellow ctermbg=NONE
+"hi NEXT guifg=cyan guibg=NONE ctermfg=cyan ctermbg=NONE
+"hi DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
 

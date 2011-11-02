@@ -321,9 +321,17 @@ endfunction "}}}
 function! s:kbd_goto_next_col(last) "{{{
   if a:last
     let seps = s:count_separators_down(line('.'))
-    let cmd = "\<ESC>".seps."j0:call search('|', 'c', line('.'))\<CR>la"
+    if mode() == 'n'
+      let cmd = seps . "j0:call search('|', 'c', line('.'))\<CR>l"
+    else
+      let cmd = "\<ESC>".seps."j0:call search('|', 'c', line('.'))\<CR>la"
+    endif
   else
-    let cmd = "\<ESC>:call search('|', 'c', line('.'))\<CR>la"
+    if mode() == 'n'
+      let cmd = ":call search('|', 'c', line('.'))\<CR>l"
+    else
+      let cmd = "\<ESC>:call search('|', 'c', line('.'))\<CR>la"
+    endif
   endif
   return cmd
 endfunction "}}}

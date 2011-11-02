@@ -2671,10 +2671,10 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> ,r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-    call matchadd( 'OL1', '\s\+\*\{1}.*$' )
-    call matchadd( 'OL2', '\s\+\*\{2}.*$') 
-    call matchadd( 'OL3', '\s\+\*\{3}.*$' )
-    call matchadd( 'OL4', '\s\+\*\{4}.*$' )
+    "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
+    "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
+    "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
+    "call matchadd( 'OL4', '\s\+\*\{4}.*$' )
     call s:AgendaBufHighlight()
     "wincmd J
     let i = 0
@@ -4116,12 +4116,12 @@ function! OrgDateDashboard()
     echo " ================================="
     echo " Press key, for a date command:"
     echo " ---------------------------------"
-    echo " d   set D,EADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
-    echo " s   set S,CHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
-    echo " c   set C,LOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
-    echo " t   set T,IMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
-    echo " g   set d,ate at cursor"
-    echo " "        ,
+    echo " d   set DEADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
+    echo " s   set SCHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
+    echo " c   set CLOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
+    echo " t   set TIMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
+    echo " g   set date at cursor"
+    echo " "        
     echo " "
     echohl Question
     let key = nr2char(getchar())
@@ -5388,7 +5388,7 @@ function! OrgFoldText(...)
         if exists('v:todohighlight')
             if matchstr(origline, b:v.todoMatch) ># ''
                 let this_todo = matchstr(origline, '^\*\+ \zs\S*')
-                if hlID(this_todo) > 0
+                if hlID(this_todo) > 55      " > 55 avoids built-in todo group
                    let v:todohighlight = hlID(this_todo) 
                 else
                     let v:todohighlight = ('* ' . this_todo =~ b:v.todoDoneMatch) ? hlID('DONETODO') : hlID('NOTDONETODO')
@@ -6137,8 +6137,8 @@ function! s:AgendaBufHighlight()
 
     hi Dayline guifg=#44aa44 gui=underline
     hi Weekendline guifg=#55ee55 gui=underline
-    syntax match Scheduled '\(Scheduled:\|\dX:\)\zs.*$'
-    syntax match Deadline '\(Deadline:\|\d d.:\)\zs.*$'
+    "syntax match Scheduled '\(Scheduled:\|\dX:\)\zs.*$'
+    "syntax match Deadline '\(Deadline:\|\d d.:\)\zs.*$'
   
    call s:AgendaHighlight()
     let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
@@ -6707,7 +6707,7 @@ function! s:OrgCustomTodoHighlights()
 
         " xxxx todo put back in containedins, do synclears? check order?
         if bufname('%')=='__Agenda__'
-            exec 'syntax match ' . item . ' ' .  '+ \*\+ \zs' . item . ' +' 
+            exec 'syntax match ' . item . ' ' .  '+ \*\+ \zs' . item . ' + containedin=AOL1,AOL2,AOL3,AOL4,AOL5,AOL6' 
             " containedin=AOL1'
         else
             exec 'syntax match ' . item . ' ' .  '+^.*\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
