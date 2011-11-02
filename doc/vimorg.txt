@@ -10,7 +10,7 @@ Copyright: (c) 2010, 2011 by Herbert Sitz
            (See Vim's |copyright| and substitute 'VimOrganizer' for 'Vim'.)
            NO WARRANTY, EXPRESS OR IMPLIED.  USE AT-YOUR-OWN-RISK.
 ==============================================================================
-1. Contents                                           *VimOrganizer*  *vimorg*
+Contents                                           *VimOrganizer*  *vimorg*
 
       Contents.....................................: |VimOrganizer|
       VimOrganizer Overview........................: |vimorg-overview|

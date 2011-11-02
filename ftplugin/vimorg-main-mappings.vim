@@ -2,7 +2,7 @@
 " -------------------------------------------------------------
 " Version: 0.30
 " Maintainer: Herbert Sitz <hesitz@gmail.com>
-" Last Change: 2011 Aug 31
+" Last Change: 2011 Nov 02
 "
 " Script: http://www.vim.org/scripts/script.php?script_id=3342
 " Github page: http://github.com/hsitz/VimOrganizer 

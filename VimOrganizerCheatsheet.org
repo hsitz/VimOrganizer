@@ -36,16 +36,12 @@
    this editing mechanism is currently restricted to dealing with only these
    "primary" dates.
 
- enter DEADLINE date for headline
-    :,dd
- enter SCHEDULED date for headline
-    :,ds
- enter CLOSED date for headline
-    :,dc
+ enter DEADLINE date for headline      ,dd
+ enter SCHEDULED date for headline     ,ds
+ enter CLOSED date for headline        ,dc
  enter regular date TIMESTAMP (i.e., no indicator) for headline
-    :,dt
- enter timestamp into text
-    :,dg
+                                       ,dt
+ enter timestamp into text             ,dg
 
     The command-line prompt and calendar that appear when you enter a ,d<x>  
     command operate nearly the same as the date-time prompt in Emacs' 
@@ -95,12 +91,11 @@
    tag, no letter is automatically assigned.  The tags set up by SetupTags() are 
    used in the menu accessed by ,et .
 
-   toggle tag view      
-   ,m, brings up Columns Dashboard
-   edit tags              
-   :,et
-   view tag in agenda   
-   :double-click tag, 
+   edit tags                        --  ,et
+   view items with tag in agenda    -- double-click tag, 
+
+   (Note: The 'RunSearch' searches below can all be entered now
+   by accessing Agenda Dashboard (,ag) and pressing 'm')
    view entries having both tag1 and tag2:
     :call RunSearch('+tag1+tag2')
    view entries having tag1  but not tag2:  
