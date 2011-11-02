@@ -14,6 +14,7 @@
 
     ,9                   show up to level 9
 ** Basic Outline Editing
+   :DEADLINE:<2011-10-14 Fri>
 *** Adding new headlines
 ****   Enter, shift+Enter   
         add another headline of same level
@@ -60,22 +61,32 @@
 ** Set Agenda Files
    Agenda files are held in a list:  g:agenda_files.  You can enter values for 
    g:agenda_files in your vimrc, e.g.,
-   :let g:agenda_files = ['myfile.org','c:/path/myfile.org']
-   
-   There is a bare-bones agenda-editing mechanism that works like this:
+
+            :let g:agenda_files = ['myfile.org','c:/path/myfile.org']
+
+   You can also use Vimscript to assign multiple files at a time to 
+   g:agenda_files.  For example, putting the line below in your vimrc would
+   put all .org files in the org_files directory into g:agenda_files:
+
+        :let g:agenda_files = split(glob("~\desktop\org_files\*.org"),"\n")
+
+   User Interface for runtime editing of g:agenda_files:
+
+   There is a also a bare-bones agenda-editing mechanism that works like this:
    (1) Put your .org working directories in list g:agenda_dirs.  Mine is in my
    vimrc and looks like this:
 
-    :let g:agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop"]
+    :let g:agenda_dirs=["c:/users/herbert/documents/my\ dropbox","c:/users/herbert/desktop/org_Files"]
    
    (2) Then to edit your agenda files issue this command 
    
         :call EditAgendaFiles()
    
    This will open a new tab and show your current agenda files along with a list
-   of all org files in your agenda dirs.  Simply copy or move files from the 
-   agenda dirs list to the top and when done press :W.  Order of agenda files is
-   sometimes important, e.g., it is used when ordering some agenda results.
+   of all org files in your agenda dirs.  Simply copy or move lines from the 
+   agenda dirs list to the top and when done press :W (that's a capital 'W').  
+   Order of agenda files is sometimes important, e.g., it is used when ordering 
+   some agenda results.
    
 ** Tags
    Tags for a file are defined using the SetupTags(<tag-setup-string>) function.  There is an 
@@ -126,7 +137,7 @@
    (1) :call ClearSparseTree()
    or (2) issue an agenda command or another RunSearch() command
 ** Videos (on Vimeo)
-   [Org-mode clone for Vim[http://viimeo.com/16543959]]
+   [[http://vimeo.com/16543959][Org-mode clone for Vim]]
    [Sparse Tree Search in Vim clone of Org-mode[http://vimeo.com/16646716]]
    [Overview of Tags in Org-mode clone for Vim[http://vimeo.com/16650450]]
    [Basic Outline Editing in Vim org-clone[http://vimeo.com/16796666]]

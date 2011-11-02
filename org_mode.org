@@ -1,4 +1,5 @@
-* Preamble :noexport:
+* Preamble
+  :noexport: 
 #+TITLE: Org Mode - Organize Your Life In Plain Text!
 #+LANGUAGE:  en
 #+AUTHOR: Bernt Hansen
@@ -18,7 +19,8 @@
 * Getting Started
   :DEADLINE: <2011-03-01 Tue>
   I use =org-mode= in most of my emacs buffers.
-** Org-Mode Setup :Sally:home:phone:reading:
+** Org-Mode Setup
+   :Sally:home:phone:reading:
    :DEADLINE: <2010-10-12 Tue>
    :PROPERTIES:
    :CUSTOM_ID: Setup
@@ -84,7 +86,8 @@ speed up creation of standard text blocks in most editing modes.
               (auto-fill-mode 1)))
 #+end_src
 
-** Organizing Your Life Into Org Files :reading:work:home:
+** Organizing Your Life Into Org Files
+   :reading:work:home:
    Tasks are separated into logical groupings or projects.  
    Use separate org files for large task groupings.
 
@@ -133,9 +136,10 @@ speed up creation of standard text blocks in most editing modes.
    Other org files are used for publishing only and do not contribute to the agenda.
    See [[Publishing]] for more details.
 
-** Agenda Setup :home:reading:
-   :DEADLINE:<2011-01-07 Fri>
-   :DEADLINE:<2010-11-10 Wed>
+** Agenda Setup
+   :home:reading:
+   DEADLINE<2011-01-07 Fri>
+   DEADLINE<2010-11-10 Wed>
    Here is my current =org-agenda-files= setup.  It is shown above
    formatted as a =setq= for clarity but in reality this is saved in my
    custom.el file.
@@ -157,8 +161,9 @@ speed up creation of standard text blocks in most editing modes.
    org file and add it to the agenda with =C-c [=.  To remove a file I
    just visit it and hit =C-c ]= and all of the tasks in that file are
    instantly removed from my agenda views until I add them back again.
-** Org File Structure :John:work:
-   :DEADLINE:<2011-12-21 Wed>
+** Org File Structure
+   :John:work:
+   DEADLINE<2011-12-21 Wed>
    :PROPERTIES:
    :CUSTOM_ID: OrgFileStructure
    :END:
@@ -219,8 +224,9 @@ speed up creation of standard text blocks in most editing modes.
    This keeps my main org files and my archives with basically the
    same structure.
 
-** Key bindings :John:computer:
-   :DEADLINE:<2011-08-16 Tue>
+** Key bindings
+   :John:computer:
+   DEADLINE<2011-08-16 Tue>
    :PROPERTIES:
    :CUSTOM_ID: KeyBindings
    :END:
@@ -331,7 +337,8 @@ speed up creation of standard text blocks in most editing modes.
    does and this saves me time since I don't have to visit an org-mode
    buffer first just to clock in a recent task.
 
-* Refiling Tasks :computer:home:
+* Refiling Tasks
+  :computer:home:
   :PROPERTIES:
   :CUSTOM_ID: Refiling
   :END:
@@ -345,8 +352,9 @@ speed up creation of standard text blocks in most editing modes.
   refile all capture tasks.  Often I end up refiling tasks the same
   day I create them because they show up in my daily clock report
   summary and are obviously in the wrong place.
-** Refile Setup :computer:home:office:
-   :DEADLINE:<2011-06-16 Thu>
+** Refile Setup
+   :computer:home:office:
+   DEADLINE<2011-06-16 Thu>
    :PROPERTIES:
    :END:
    To refile tasks in org you need to tell it where you want to refile things.
@@ -407,7 +415,7 @@ speed up creation of standard text blocks in most editing modes.
    and all refile targets that match show up in a list.  Just scroll
    through the list and pick the right refile target.  This works great!
 *** This is a test of org.vim 
-    :DEADLINE:<2011-03-08 Tue>
+    DEADLINE<2011-03-08 Tue>
     And text underneath this head.
     aldkfj adlfkad
     fjad;flka df
@@ -420,8 +428,9 @@ speed up creation of standard text blocks in most editing modes.
     ajdfa ldf
     adjfad kfj;aldkfj aldkf 
     adsjfa;dkfja dfkjjj
-** Refiling Tasks :George:
-   :DEADLINE:<2011-02-04 Fri>
+** Refiling Tasks
+   :George:
+   DEADLINE<2011-02-04 Fri>
    To find tasks to refile I run my agenda view (=F12 r= = =C-c a r=)
    which shows tasks with the =REFILE= tag.  This view shows all tasks
    (even ones marked in a =done= state).
@@ -440,7 +449,7 @@ speed up creation of standard text blocks in most editing modes.
    Refiling all of my tasks tends to take less than a minute so I may do
    this a couple of times a day.
 ** Refiling Notes
-   :DEADLINE:<2011-06-02 Thu>
+   DEADLINE<2011-06-02 Thu>
    I keep a =* Notes= headline in most of my org-mode files.  Notes have
    a =NOTE= tag which is created by the capture template for notes.  This
    allows finding notes across multiple files easily using the agenda
@@ -452,8 +461,9 @@ speed up creation of standard text blocks in most editing modes.
    catchall =* NOTES= task.  Generally these types of notes are specific
    to the project and not generally useful -- so removing them from the
    notes list when the project is archived makes sense.
-** Refiling Phone Calls :John:home:phone:
-   :DEADLINE:<2011-07-07 Thu>
+** Refiling Phone Calls
+   :John:home:phone:
+   DEADLINE<2011-07-07 Thu>
    Phone calls are handled using a few custom functions and a special key
    binding.  I time my calls using the capture mode template settings to
    clock in and out the capture task while the phone call is in progress.
@@ -461,7 +471,8 @@ speed up creation of standard text blocks in most editing modes.
    Phone call tasks collect in =refile.org= and are later refiled to the
    appropriate location.  Some phone calls are billable and we want these
    tracked in the appropriate category.
-* Custom agenda views :phone:
+* Custom agenda views
+  :phone:
   :PROPERTIES:
   :END:
   I have 10 custom agenda views defined.  Most of my old custom agenda
@@ -482,7 +493,7 @@ speed up creation of standard text blocks in most editing modes.
   10. Setting the default clocking task for punching in
 
 ** Setup
-   :DEADLINE:<2011-03-08 Tue>
+   DEADLINE<2011-03-08 Tue>
 #+begin_src emacs-lisp :tangle yes
   (setq org-agenda-custom-commands
         (quote (("w" "Tasks waiting on something" tags "WAITING/!"
@@ -552,8 +563,9 @@ speed up creation of standard text blocks in most editing modes.
      - repeat until the agenda timeclock report has all of the time in project files
    - Punch out (stop the clock)
 
-** What do I work on next?  :George:computer:phone:reading:
-   :DEADLINE:<2011-07-16 Sat>
+** What do I work on next?
+   :George:computer:phone:reading:
+   DEADLINE<2011-07-16 Sat>
    Use the agenda view for =NEXT= tasks to find stuff in progress and
    things to clock.
 
@@ -569,8 +581,9 @@ speed up creation of standard text blocks in most editing modes.
    - If you run out of items to work on look for NEXT task in the current context
      F12 n / RET
 
-*** Why keep it all on the =NEXT= list?  :computer:home:phone:
-    :DEADLINE:<2011-05-16 Mon>
+*** Why keep it all on the =NEXT= list?
+    :computer:home:phone:
+    DEADLINE<2011-05-16 Mon>
     I've moved to a more GTD way of doing things.  I don't have a
     =STARTED= list or todo keyword anymore.  Now I just use a =NEXT= list.
     If I clock a TODO keyword it changes to =NEXT= if that is appropriate
@@ -597,8 +610,9 @@ speed up creation of standard text blocks in most editing modes.
 
     To drop a task off the =NEXT= list simply move it back to the =TODO=
     state.
-** Reading email, newsgroups, and conversations on IRC :Sally:computer:home:
-   :DEADLINE:<2010-10-17 Sun>
+** Reading email, newsgroups, and conversations on IRC
+   :Sally:computer:home:
+   DEADLINE<2010-10-17 Sun>
    When reading email, newsgroups, and conversations on IRC I just let
    the default task (normally =** Organization=) clock the time I spend on
    these tasks.  To read email I go to Gnus and read everything in my
@@ -621,7 +635,7 @@ speed up creation of standard text blocks in most editing modes.
    all and I know the note is safely filed for later retrieval.  The time
    I spend in the capture buffer is clocked with that capture note.
 ** Filtering
-   :DEADLINE:<2011-05-13 Fri>
+   DEADLINE<2011-05-13 Fri>
 
    So many tasks, so little time.  I have hundreds of tasks at any given
    time (373 right now).  There is so much stuff to look at it can be
@@ -640,7 +654,7 @@ speed up creation of standard text blocks in most editing modes.
    lunch.
 
 *** Automatically removing context based tasks with / RET
-    :DEADLINE:<2011-09-09 Fri>
+    DEADLINE<2011-09-09 Fri>
     =/ RET= in the agenda is really useful.  This awesome feature was
     added to org-mode by John Wiegley.  It removes tasks automatically by
     filtering based on a user-provided function.
@@ -690,8 +704,8 @@ speed up creation of standard text blocks in most editing modes.
 
     This helps to keep my agenda clutter-free.
 * Time Clocking
-  :DEADLINE:<2010-08-02 Mon>
-  :SCHEDULED:<2010-10-26 Tue 10:45>
+  DEADLINE<2010-08-02 Mon>
+  SCHEDULED<2010-10-26 Tue 10:45>
   :PROPERTIES:
   :CUSTOM_ID: Clocking
   :END:
@@ -791,7 +805,7 @@ speed up creation of standard text blocks in most editing modes.
   This works really well for me.
 
 ** Clock Setup
-   :DEADLINE:<2011-12-01 Thu>
+   DEADLINE<2011-12-01 Thu>
    :PROPERTIES:
    :CUSTOM_ID: ClockSetup
    :END:
@@ -895,14 +909,14 @@ speed up creation of standard text blocks in most editing modes.
 #+end_src
 
 ** Clocking in
-   :DEADLINE:<2011-07-11 Mon>
+   DEADLINE<2011-07-11 Mon>
    When I start or continue working on a task I clock it in with =C-c C-x
    C-i= (or just =I= in the agenda or speed key setting).  This changes
    the task state from =TODO= to =NEXT= and starts the clock for this
    task.
 
 *** Setting a default clock task
-    :DEADLINE:<2010-02-01 Mon>
+    DEADLINE<2010-02-01 Mon>
 
     I have a default =** Organization= task in my norang.org file that I
     tend to put miscellaneous clock time on.  While reorganizing my
@@ -923,7 +937,7 @@ speed up creation of standard text blocks in most editing modes.
     when I switch contexts (stop working for client A and start working
     for client B).
 *** Using the clock history to clock in old tasks
-    :DEADLINE:<2011-12-05 Mon>
+    DEADLINE<2011-12-05 Mon>
     You can use the clock history to restart clocks on old tasks you've
     clocked or to jump directly to a task you have clocked previously.  I
     use this mainly to clock in whatever got interrupted by something.
@@ -959,7 +973,7 @@ speed up creation of standard text blocks in most editing modes.
   [Z] org             DONE Fix default section links        <-- 35 clock task entries ago
 #+end_example
 ** Clock Everything - Create New Tasks
-   :DEADLINE:<2010-12-09 Thu>
+   DEADLINE<2010-12-09 Thu>
    In order to clock everything you need a task for everything.  That's
    fine for planned projects but interruptions inevitably occur and you
    need some place to record whatever time you spend on that
@@ -984,8 +998,9 @@ speed up creation of standard text blocks in most editing modes.
    belongs in your org file layout and just get on with completing the
    thing.  Refiling a bunch of tasks later in a group when it is
    convenient to refile the tasks saves time in the long run.
-** Finding tasks to clock in :Sally:home:noexport:phone:
-   :DEADLINE:<2011-12-04 Sun>
+** Finding tasks to clock in
+   :Sally:home:noexport:phone:
+   DEADLINE<2011-12-04 Sun>
    To find a task to work on I use one of the following options
    (generally listed most frequently used first)
 
@@ -999,7 +1014,7 @@ speed up creation of standard text blocks in most editing modes.
    - Use an agenda view with filtering to pick something to work on
 
 ** Editing clock entries
-   :DEADLINE:<2010-05-19 Wed>
+   DEADLINE<2010-05-19 Wed>
    Sometimes it is necessary to edit clock entries so they reflect
    reality.  I find I do this for maybe 2-3 entries in a week.
 
@@ -1047,7 +1062,7 @@ speed up creation of standard text blocks in most editing modes.
 * Time reporting and tracking
   :<2010-11-09 Tue 13:00>
 ** Billing clients based on clocked time
-   :DEADLINE:<2010-06-28 Mon>
+   DEADLINE<2010-06-28 Mon>
    At the beginning of the month I invoice my clients for work done last
    month.  This is where I review my clocking data for correctness before
    billing for the clocked time.
@@ -1063,7 +1078,7 @@ speed up creation of standard text blocks in most editing modes.
 
       See [[*Archiving]] for more details.
 *** Verify that the clock data is complete and correct
-    :DEADLINE:<2010-08-21 Sat>
+    DEADLINE<2010-08-21 Sat>
     Since I change tasks often (sometimes more than once in a minute) I
     use the following setting to remove clock entries with a zero
     duration.
@@ -1103,7 +1118,7 @@ speed up creation of standard text blocks in most editing modes.
   (setq org-agenda-log-mode-items (quote (clock)))
 #+end_src
 *** Using clock reports to summarize time spent
-    :DEADLINE:<2010-11-10 Wed>
+    DEADLINE<2010-11-10 Wed>
     Billable time for clients are kept in separate org files.
 
     To get a report of time spent on tasks for =XYZ.org= you simply visit
@@ -1136,7 +1151,7 @@ speed up creation of standard text blocks in most editing modes.
     normally for consumption by anyone else so the format of the agenda
     clock report format is great for my use-case.
 ** Task Estimates and column view
-   :DEADLINE:<2011-01-28 Fri>
+   DEADLINE<2011-01-28 Fri>
    :PROPERTIES:
    :CUSTOM_ID: TaskEstimates
    :END:
@@ -1147,7 +1162,7 @@ speed up creation of standard text blocks in most editing modes.
    By repeatedly estimating tasks and reviewing how your estimate relates
    to the actual time clocked you can tune your estimating skills.
 *** Creating a task estimate with column mode
-    :DEADLINE:<2011-06-02 Thu>
+    DEADLINE<2011-06-02 Thu>
     I use =properties= and =column view= to do project estimates.
 
     I set up column view globally with the following headlines
@@ -1192,7 +1207,7 @@ speed up creation of standard text blocks in most editing modes.
     After setting the effort values exit =column mode= with =q=.
 
 *** Saving your estimate
-    :DEADLINE:<2010-10-13 Wed>
+    DEADLINE<2010-10-13 Wed>
     :PROPERTIES:
     :CUSTOM_ID: SavingEstimate
     :END:
@@ -1231,7 +1246,7 @@ project tasks into subtasks as you work on the project without losing
 the original estimate data.
 
 *** Reviewing your estimate
-    :DEADLINE:<2011-11-12 Sat>
+    DEADLINE<2011-11-12 Sat>
     =Column view= is great for reviewing your estimate.  This shows your
     estimated time value and the total clock time for the project
     side-by-side.
@@ -1243,7 +1258,7 @@ the original estimate data.
     =C-c C-x C-d= also provides a quick summary of clocked time for the
     current org file.
 * Tags
-  :DEADLINE:<2011-09-16 Fri>
+  DEADLINE<2011-09-16 Fri>
   Tasks can have any number of arbitrary tags.  Tags are used for:
 
   - filtering todo lists and agenda views
@@ -1274,7 +1289,7 @@ the original estimate data.
   so I can filter tasks in the agenda in the norang.org file easily.
 
 ** Tags
-   :DEADLINE:<2011-08-26 Fri>
+   DEADLINE<2011-08-26 Fri>
    Here are my tag definitions with associated keys for filtering in the
    agenda views.
 
@@ -1325,7 +1340,7 @@ the original estimate data.
 #+end_src
 
 ** Filetags
-   :DEADLINE:<2011-08-05 Fri>
+   DEADLINE<2011-08-05 Fri>
    Filetags are a convenient way to apply one or more tags to all of the
    headings in a file.
 
@@ -1338,7 +1353,7 @@ the original estimate data.
 I have the following =#+FILETAGS:= entries in my org-mode files:
 
 *** Non-work related org-mode files
-    :DEADLINE:<2010-07-21 Wed>
+    DEADLINE<2010-07-21 Wed>
     | File         | Tags         |
     |--------------+--------------|
     | todo.org     | HOME         |
@@ -1350,7 +1365,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
     | farm.org     | FARM         |
 
 *** Work related org-mode files
-    :DEADLINE:<2010-12-20 Mon>
+    DEADLINE<2010-12-20 Mon>
     | File        | Tags            |
     |-------------+-----------------|
     | norang.org  | NORANG @office  |
@@ -1361,22 +1376,23 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
     | YYY.org     | YYY @office     |
 
 *** Refile tasks
-    :DEADLINE:<2010-01-27 Wed>
+    DEADLINE<2010-01-27 Wed>
     | File       | Tags         |
     |------------+--------------|
     | refile.org | REFILE       |
     |------------+--------------|
 
 ** Trigger Tags
-   :DEADLINE:<2010-04-19 Mon>
+   DEADLINE<2010-04-19 Mon>
    The following tags are automatically added or removed by todo state
    triggers described previously in [[*ToDo%20state%20triggers][*ToDo state triggers]]
 
    - =WAITING=
    - =CANCELLED=
    - =NEXT=
-* Handling Notes :John:computer:home:
-  :DEADLINE:<2011-05-05 Thu>
+* Handling Notes
+  :John:computer:home:
+  DEADLINE<2011-05-05 Thu>
   Notes are little gems of knowledge that you come across during your
   day.  They are just like tasks except there is nothing to do (except
   learn and memorize the gem of knowledge).  Unfortunately there are way
@@ -1415,7 +1431,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
   filed to the project task under the appropriate work org-mode file and
   eventually gets removed from the agenda when the project is complete
   and archived.  * Handling Phone Calls
-  :DEADLINE:<2011-06-07 Tue>
+  DEADLINE<2011-06-07 Tue>
   Phone calls are interruptions and I use capture mode to deal with
   these.  Most of the heavy lifting for phone calls is done by capture
   mode.  I use a special capture template for phone calls but activate
@@ -1472,12 +1488,12 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
       "COMPANY"))
 #+end_src
 * GTD stuff
-  :DEADLINE:<2010-04-15 Thu>
+  DEADLINE<2010-04-15 Thu>
   Most of my day is deadline/schedule driven.
   I work off of the agenda first and then pick items from the todo lists as
   outlined in [[*What%20do%20I%20work%20on%20next][*What do I work on next]]
 ** Weekly Review Process
-   :DEADLINE:<2011-06-26 Sun>
+   DEADLINE<2011-06-26 Sun>
    The first day of the week (usually Monday) I do my weekly review. 
    I keep a list like this one to remind me what needs to be done.
 
@@ -1533,7 +1549,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
 
    This works for me.  You're mileage may vary ;)
 ** Project definition and finding stuck projects
-   :DEADLINE:<2011-08-07 Sun>
+   DEADLINE<2011-08-07 Sun>
    :PROPERTIES:
    :CUSTOM_ID: Projects
    :END:
@@ -1602,11 +1618,12 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
 *** Anothe rhead with text
     and here's text for this head
     and somemore text and more
-* Archiving :phone:
-  :DEADLINE:<2010-02-16 Tue>
+* Archiving
+  :phone:
+  DEADLINE<2010-02-16 Tue>
   just a line
 ** Archiving Subtrees
-   :DEADLINE:<2011-06-23 Thu>
+   DEADLINE<2011-06-23 Thu>
    My normal archiving procedure is to move entire subtrees to a separate
    archive file for the project.  Task subtrees in =FILE.org= get
    archived to =FILE.org_archive= using the =a y= command in the agenda.
@@ -1641,7 +1658,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
    org-agenda-files much more efficiently.
 
 ** Archive Setup
-   :DEADLINE:<2011-09-20 Tue 11:30>
+   DEADLINE<2011-09-20 Tue 11:30>
    Each of my level 1 tasks has a property which specifies where level 2
    tasks under that heading should be archived.  This is done with the
    =ARCHIVE= property as specified in the [[#OrgFileStructure][Org File Structure]].
@@ -1655,14 +1672,14 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
 #+end_src
 
 ** Archive Tag - Hiding Information
-   :DEADLINE:<2010-03-10 Wed>
+   DEADLINE<2010-03-10 Wed>
    The only time I set the ARCHIVE tag on a task is to prevent it from
    opening by default because it has tons of information I don't really
    need to look at on a regular basis.  I can open the task with C-TAB if
    I need to see the gory details (like a huge table of data related to
    the task) but normally I don't need that information displayed.
 ** When to Archive
-   :DEADLINE:<2011-05-11 Wed>
+   DEADLINE<2011-05-11 Wed>
    Archiving monthly works well for me.  I keep completed tasks around
    for at least two months before archiving them.  This keeps current
    clocking information for the last 30 to 60 days out of the archives.
@@ -1675,7 +1692,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
    the detail for the archived tasks they are available in the
    appropriate archive file.
 * Publishing
-  :DEADLINE:<2010-07-21 Wed>
+  DEADLINE<2010-07-21 Wed>
   :PROPERTIES:
   :CUSTOM_ID: Publishing
   :END:
@@ -1715,7 +1732,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
 
 :CLOCK: [2010-11-10 Wed 14:52]
 ** org-babel Setup
-   :DEADLINE:<2011-03-07 Mon>
+   DEADLINE<2011-03-07 Mon>
    Now I've discovered org-babel and how easy it is to generate decent
    graphics using ditta and graphviz.
 
@@ -1750,7 +1767,7 @@ I have the following =#+FILETAGS:= entries in my org-mode files:
    with =C-c C-x C-v=
 
 ** Playing with ditaa
-   :DEADLINE:<2010-05-28 Fri>
+   DEADLINE<2010-05-28 Fri>
    :PROPERTIES:
    :CUSTOM_ID: playingwithditaa
    :END:
@@ -1828,7 +1845,7 @@ becomes this!
 [[file:communication.png]]
 
 ** Playing with graphviz
-   :DEADLINE:<2010-05-16 Sun>
+   DEADLINE<2010-05-16 Sun>
    [[http://www.graphviz.org/][Graphviz]] is another great tool for creating graphics in your documents.
 
    This
@@ -1926,7 +1943,7 @@ The =-Kdot= is optional (defaults to =dot=) but you can substitute other graphvi
 types instead here (ie. =twopi=, =neato=, =circo=, etc).
 
 ** Publishing Single Files
-   :DEADLINE:<2010-05-12 Wed>
+   DEADLINE<2010-05-12 Wed>
    Org-mode exports the current file to one of the standard formats by
    invoking an export function.  The standard key binding for this is
    =C-c C-e= followed by the key for the type of export you want.
@@ -1936,7 +1953,7 @@ types instead here (ie. =twopi=, =neato=, =circo=, etc).
    narrowed detail in the export.
 
 ** Publishing Projects
-   :DEADLINE:<2010-08-11 Wed>
+   DEADLINE<2010-08-11 Wed>
    :PROPERTIES:
    :CUSTOM_ID: PublishingProjects
    :END:
@@ -2090,8 +2107,9 @@ types instead here (ie. =twopi=, =neato=, =circo=, etc).
    All I need to remember to do is edit the appropriate org file and
    publish it with C-S-F12 -- not exactly hard :)
 
-* Reminders :phone:
-  :DEADLINE:<2011-12-19 Mon>
+* Reminders
+  :phone:
+  DEADLINE<2011-12-19 Mon>
   :PROPERTIES:
   :CUSTOM_ID: Reminders
   :END:
@@ -2106,7 +2124,7 @@ types instead here (ie. =twopi=, =neato=, =circo=, etc).
   automatically updated the next time I look at the agenda.
 
 ** Reminder Setup
-   :DEADLINE:<2010-01-05 Tue>
+   DEADLINE<2010-01-05 Tue>
 #+begin_src emacs-lisp :tangle yes
   ; Erase all reminders and rebuilt reminders for today from the agenda
   (defun bh/org-agenda-to-appt ()
@@ -2127,7 +2145,7 @@ types instead here (ie. =twopi=, =neato=, =circo=, etc).
   (run-at-time "24:01" nil 'bh/org-agenda-to-appt)
 #+end_src
 * Productivity Tools
-  :DEADLINE:<2010-07-26 Mon>
+  DEADLINE<2010-07-26 Mon>
   :PROPERTIES:
   :CUSTOM_ID: ProductivityTools
   :NOBLOCKING: t
@@ -2135,7 +2153,7 @@ types instead here (ie. =twopi=, =neato=, =circo=, etc).
   This section is a miscellaneous collection of Emacs customizations that I use
   with org-mode so that it Works-For-Me(tm).
 ** Yasnippets
-   :DEADLINE:<2010-02-14 Sun>
+   DEADLINE<2010-02-14 Sun>
    :PROPERTIES:
    :CUSTOM_ID: Yasnippets
    :END:
@@ -2203,13 +2221,13 @@ for the block.
 
 This is a great time saver.
 ** Limit your view to what you are working on
-   :DEADLINE:<2011-08-27 Sat>
+   DEADLINE<2011-08-27 Sat>
    :PROPERTIES:
    :CUSTOM_ID: LimitingAgendaView
    :END:
    There is more than one way to do this.  Use what works for you.
 *** Narrowing to a subtree with =bh/org-todo=
-    :DEADLINE:<2011-06-19 Sun>
+    DEADLINE<2011-06-19 Sun>
     =f5= and =S-f5= are bound the functions for narrowing and widening the emacs buffer as follows:
 
 #+begin_src emacs-lisp :tangle yes
@@ -2236,7 +2254,7 @@ This is a great time saver.
     I hit =f5= a lot.  This basically does a =org-narrow-to-subtree= and =C-c C-v= combination
     leaving the buffer in a narrowed state.  I use =S-f5= to widen back to the normal view.
 *** Limiting the agenda to a subtree
-    :DEADLINE:<2011-08-17 Wed>
+    DEADLINE<2011-08-17 Wed>
     =C-c C-x <= turns on the agenda restriction lock for the current
     subtree.  This keeps your agenda focused on only this subtree.  Alarms
     and notifications are still active outside the agenda restriction.
@@ -2247,7 +2265,7 @@ This is a great time saver.
     see all =work= tasks which are in multiple files so agenda view
     filtering works better for me.
 *** Limiting the agenda to a file
-    :DEADLINE:<2010-10-01 Fri>
+    DEADLINE<2010-10-01 Fri>
     You can limit the agenda view to a single file in multiple ways.
 
     You can use the agenda restriction lock =C-c C-x <= on the any line
@@ -2261,11 +2279,11 @@ This is a great time saver.
     the agenda.
 
 ** Tuning the Agenda Views
-   :DEADLINE:<2010-03-27 Sat>
+   DEADLINE<2010-03-27 Sat>
    Various customizations affect how the agenda views show task details.
    This section shows each of the customizations I use in my workflow.
 *** Highlight the current agenda line
-    :DEADLINE:<2010-01-08 Fri>
+    DEADLINE<2010-01-08 Fri>
     The following code in my =.emacs= file keeps the current agenda line
     highlighted.  This makes it obvious what task will be affected by
     commands issued in the agenda.  No more acting on the wrong task by
@@ -2277,7 +2295,7 @@ This is a great time saver.
 #+end_src
 
 *** Remove tasks with dates from the global todo lists
-    :DEADLINE:<2011-07-02 Sat>
+    DEADLINE<2011-07-02 Sat>
     Tasks with dates (=SCHEDULED:=, =DEADLINE:=, or active dates) show up
     in the agenda when appropriate.  I use the following settings to
     remove these tasks from the global todo lists when they are too far in
@@ -2309,7 +2327,7 @@ This is a great time saver.
 #+end_src
 
 *** Use the Diary for Holidays only
-    :DEADLINE:<2011-11-24 Thu>
+    DEADLINE<2011-11-24 Thu>
     I don't use the emacs Diary for anything but I like seeing the
     holidays on my agenda.  This helps with planning for those days when
     you're not supposed to be working.
@@ -2340,7 +2358,7 @@ This is a great time saver.
     :    ...
 
 *** Searches include archive files
-    :DEADLINE:<2011-03-08 Tue>
+    DEADLINE<2011-03-08 Tue>
     I keep a single archive file for each of my org-mode project files.
     This allows me to search the current file and the archive when I need
     to dig up old information from the archives.
@@ -2353,7 +2371,7 @@ This is a great time saver.
   (setq org-agenda-text-search-extra-files (quote (agenda-archives)))
 #+end_src
 *** Agenda view tweaks
-    :DEADLINE:<2011-06-12 Sun>
+    DEADLINE<2011-06-12 Sun>
     The following agenda customizations control 
 
     - display of repeating tasks
@@ -2501,7 +2519,7 @@ This is a great time saver.
 #+end_src
 
 ** Handling blocked tasks
-   :DEADLINE:<2010-04-28 Wed>
+   DEADLINE<2010-04-28 Wed>
    :PROPERTIES:
    :CUSTOM_ID: HandlingBlockedTasks
    :END:
@@ -2551,11 +2569,11 @@ This is a great time saver.
    until the preceding tasks are complete.
 
 ** Org Task structure and presentation
-   :DEADLINE:<2010-01-11 Mon>
+   DEADLINE<2010-01-11 Mon>
    This section describes various org-mode settings I use to control how
    tasks are displayed while I work on my org mode files.
 *** Controlling display of leading stars on headlines
-    :DEADLINE:<2011-09-25 Sun>
+    DEADLINE<2011-09-25 Sun>
     Org-mode has the ability to show or hide the leading starts on task
     headlines.  It's also possible to have headlines at odd levels only so
     that the stars and heading task names line up in sublevels.
@@ -2571,7 +2589,7 @@ This is a great time saver.
   (setq org-hide-leading-stars nil)
 #+end_src
 *** Show headings at odd levels only or odd-even levels
-    :DEADLINE:<2011-03-21 Mon>
+    DEADLINE<2011-03-21 Mon>
     I've converted my files between odd-levels-only and odd-even using the
     functions =org-convert-to-odd-levels= and
     =org-convert-to-oddeven-levels= functions a number of times.  I ended
@@ -2583,7 +2601,7 @@ This is a great time saver.
   (setq org-odd-levels-only nil)
 #+end_src
 *** Handling blank lines
-    :DEADLINE:<2010-11-11 Thu>
+    DEADLINE<2010-11-11 Thu>
     Blank lines are evil :).  They keep getting inserted in between
     headlines and I never want to see them in collapsed (contents) views.
     When I use =TAB= to fold (cycle) tasks I don't want to see any blank
@@ -2610,7 +2628,7 @@ This is a great time saver.
                                            (plain-list-item))))
 #+end_src
 *** Adding new tasks quickly without disturbing the current task content
-    :DEADLINE:<2010-06-12 Sat>
+    DEADLINE<2010-06-12 Sat>
     To create new headings in a project file it is really convenient to
     use C-S-RET.  This inserts a new headline.  With the following setting
 
@@ -2623,7 +2641,7 @@ This is a great time saver.
     added after the body of the current entry.
 
 *** Notes at the top
-    :DEADLINE:<2010-10-01 Fri>
+    DEADLINE<2010-10-01 Fri>
     I enter notes for tasks with =C-c C-z= (or just =z= in the agenda).
     Changing tasks states also sometimes prompt for a note (e.g. moving to
     =WAITING= prompts for a note and I enter a reason for why it is
@@ -2633,7 +2651,7 @@ This is a great time saver.
   (setq org-reverse-note-order nil)
 #+end_src
 *** Searching and showing results
-    :DEADLINE:<2010-09-08 Wed>
+    DEADLINE<2010-09-08 Wed>
     Org-mode's searching capabilities are really effective at finding data
     in your org files.  =C-c / /= does a regular expression search on the
     current file and shows matching results in a collapsed view of the
@@ -2656,7 +2674,7 @@ This is a great time saver.
     can't see.  For this reason I always show the following headline when
     displaying search results.
 *** Editing and Special key handling
-    :DEADLINE:<2010-10-24 Sun>
+    DEADLINE<2010-10-24 Sun>
     Org-mode allows special handling of the C-a, C-e, and C-k keys while
     editing headlines.  I also use the setting that pastes (yanks)
     subtrees and adjusts the levels to match the task I am pasting to.
@@ -2670,7 +2688,7 @@ This is a great time saver.
 #+end_src
 
 ** Attachments
-   :DEADLINE:<2010-07-14 Wed>
+   DEADLINE<2010-07-14 Wed>
    Attachments are great for getting large amounts of data related to
    your project out of your org-mode files.  Before attachments came
    along I was including huge blocks of SQL code in my org files to keep
@@ -2723,7 +2741,7 @@ This is a great time saver.
    with any other org-mode changes I've made.
 
 ** Deadlines and Agenda Visibility
-   :DEADLINE:<2011-02-10 Thu>
+   DEADLINE<2011-02-10 Thu>
 
    Deadlines and due dates are a fact or life.  By default I want to see
    deadlines in the agenda 30 days before the due date.
@@ -2752,7 +2770,7 @@ This is a great time saver.
    specified the default =org-deadline-warning-days= is used.
 
 ** Exporting Tables to CSV
-   :DEADLINE:<2011-03-07 Mon>
+   DEADLINE<2011-03-07 Mon>
    I generate org-mode tables with details of task specifications and
    record structures for some of my projects.  My clients like to use
    spreadsheets for this type of detail.
@@ -2797,7 +2815,7 @@ This is a great time saver.
 #+end_src
 
 ** Visiting links
-   :DEADLINE:<2011-08-06 Sat>
+   DEADLINE<2011-08-06 Sat>
 
    Links to emails, web pages, and other files are sprinkled all over my
    org files.  The following setting control how org-mode handles opening
@@ -2814,7 +2832,7 @@ This is a great time saver.
    window and having links open in the same window just works better for
    me.
 ** Logging stuff
-   :DEADLINE:<2011-12-25 Sun>
+   DEADLINE<2011-12-25 Sun>
    Most of my logging is controlled by the global =org-todo-keywords=
 
    My logging settings are set as follows:
@@ -2849,7 +2867,7 @@ This is a great time saver.
    waiting is near the top of the LOGBOOK and unfolding the LOGBOOK
    drawer provides that information.
 ** Limiting time spent on tasks
-   :DEADLINE:<2010-03-27 Sat>
+   DEADLINE<2010-03-27 Sat>
    :PROPERTIES:
    :CUSTOM_ID: LimitingTimeSpentOnTasks
    :END:
@@ -2899,7 +2917,7 @@ This is a great time saver.
    last repeat time by default.  This lets you accumulate time over
    multiple days and counts towards your estimated effort limit.
 ** Habit Tracking
-   :DEADLINE:<2011-12-01 Thu>
+   DEADLINE<2011-12-01 Thu>
    John Wiegley recently added support for Habit tracking to org-mode.
 
    I have lots of habits (some bad) but I'd still like to improve and
@@ -2962,7 +2980,7 @@ This is a great time saver.
 #+end_src
 
 ** Habits only log DONE state changes
-   :DEADLINE:<2010-03-10 Wed>
+   DEADLINE<2010-03-10 Wed>
    I tend to keep habits under a level 1 task =* Habits= with a special
    logging property that only logs changes to the =DONE= state.  This
    allows me to cancel a habit and not record a timestamp for it since
@@ -2979,7 +2997,7 @@ This is a great time saver.
    :   :ARCHIVE:  %s_archive:* Habits
    :   :END:
 ** Auto revert mode
-   :DEADLINE:<2010-08-14 Sat>
+   DEADLINE<2010-08-14 Sat>
    I use git to synchronize my org-mode files between my laptop and my
    workstation.  This normally requires saving all the current changes,
    pushing to a bare repo, and fetching on the other system.  After that
@@ -2998,7 +3016,7 @@ This is a great time saver.
 #+end_src
 
 ** Handling Encryption
-   :DEADLINE:<2011-06-14 Tue>
+   DEADLINE<2011-06-14 Tue>
    :PROPERTIES:
    :CUSTOM_ID: HandlingEncryption
    :END:
@@ -3040,7 +3058,7 @@ This is a great time saver.
    keeps the data in plain text as short as possible.
 
 ** Speed Commands
-   :DEADLINE:<2011-05-03 Tue>
+   DEADLINE<2011-05-03 Tue>
    There's a new and exciting feature called =org-speed-commands= in the
    latest development version of org-mode.
 
@@ -3069,7 +3087,7 @@ This is a great time saver.
    defaults for speed command keys.  The default keys I use the most are
    =I= and =O= for clocking in and out and =t= to change todo state.
 ** Org Protocol
-   :DEADLINE:<2011-10-19 Wed>
+   DEADLINE<2011-10-19 Wed>
    [[http://orgmode.org/worg/org-contrib/org-protocol.php][Org protocol]] is a great way to create capture notes in org-mode from
    other applications.  I use this to create tasks to review interesting
    web pages I visit in Firefox.
@@ -3089,13 +3107,13 @@ This is a great time saver.
 
    I set up org-protocol in firefox as described in [[http://orgmode.org/worg/org-contrib/org-protocol.php#sec-9][Keybindings for Firefox]].
 ** Add final newline when saving files
-   :DEADLINE:<2011-11-16 Wed>
+   DEADLINE<2011-11-16 Wed>
 #+begin_src emacs-lisp :tangle yes
   (setq require-final-newline t)
 #+end_src
 
 ** Insert inactive timestamps
-   :DEADLINE:<2011-11-27 Sun>
+   DEADLINE<2011-11-27 Sun>
    I insert inactive timestamps when working on org-mode files.  Normally
    I use this to track when a task was created.
 
@@ -3118,7 +3136,7 @@ This is a great time saver.
 #+end_src
 
 ** Return follows links
-   :DEADLINE:<2011-03-02 Wed>
+   DEADLINE<2011-03-02 Wed>
    The following setting make =RET= open links instead of inserting a new
    line.  This setting is a love-hate relationship for me.  When it first
    came out I immediately turned it off because I wanted to insert new
@@ -3133,7 +3151,7 @@ This is a great time saver.
 #+end_src
 
 ** Highlight clock when running overtime
-   :DEADLINE:<2011-10-12 Wed>
+   DEADLINE<2011-10-12 Wed>
    The current clocking task is displayed on the modeline.  If this has
    an estimated time and we run over the limit I make this stand out on
    the modeline by changing the background to red as follows
@@ -3148,7 +3166,7 @@ This is a great time saver.
 #+end_src
 
 ** Meeting Notes
-   :DEADLINE:<2010-11-18 Thu>
+   DEADLINE<2010-11-18 Thu>
    I take meeting notes with org-mode.  I record meeting conversations in
    point-form using org-mode lists.  If action items are decided on in
    the meeting I'll denote them with a bullet and a TODO: or DONE: flag.
@@ -3228,7 +3246,7 @@ This is a great time saver.
 #+end_src
 
 ** Highlights persist after changes
-   :DEADLINE:<2010-04-14 Wed>
+   DEADLINE<2010-04-14 Wed>
    I'm finding I use org-occur =C-c / /= a lot when trying to find
    details in my org-files.  The following setting keeps the highlighted
    results of the search even after modifying the text.  This allows me
@@ -3240,7 +3258,7 @@ This is a great time saver.
 #+end_src
 
 ** Getting up to date org-mode info documentation
-   :DEADLINE:<2011-07-17 Sun>
+   DEADLINE<2011-07-17 Sun>
    :PROPERTIES:
    :CUSTOM_ID: InfoDocumentation
    :END:
@@ -3254,7 +3272,7 @@ This is a great time saver.
 #+end_src
 
 ** Turn off prefer future dates
-   :DEADLINE:<2010-12-17 Fri>
+   DEADLINE<2010-12-17 Fri>
    By default org-mode prefers dates in the future.  This means that if
    today's date is May 2 and you enter a date for April 30th (2 days ago)
    org-mode will jump to April 30th of next year.  I find this annoying
@@ -3268,7 +3286,7 @@ This is a great time saver.
 #+end_src
 
 ** Automatically change list bullets
-   :DEADLINE:<2011-08-15 Mon>
+   DEADLINE<2011-08-15 Mon>
    I take point-form notes during meetings.  Having the same list bullet
    for every list level makes it hard to read the details when lists are
    indented more than 3 levels.
@@ -3290,14 +3308,15 @@ This is a great time saver.
                                               ("1)" . "-"))))
 #+end_src
 
-* Things I Don't Use :George:Sally:computer:noexport:phone:reading:
-  :DEADLINE:<2011-01-22 Sat>
+* Things I Don't Use
+  :George:Sally:computer:noexport:phone:reading:
+  DEADLINE<2011-01-22 Sat>
   This is a partial list of things I know about but do not use.
   =org-mode= is huge with tons of features.  There are features out
   there that I don't know about yet or haven't explored so this list is
   not going to be complete.
 ** Task Priorities
-   :DEADLINE:<2010-11-20 Sat>
+   DEADLINE<2010-11-20 Sat>
    I use the agenda to figure out what to do work on next.  I don't use
    priorities at all.  I've played with them in the past and always go
    back to using no priorities.
@@ -3308,20 +3327,20 @@ This is a great time saver.
 #+end_src
 
 ** Archive Sibling
-   :DEADLINE:<2010-12-18 Sat>
+   DEADLINE<2010-12-18 Sat>
    This was a cute idea but I find archiving entire complete subtrees
    better.  I don't mind having a bunch of tasks marked =DONE= (but not
    archived)
 
 ** Cycling plain lists
-   :DEADLINE:<2011-09-25 Sun>
+   DEADLINE<2011-09-25 Sun>
    Org mode can fold (cycle) plain lists.  I don't use this feature.
 #+begin_src emacs-lisp :tangle yes
   (setq org-cycle-include-plain-lists nil)
 #+end_src
 
 ** Strike-through emphasis
-   :DEADLINE:<2011-12-24 Sat>
+   DEADLINE<2011-12-24 Sat>
    Strike-through emphasis is just unreadable and tends to only show up
    when pasting data from other files into org-mode.  This just removes
    the strike-through completely which I find a lot nicer.
@@ -3335,7 +3354,7 @@ This is a great time saver.
 #+end_src
 
 * Using Git for Automatic History, Backups, and Synchronization
-  :DEADLINE:<2011-12-04 Sun>
+  DEADLINE<2011-12-04 Sun>
   :PROPERTIES:
   :CUSTOM_ID: GitSync
   :END:
@@ -3350,7 +3369,7 @@ This is a great time saver.
   removed while editing folded regions.
 
 ** Automatic Hourly Commits
-   :DEADLINE:<2011-10-02 Sun>
+   DEADLINE<2011-10-02 Sun>
 
    My Emacs setup saves all org buffers at 1 minute before the hour using
    the following code in my =.emacs=
@@ -3370,7 +3389,7 @@ This is a great time saver.
 #+end_example
 
 *** ~/bin/org-git-sync.sh
-    :DEADLINE:<2010-11-16 Tue>
+    DEADLINE<2010-11-16 Tue>
     Here is the shell script I use to create a =git= commit for each of my
     org-repositories.  This loops through multiple repositories and
     commits any modified files.  I have the following org-mode
@@ -3434,7 +3453,7 @@ This is a great time saver.
   ,*.toc
 #+end_example
 ** Git - Edit files with confidence
-   :DEADLINE:<2011-04-17 Sun>
+   DEADLINE<2011-04-17 Sun>
    I use =git= in all of my directories where editing a file should be
    tracked.
 
@@ -3453,7 +3472,7 @@ This is a great time saver.
    I have every version of my edits in a local =git= repository.
 
 ** Git Repository synchronization
-   :DEADLINE:<2010-09-05 Sun>
+   DEADLINE<2010-09-05 Sun>
    :PROPERTIES:
    :CUSTOM_ID: git-sync
    :END:
