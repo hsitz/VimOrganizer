@@ -15,6 +15,11 @@
     ,,5                   show up to level 5 heads for current heading only
     . . .
 ** Basic Outline Editing
+   Name your file with a '.org' extension and then just start adding 
+   headings with asterisk to indicate heading level.  NOTE:  asterisks must
+   be in the leftmost column and must be separate from heading text by a 
+   space.  This document is an example showing headings, subheadings,
+   and text underneath each.
 *** Adding new headlines
 ****   Enter, shift+Enter   
         add another headline of same level
