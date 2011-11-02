@@ -1039,8 +1039,9 @@ Below is an illustration:
                \      'WAITING': { 'guifg':'red', 
                \                 'ctermfg':'red' } }
                         
-   NOTE:  (1) Vim is very picky about punctuation in dictionary assignments.
-          Note that each of the items in the statement above is a string.
+   NOTE:  (1) Vim has unusual punctuation in its dictionary assignments.
+          Note that each of the items in the statement above is a string,
+          and that keys are separated from their values by a colon.
           (2) You can override one or more of the highlight items:
               guifg, guibg, ctermfg, ctermbg  
 
