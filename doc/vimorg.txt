@@ -525,6 +525,46 @@ Code text                uses = delimiters to specify
 ,cc                      monospaced unformatted text
 
 ----------------------------------------------------
+Footnotes                     *vimorg-footnotes*
+
+VimOrganizer has no special support for footnotes yet.  However footnotes can
+still be easily included, and upon export will be properly positioned
+formatted (and linked, depending on the output format).  The special support
+that will be added consists mostly of automatically assembling footnote text
+in a separate portion of the document. 
+
+You can add footnotes in any of the following ways:
+
+  [fn::text of footnote here]      This inline method will make the 
+                                   text into a footnote and add a
+                                   proper footnote reference at the 
+                                   position of the reference.
+
+  [fn:name:text of footnote here]  This inline method allows the same 
+                                   note to be referenced by another
+                                   note reference of this form:
+                                   [fn:name]
+
+  [fn:name]                        This creates a reference point in
+                                   the document that will be numbered
+                                   and linked to the footnote text with
+                                   the same name.  The text of the foot-,
+                                   note is entered in a separate
+                                   paragraph of its own, located
+                                   anywhere in the document but always
+                                   beginning in column 0, like this:
+
+[fn:name] This paragraph (text to next blank line) is the note
+for the footnote reference: name.  Upon export numbers will be 
+substituted for all of the footnote names in the document.
+
+See the Org-mode documentation for more complete information
+on footnotes.  Remember, you can use them in VimOrganizer, the
+main thing missing is automatic gathering of all the note
+text at a common point in the document:
+http://orgmode.org/manual/Footnotes.html#Footnotes
+
+----------------------------------------------------
 Refiling                         *vimorg-refile-heading*
                                  *vimorg-jump-to-headng*
 

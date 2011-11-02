@@ -318,6 +318,9 @@ function! s:kbd_goto_prev_row() "{{{
   return cmd
 endfunction "}}}
 
+function! org#tbl#next_col(last)
+  return s:kbd_goto_next_col(a:last)
+endfunction
 function! s:kbd_goto_next_col(last) "{{{
   if a:last
     let seps = s:count_separators_down(line('.'))
@@ -336,6 +339,9 @@ function! s:kbd_goto_next_col(last) "{{{
   return cmd
 endfunction "}}}
 
+function! org#tbl#prev_col(first)
+  return s:kbd_goto_prev_col(a:first)
+endfunction
 function! s:kbd_goto_prev_col(first) "{{{
   if a:first
     let seps = s:count_separators_up(line('.'))
