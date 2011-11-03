@@ -6756,7 +6756,11 @@ function! OrgSetColors()
     if has('gui_running')
         hi! FoldColumn guifg=bg guibg=bg 
     else
-        hi! FoldColumn ctermfg=bg ctermbg=bg 
+        try
+            hi! FoldColumn ctermfg=bg ctermbg=bg 
+        catch
+            hi! FoldColumn ctermfg=0 ctermbg=0
+        endtry
     endif
     "ctermfg=bg ctermbg=bg
     "show text on SignColumn
