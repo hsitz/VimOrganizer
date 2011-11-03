@@ -294,7 +294,7 @@ code to add to your .emacs file is below:
     (set-buffer-modified-p nil))
 
 (add-hook 'org-mode-hook
-(lambda () (interactive)(replace-regexp "\\(\\s-*\\):\\(DEADLINE\\|CLOSED\\|SCHEDULED\\|<[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\} \\)" "\\1\\2")
+(lambda () (interactive)(replace-regexp "\\(\\s-*\\):\\(DEADLINE\\|CLOSED\\|SCHEDULED\\|CLOCK\\|<[0-9]\\{4\\}-[0-9]\\{2\\}-[0-9]\\{2\\} \\)" "\\1\\2")
                 (beginning-of-buffer)(vimorg-tag-adjust)
         (beginning-of-buffer) ))
 -----------------------------------------------------
