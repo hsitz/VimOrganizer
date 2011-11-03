@@ -6693,6 +6693,9 @@ function! OrgSetEmphasis( emph_char ) range
 endfunction
 
 function! s:OrgCustomTodoHighlights()
+    if !exists('g:org_todo_custom_highlights')
+        return
+    endif
     for item in keys(g:org_todo_custom_highlights)
         let d = g:org_todo_custom_highlights
         if has('gui_running')
@@ -6750,7 +6753,11 @@ function! OrgSetColors()
     "endfor
 
     "blank out foldcolumn
-    hi! FoldColumn guifg=bg guibg=bg 
+    if has('gui_running')
+        hi! FoldColumn guifg=bg guibg=bg 
+    else
+        hi! FoldColumn ctermfg=bg ctermbg=bg 
+    endif
     "ctermfg=bg ctermbg=bg
     "show text on SignColumn
     hi! SignColumn guibg=fg guibg=bg 
