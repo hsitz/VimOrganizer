@@ -120,6 +120,9 @@ if !exists('g:org_custom_column_options')
     let g:org_custom_column_options = ['%ITEM %15DEADLINE %35TAGS', '%ITEM %35TAGS'] 
 endif
 
+if !exists('g:org_command_for_emacsclient') && (has('unix') || has('macunix'))
+    let g:org_command_for_emacsclient = 'emacsclient'
+endif
 if !exists('g:org_custom_colors')
     let g:org_custom_colors=[]
 endif
@@ -6262,7 +6265,7 @@ function! s:OrgHasEmacsVar()
                 \ . "You should set this in your vimrc by including \n"
                \ . "a line like: \n\n"
                \ . "    let g:org_command_for_emacsclient=[put command to start emacs here] \n\n"
-               \ . "See :h vimorg-emacs-invoking for more info. \n\n"
+               \ . "See :h vimorg-emacs-setup for more info. \n\n"
                \ . "The call you attempted to Emacs will now be aborted.  \n"
                \ . "Revise your vimrc and restart Vim to use this feature.\n"
                \ . "==============================================\n"
