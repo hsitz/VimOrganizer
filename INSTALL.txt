@@ -55,6 +55,16 @@ advanced stuff.  Don't be afraid, install is simply and configuration
 is not hard.  Find Emacs here:
 http://www.gnu.org/software/emacs/
 
+Vimorg uses a variable, g:org_command_for_emacsclient, to hold the
+command that will start the emacsclient on your system.  If you are
+not on Linux or OSX you will need to set this explicitly in your
+vimrc file.  
+
+Also, please note that emacsclient works slightly differently on
+Windows and Linux/OSX systems.  You must manually start 
+Emacs on Linux/OSX or calls to emacsclient will not work.  Please see
+:h vimorg-emacs-setup
+
 For Emacs you should also install a hook function in the .emacs file,
 which will automatically make minor conversions when you export and/or
 open a VimOrganizer .org file in Emacs. You can find the text for that 
