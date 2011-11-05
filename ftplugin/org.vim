@@ -2831,11 +2831,11 @@ function! s:PlaceTimeGrid(marker)
     let grid = s:TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
     call search(a:marker)
     exec line('.')+1
-    if getline(line('.'))=~'\%20c\d\d:\d\d'
-        "put grid lines in and then sort with other time items
+    if getline(line('.'))=~'\%24c\d\d:\d\d'
+        "if, at least one time item put grid lines in and then sort with other time items
         let start = line('.')
         call append(line('.'),grid)
-        while (matchstr(getline(line('.')),'\%20c\d\d:\d\d'))
+        while (matchstr(getline(line('.')),'\%24c\d\d:\d\d'))
             if line('.') != line('$')
                 exec line('.')+1
                 let end = line('.')-1
@@ -2844,12 +2844,12 @@ function! s:PlaceTimeGrid(marker)
                 break
             endif
         endwhile
-        exec start.','.end.'sort /.*\%19c/'
+        exec start.','.end.'sort /.*\%23c/'
         " now delete duplicates where grid is same as actual entry
         exec end
         while line('.') >= start
-            let match1 = matchstr(getline(line('.')),'\%20c.*\%25c')
-            let match2 = matchstr(getline(line('.')-1),'\%20c.*\%25c')
+            let match1 = matchstr(getline(line('.')),'\%24c.*\%29c')
+            let match2 = matchstr(getline(line('.')-1),'\%24c.*\%29c')
             if match1 ==? match2
                 if match1[0] ==? ' '
                     normal ddk
@@ -3419,7 +3419,7 @@ endfunction
 function! s:TimeGrid(starthour,endhour,inc)
     let result = []
     for i in range(a:starthour, a:endhour,a:inc)
-        call add(result,repeat(' ',19).s:Pre0(i).':00......       ------------')
+        call add(result,repeat(' ',23).s:Pre0(i).':00......       ------------')
     endfor
     return result
 endfunction
@@ -6160,6 +6160,7 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
     syntax match Locator '^\d\+' conceal
+    syntax match TimeGridSpace '^ \{8}\ze *\d\d:\d\d' conceal
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
