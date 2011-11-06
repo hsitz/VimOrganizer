@@ -2979,7 +2979,7 @@ function! s:GetDateHeads(date1,count,...)
         let repeatlist = []
         let line = getline(line("."))
         let datematch = matchstr(line,'[[<]\d\d\d\d-\d\d-\d\d\ze')
-        let repeatmatch = matchstr(line, '<\d\d\d\d-\d\d-\d\d.*+\d\+\S\+.*>\ze')
+        let repeatmatch = matchstr(line, '<\d\d\d\d-\d\d-\d\d.*[ +.]+\d\+\S\+.*>\ze')
         if repeatmatch != ''
             " if date has repeater then call once for each repeat in period
             let repeatlist = s:RepeatMatch(repeatmatch[1:],date1,date2)
@@ -3153,7 +3153,7 @@ function! s:RepeatMatch(rptdate, date1, date2)
     if basedate > date1
         let date1 = basedate
     endif
-    let baserpt = matchstr(a:rptdate, '+\zs\S\+\ze.*>')
+    let baserpt = matchstr(a:rptdate, ' \S\S\S [.+ ]+\zs\S\+\ze.*>')
     let rptnum = matchstr(baserpt, '^\d\+')
     let rpttype = matchstr(baserpt, '^\d\+\zs.')
     let g:rptlist = []
@@ -4902,6 +4902,24 @@ function! s:SetProp(key, val,...)
         execute curwin . "wincmd w"
     endif
     call setpos(".",save_cursor)
+endfunction
+function! OrgCycleAgendaFiles(direction)
+    if !empty('g:agenda_files')
+        let cur_file = expand("%:p")
+        let ndx = index(g:agenda_files,cur_file) 
+        if ndx > -1
+            let ndx += (a:direction ==? 'backward') ? -1 : 1
+            let ndx = (ndx == len(g:agenda_files)) ? 0 : ndx 
+            let ndx = (ndx == -1) ? (len(g:agenda_files) - 1) : ndx 
+            let filename = g:agenda_files[ndx]
+        else
+            let filename = g:agenda_files[0]
+        endif
+        call s:LocateFile(filename)
+    else
+        echo "No agenda files defined."
+    endif
+    
 endfunction
 function! s:LocateFile(filename)
     let filename = a:filename
