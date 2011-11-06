@@ -6140,8 +6140,6 @@ function! s:AgendaBufHighlight()
 
     hi Dayline guifg=#44aa44 gui=underline
     hi Weekendline guifg=#55ee55 gui=underline
-    "syntax match Scheduled '\(Scheduled:\|\dX:\)\zs.*$'
-    "syntax match Deadline '\(Deadline:\|\d d.:\)\zs.*$'
   
    call s:AgendaHighlight()
     let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
@@ -6151,11 +6149,6 @@ function! s:AgendaBufHighlight()
     syntax match AOL3 ' \*\{3} .*$'
     syntax match AOL4 ' \*\{4} .*$'
     syntax match AOL5 ' \*\{5} .*$'
-    "call matchadd( 'AOL1', '\*\{1} .*$' )
-    "call matchadd( 'AOL2', '\*\{2} .*$') 
-    "call matchadd( 'AOL3', '\*\{3} .*$' )
-    "call matchadd( 'AOL4', '\*\{4} .*$' )
-    "call matchadd( 'AOL5', '\*\{5} .*$' )
     
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
@@ -6169,18 +6162,8 @@ function! s:AgendaBufHighlight()
     exec "syntax match DONETODO /" . donepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
     let notdonepat = ' \*\+ \zs\(' . join(keys(g:org_todos_notdone_dict),'\|') . '\) '
     exec "syntax match NOTDONETODO /" . notdonepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
-"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
-"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
-    "for item in keys(g:org_todos_done_dict)
-    "    call matchadd('DONETODO','^.*\* \zs' . item .' ')
-    "endfor
-    "for item in keys(g:org_todos_notdone_dict)
-    "    call matchadd('NOTDONETODO','^.*\* \zs' . item . ' ')
-    "endfor
+
     call s:OrgCustomTodoHighlights()
-    "for item in keys(g:org_todo_custom_highlights)
-    "    call matchadd(item, '^.*\* \zs' . item . ' ')
-    "endfor
     
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
 
