@@ -5707,12 +5707,12 @@ endfunction
 
 function! OrgFoldLevel(line)
     " called as foldexpr to determine the fold level of a line.
-    if exists('g:flist')
-        call add(g:flist,a:line)
-    endif
-    if g:org_folds == 0
-        return 0
-    endif
+    "if exists('g:flist')
+    "    call add(g:flist,a:line)
+    "endif
+    "if g:org_folds == 0
+    "    return 0
+    "endif
     " STUFF to short-circuit FOR SPARSE TREE LEVELS
     if exists('w:sparse_on') && w:sparse_on && (get(s:sparse_lines,a:line) == 1)
         if index(b:v.sparse_list,a:line+1) >= 0
@@ -5728,8 +5728,9 @@ function! OrgFoldLevel(line)
         endif
     endif
 
-    let l:text = getline(a:line)
-    let l:nexttext = getline(a:line + 1)
+    "let l:text = getline(a:line)
+    "let l:nexttext = getline(a:line + 1)
+    let [l:text, l:nexttext] = getline(a:line,a:line+1)
     "if l:text =~ b:v.headMatch
     if l:text =~ '^\*\+\s'
         let b:v.myAbsLevel = s:Ind(a:line)
