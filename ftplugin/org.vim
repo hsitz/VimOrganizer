@@ -393,8 +393,8 @@ function! OrgTodoSetup(todolist_str)
         if item_char ==# ''
             let item_char = tolower(item[0])
         endif
-        execute 'map <silent> <buffer> <localleader>t' . item_char . 
-                \  ' :call OrgSequenceTodo(line(''.''),''' . item_char . ''')<cr>'
+        "execute 'map <silent> <buffer> <localleader>t' . item_char . 
+        "        \  ' :call OrgSequenceTodo(line(''.''),''' . item_char . ''')<cr>'
     endfor
 "    map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
 "    map <silent> <buffer> <localleader><space> :call OrgSequenceTodo(line('.'))<cr>
@@ -843,13 +843,13 @@ function! OrgSequenceTodo(line,...)
         " get first word in line and its index in todoitems
         let tword = matchstr(linetext,'\*\+\s\+\zs\S\+\ze')
         if a:0 == 1
-            call s:ReplaceTodo(tword,newtodo)
+            call s:ReplaceTodo(newtodo)
         else
-            call s:ReplaceTodo(tword)
+            call s:ReplaceTodo()
         endif
     endif
 endfunction
-function! s:NewTodo(curtodo)
+function! s:NextTodo(curtodo)
     let curtodo = a:curtodo
     " check whether word is in todoitems and make appropriate
     " substitution
@@ -887,35 +887,147 @@ function! s:NewTodo(curtodo)
     endif
     return newtodo
 endfunction
+function! s:PreviousTodo(curtodo)
+    let curtodo = a:curtodo
+    " check whether word is in todoitems and make appropriate
+    " substitution
+    let j = -1
+    let newi = -1
+    let i = index(b:v.fulltodos,curtodo)
+    if i == -1 
+        let i = 0
+        while i < len(b:v.fulltodos)
+            if type(b:v.fulltodos[i]) == type([])
+                let j = index(b:v.fulltodos[i],curtodo)
+                if j > -1
+                    break
+                endif
+            endif
+            let i += 1
+        endwhile
+    endif
 
-function! s:ReplaceTodo(todoword,...)
+    "if i == len(b:v.fulltodos)-1
+    if i == 0
+        let newtodo = ''
+    else
+        if (i == len(b:v.fulltodos))
+            " not found, newtodo is index 0
+            let newi = len(b:v.fulltodos) - 1
+        elseif (i > 0) 
+            let newi = i-1
+        endif
+
+        if type(b:v.fulltodos[newi]) == type([])
+            let newtodo = b:v.fulltodos[newi][0]
+        else
+            let newtodo = b:v.fulltodos[newi]
+        endif
+    endif
+    return newtodo
+endfunction
+
+function! OrgTodoDashboard()
+    let save_cursor = getpos('.')
+    let save_window = winnr()
+    if bufname("%") ==? ('__Agenda__')
+        let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+        let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+        let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
+        let props = s:GetProperties(buffer_lineno, 0, file)
+    else
+        let props = s:GetProperties(line('.'),0)
+    endif
+    echohl MoreMsg
+    echo " ================================="
+    echo " Todos defined in this document are:"
+    echo "    " . join(b:v.fulltodos, ' ')
+    echo " ================================="
+    echo " Press key, for a todo command:"
+    echo " ---------------------------------"
+    echo " f (or n)  cycle current heading's todo Forward/Next"
+    echo " b (or p)  cycle current heading's todo Backward/Previous"
+    echo " t         mark current heading with initial 'unfinished' state"
+    echo " d         mark current heading with main 'finished' state"
+    if bufname("%") !=? ('__Agenda__')
+        let i = 1
+        for item in b:v.todoitems 
+            echo ' ' . i . '   mark current heading as ' . item
+            let i += 1
+        endfor
+    endif
+    echo " "
+    echohl Question
+    let key = nr2char(getchar())
+    redraw
+    exec s:OrgGetHead()
+    "let thisline = getline(line('.'))
+    "let curTodo = matchstr(thisline, '\*\+ \zs\S\+')
+    if key =~? 'f\|n'
+        call s:ReplaceTodo()
+    elseif key =~? 'b\|p'
+        call s:ReplaceTodo('todo-bkwd')
+    elseif key ==? 't'
+        call s:ReplaceTodo(b:v.todoitems[0])
+    elseif key ==? 'd'
+        let done_state = (type(b:v.fulltodos[-1])==type([])) ? b:v.fulltodos[-1][0] : b:v.fulltodos[-1]
+        call s:ReplaceTodo(done_state)
+    elseif key =~ '[1-9]'
+        call s:ReplaceTodo(b:v.todoitems[key-1])
+    else
+        echo "No todo action selected."
+    endif
+    echohl None
+    exe save_window . 'wincmd w'
+    call setpos('.',save_cursor)
+endfunction
+
+function! s:ReplaceTodo(...)
+    "a:1 would be newtodo word
     let save_cursor = getpos('.')
     if getline(line('.'))[0] == '*'
         exec s:OrgGetHead()
     endif
-    let todoword = a:todoword
-    if bufname("%") ==? ('__Agenda__')
+    let thisline = getline(line('.'))
+    if bufname("%") !=? '__Agenda__'
+        let todoword = matchstr(thisline, '\*\+ \zs\S\+')
+    else
         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
-        "let file = matchstr(getline(line('.')),'^\d\+\s*\zs\S\+').'.org'
+        " fulltodos needed for s:NewTodo()
         let b:v.fulltodos = getbufvar(file,'v').fulltodos
         let b:v.todoitems = getbufvar(file,'v').todoitems
+        let todoword = matchstr(thisline, '.* \*\+ \zs\S\+')
     endif
-    if a:0 == 1
-        let newtodo = a:1
+
+    if a:0 == 0
+        let newtodo = 'todo-fwd'
     else
-        let newtodo = s:NewTodo(todoword)
+        let newtodo = a:1
     endif
+    if newtodo == 'todo-fwd'
+        let newtodo = s:NextTodo(todoword)
+    elseif newtodo == 'todo-bkwd'
+        let newtodo = s:PreviousTodo(todoword)
+    else
+        let newtodo = a:1
+    endif
+
+    " if going to main done state check for repeater and change date if necessary
+    if  (bufnr("%") != bufnr('Agenda')) && (newtodo =~ b:v.todoDoneMatch[11:])
+        let newtodo = s:CheckDateRepeaterDone(todoword, newtodo)
+    endif
+
     if newtodo ># ''
         let newtodo .= ' '
     endif
     if (index(b:v.todoitems,todoword) >= 0) 
         if newtodo ># ''
             let newline = substitute(getline(line(".")),
-                        \ '\* ' . a:todoword.' ',
+                        \ '\* ' . todoword.' ',
                         \ '\* ' . newtodo,'g')
         else
             let newline = substitute(getline(line(".")),
-                        \ '\* ' . a:todoword.' ',
+                        \ '\* ' . todoword.' ',
                         \ '\* ' . '','g')
         endif
     else
@@ -924,21 +1036,57 @@ function! s:ReplaceTodo(todoword,...)
                     \ '\* ' . newtodo ,'g')
     endif
 
-    call setline(line("."),newline)
 
+    call setline(line("."),newline)
     if exists("*Org_after_todo_state_change_hook") && (bufnr("%") != bufnr('Agenda'))
         let Hook = function("Org_after_todo_state_change_hook")
         call Hook(line('.'),todoword,newtodo)
     endif
 
-    "if g:org_log_todos && (bufnr("%") != bufnr('Agenda'))
-     "   call OrgConfirmDrawer("LOGBOOK")
-     "   let str = ": - State: " . org#Pad(newtodo,10) . "   from: " . org#Pad(a:todoword,10) .
-     "               \ '    [' . sorg#Timestamp() . ']'
-     "   call append(line("."), repeat(' ',len(matchstr(getline(line(".")),'^\s*'))) . str)
-     "   execute s:OrgGetHead()
-    "endif
     call setpos('.',save_cursor)
+endfunction
+function! s:CheckDateRepeaterDone(state1,state2)
+    "check for date repeater on change of todo to done state
+    " and handle logging and resetting of date"
+    let newtodo = a:state2
+    let props = s:GetProperties(line('.'),0)
+    let repeat_pattern = '\d\d\d\d-\d\d-\d\d.*[ +.]+\d\+\S\+.*'
+    for dateprop in ['DEADLINE','SCHEDULED','TIMESTAMP']
+        let thisdate = get(props,dateprop)
+        if thisdate =~ repeat_pattern
+            "put in log note
+            call OrgConfirmDrawer("LOGBOOK")
+            let str = ":- State: " . printf('%.10s','"'.a:state2.'"') . "   from: " . printf('%.10s','"'.a:state1.'"') .
+                        \ '    [' . org#Timestamp() . ']'
+            call append(line("."), repeat(' ',len(matchstr(getline(line(".")),'^\s*'))) . str)
+            exec s:OrgGetHead()
+            let newtodo = b:v.todocycle[0]
+            "change date as appropriate
+            let basedate = matchstr(thisdate,'\d\d\d\d-\d\d-\d\d')
+            let cue = '+' . matchstr(thisdate,'+\d*[dwmy]')
+            if     thisdate =~ ' +\d*[dwmy]'
+                let newdate = DateCueResult(cue,basedate)
+            elseif thisdate =~ '\.+\d*[dwmy]'
+                let newdate = DateCueResult(cue,org#Timestamp()[0:9])
+            elseif thisdate =~ '++\d*[dwmy]'
+                let newdate = DateCueResult(cue,basedate)
+                let i = 0
+                while newdate < org#Timestamp()[0:9]
+                    if i == 9
+                        call confirm('Ten adjustments failed to bring to future date.')
+                        break
+                    endif
+                    let newdate = DateCueResult(cue,newdate)
+                    let i += 1
+                endwhile
+            endif
+            let mydow = calutil#dayname(newdate)
+            call s:SetProp(dateprop,'<' . newdate . ' ' . mydow . thisdate[14:] . '>')
+            " break as soon as one repeater is found
+            break
+        endif
+    endfor
+    return newtodo
 endfunction
 
 "Section Navigation Funcs
@@ -1887,7 +2035,7 @@ function! s:GetDateVals(line)
         if ltext =~ mtest1
             "let mymatch = matchlist(ltext, '.\{-}\(<\d\d\d\d-\d\d-\d\d\) \S\S\S\( \d\d:\d\d\)*')
             "let mydate = mymatch[1] . mymatch[2] . '>'
-            let mymatch = '^\s*\(:DEADLINE:\|:SCHEDULED:\|:CLOSED:\|<\)\s*\zs.*'
+            let mymatch = '^\s*\(:DEADLINE:\|:SCHEDULED:\|:CLOSED:\|:<\)\s*\zs.*'
             let mydate = matchstr(ltext,mymatch)
             let mydate = (mydate[0]=='<') ? mydate[1:-2] : mydate[:-2]
             if ltext =~ 'DEADLINE'
@@ -3636,9 +3784,9 @@ function! OrgAgendaGetText(...)
 
             if cycle_todo
                 if a:0 >= 2
-                    call s:ReplaceTodo(curTodo,newtodo)
+                    call s:ReplaceTodo(newtodo)
                 else
-                    call s:ReplaceTodo(curTodo)
+                    call s:ReplaceTodo()
                 endif
                 normal V
                 redraw
@@ -3686,9 +3834,9 @@ function! OrgAgendaGetText(...)
     call setpos(".",save_cursor)
     if cycle_todo
         if a:0 >= 2
-            call s:ReplaceTodo(curTodo, newtodo)
+            call s:ReplaceTodo(newtodo)
         else
-            call s:ReplaceTodo(curTodo)
+            call s:ReplaceTodo()
         endif
         echo "Todo cycled."
     endif
@@ -7163,7 +7311,9 @@ amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
 amenu &Org.&Table.$Table\ Dashboard<tab>,b :call OrgTableDashboard()<cr>
 amenu &Org.&Table.E$valuate\ Table<tab>,v :call OrgTableDashboard()<cr>
 amenu &Org.-Sep3- :
-amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+amenu <silent> &Org.TODO\ &Dashboard<tab>,t :call OrgTodoDashboard()<CR>
+amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo()<CR>
+"amenu <silent> &Org.TODO\ Cycle\ &Backward<tab><c-s-cr> :call <SID>ReplaceTodo('todo-bkwd')<CR>
 amenu &Org.Edit\ TA&GS<tab>,et  :call OrgTagsEdit()<cr>
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Deadline<tab>,dd :call OrgDateEdit('DEADLINE')<cr>
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Scheduled<tab>,ds :call OrgDateEdit('SCHEDULED')<cr>
@@ -7235,9 +7385,12 @@ function! MenuCycle()
     call OrgCycle()
 endfunction
 
-nmap <silent> <buffer> <s-CR>    :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
+nmap <silent> <buffer> <s-CR>    :call <SID>ReplaceTodo()<CR>
+" c-s-cr already taken
+"nmap <silent> <buffer> <c-s-CR>    :call <SID>ReplaceTodo('todo-bkwd')<CR>
 if !has('gui_running')
-    nmap <silent> <buffer> <localleader>nt   :call <SID>ReplaceTodo(matchstr(getline(line('.')),'^\*\+ \zs\S\+\ze '))<CR>
+    nmap <silent> <buffer> <localleader>nt   :call <SID>ReplaceTodo()<CR>
 endif
 execute "source " . expand("<sfile>:p:h") . '/vimorg-main-mappings.vim'
 
