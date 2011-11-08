@@ -934,9 +934,13 @@ function! OrgTodoDashboard()
         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
         let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
+        let b:v.todoitems = getbufvar(file,'v').todoitems
         let props = s:GetProperties(buffer_lineno, 0, file)
+        let Replace_func = function('s:AgendaReplaceTodo')
     else
+        exec s:OrgGetHead()
         let props = s:GetProperties(line('.'),0)
+        let Replace_func = function('s:ReplaceTodo')
     endif
     echohl MoreMsg
     echo " ================================="
@@ -949,31 +953,31 @@ function! OrgTodoDashboard()
     echo " b (or p)  cycle current heading's todo Backward/Previous"
     echo " t         mark current heading with initial 'unfinished' state"
     echo " d         mark current heading with main 'finished' state"
-    if bufname("%") !=? ('__Agenda__')
+    "if bufname("%") !=? ('__Agenda__')
         let i = 1
         for item in b:v.todoitems 
             echo ' ' . i . '   mark current heading as ' . item
             let i += 1
         endfor
-    endif
+    "endif
     echo " "
     echohl Question
     let key = nr2char(getchar())
     redraw
-    exec s:OrgGetHead()
     "let thisline = getline(line('.'))
     "let curTodo = matchstr(thisline, '\*\+ \zs\S\+')
+    
     if key =~? 'f\|n'
-        call s:ReplaceTodo()
+        call Replace_func()
     elseif key =~? 'b\|p'
-        call s:ReplaceTodo('todo-bkwd')
+        call Replace_func('todo-bkwd')
     elseif key ==? 't'
-        call s:ReplaceTodo(b:v.todoitems[0])
+        call Replace_func(b:v.todoitems[0])
     elseif key ==? 'd'
         let done_state = (type(b:v.fulltodos[-1])==type([])) ? b:v.fulltodos[-1][0] : b:v.fulltodos[-1]
-        call s:ReplaceTodo(done_state)
+        call Replace_func(done_state)
     elseif key =~ '[1-9]'
-        call s:ReplaceTodo(b:v.todoitems[key-1])
+        call Replace_func(b:v.todoitems[key-1])
     else
         echo "No todo action selected."
     endif
@@ -981,7 +985,35 @@ function! OrgTodoDashboard()
     exe save_window . 'wincmd w'
     call setpos('.',save_cursor)
 endfunction
+function! s:AgendaReplaceTodo(...)
+    " wrapper to call OrgAgendaGetText to do todo operation
+    "  OrgAgendaGetText does double duty (needs to be
+    "  refactored) and both retrieves text from main buffer
+    "  and handles todo replacements
+    if bufname('%') != '__Agenda__'
+        echo "Not in agenda, can't use AgendaReplaceTodo"
+        return
+    endif
 
+    let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+    let b:v.fulltodos = getbufvar(file,'v').fulltodos
+    let b:v.todoitems = getbufvar(file,'v').todoitems
+    let todoword = matchstr(getline(line('.')), '.* \*\+ \zs\S\+')
+    if a:0 == 0
+        let newtodo = 'todo-fwd'
+    else
+        let newtodo = a:1
+    endif
+    if newtodo == 'todo-fwd'
+        let newtodo = s:NextTodo(todoword)
+    elseif newtodo == 'todo-bkwd'
+        let newtodo = s:PreviousTodo(todoword)
+    else
+        let newtodo = a:1
+    endif
+    call OrgAgendaGetText(1,newtodo)
+
+endfunction
 function! s:ReplaceTodo(...)
     "a:1 would be newtodo word
     let save_cursor = getpos('.')
@@ -1016,6 +1048,7 @@ function! s:ReplaceTodo(...)
     if  (bufnr("%") != bufnr('Agenda')) && (newtodo =~ b:v.todoDoneMatch[11:])
         let newtodo = s:CheckDateRepeaterDone(todoword, newtodo)
     endif
+    let s:last_newtodo = newtodo    " used to set agenda line in next pass from agenda
 
     if newtodo ># ''
         let newtodo .= ' '
@@ -1071,7 +1104,7 @@ function! s:CheckDateRepeaterDone(state1,state2)
             elseif thisdate =~ '++\d*[dwmy]'
                 let newdate = DateCueResult(cue,basedate)
                 let i = 0
-                while newdate < org#Timestamp()[0:9]
+                while newdate <= org#Timestamp()[0:9]
                     if i == 9
                         call confirm('Ten adjustments failed to bring to future date.')
                         break
@@ -1083,6 +1116,7 @@ function! s:CheckDateRepeaterDone(state1,state2)
             let mydow = calutil#dayname(newdate)
             call s:SetProp(dateprop,'<' . newdate . ' ' . mydow . thisdate[14:] . '>')
             " break as soon as one repeater is found
+            call confirm('Repeater date: entering log and resetting date.')
             break
         endif
     endfor
@@ -2822,6 +2856,7 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> ,r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
     "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
     "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
     "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
@@ -3780,7 +3815,25 @@ function! OrgAgendaGetText(...)
             endif
             let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.confirmhead)
             let newhead = s:OrgGetHead_l(newhead)
+            " HIGHLIGHt the headline ***************************
+            "set foldlevel=1
             execute newhead
+            "normal! zv
+            "if getline(line('.')) =~ b:v.headMatch
+            "    "restrict to headings only
+            "    call s:OrgExpandSubtree(newhead,0)
+            "endif
+            "normal! z.
+            "normal V
+            "redraw
+            ""sleep 100m
+            "normal V
+            "let b:v.chosen_agenda_heading = s:OrgGetHead()
+            "call clearmatches()
+            "let headlevel = s:Ind(b:v.chosen_agenda_heading)
+            "let headlevel = (headlevel > 6) ? '' : headlevel-1
+            "call matchadd('Org_Chosen_Agenda_Heading' . headlevel,'\%' . b:v.chosen_agenda_heading .'l')
+            " ****************************
 
             if cycle_todo
                 if a:0 >= 2
@@ -3834,13 +3887,14 @@ function! OrgAgendaGetText(...)
     call setpos(".",save_cursor)
     if cycle_todo
         if a:0 >= 2
-            call s:ReplaceTodo(newtodo)
+            call s:ReplaceTodo(s:last_newtodo)
         else
-            call s:ReplaceTodo()
+            call s:ReplaceTodo(s:last_newtodo)
         endif
         echo "Todo cycled."
     endif
-
+    " now switch back quickly and highlight in main buffer
+    :AgendaMoveToBuf
 endfunction
 
 function! s:IsVisibleHeading(line)
@@ -5739,11 +5793,11 @@ function! s:OrgAgendaToBuf()
         "restrict to headings only
         call s:OrgExpandSubtree(g:showndx,0)
     endif
-    normal! z.
-    normal V
-    redraw
-    sleep 100m
-    normal V
+    "normal! z.
+    "normal V
+    "redraw
+    "sleep 100m
+    "normal V
     let b:v.chosen_agenda_heading = s:OrgGetHead()
     call clearmatches()
     let headlevel = s:Ind(b:v.chosen_agenda_heading)
