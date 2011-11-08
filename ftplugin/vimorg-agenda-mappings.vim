@@ -20,6 +20,7 @@
     nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
     nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
     nnoremap <silent> <buffer> <localleader>d  :call OrgDateDashboard()<cr>
+    nnoremap <silent> <buffer> <localleader>t  :call OrgTodoDashboard()<cr>
     "nnoremap <silent> <buffer> q  :sign unplace * | quit<cr>
     nnoremap <silent> <buffer> q  :call OrgQuitAgenda()<cr>
 function! OrgQuitAgenda()

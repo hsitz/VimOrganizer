@@ -332,6 +332,7 @@ endfunction
         
 function! OrgTodoSetup(todolist_str)
     let todolist = OrgTodoConvert(a:todolist_str)
+    let b:v.todo_setup = a:todolist_str
     "set up list and patterns for use throughout
     let b:v.todoitems=[]
     let b:v.todo_first_letters = ''
@@ -935,6 +936,7 @@ function! OrgTodoDashboard()
         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
         let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
         let b:v.todoitems = getbufvar(file,'v').todoitems
+        let b:v.todo_setup = getbufvar(file,'v').todo_setup
         let props = s:GetProperties(buffer_lineno, 0, file)
         let Replace_func = function('s:AgendaReplaceTodo')
     else
@@ -945,9 +947,9 @@ function! OrgTodoDashboard()
     echohl MoreMsg
     echo " ================================="
     echo " Todos defined in this document are:"
-    echo "    " . join(b:v.fulltodos, ' ')
+    echo "    " . b:v.todo_setup
     echo " ================================="
-    echo " Press key, for a todo command:"
+    echo " Press key for a todo command:"
     echo " ---------------------------------"
     echo " f (or n)  cycle current heading's todo Forward/Next"
     echo " b (or p)  cycle current heading's todo Backward/Previous"
@@ -2809,7 +2811,7 @@ function! OrgRunSearch(search_spec,...)
     let g:agenda_date_dict={}
     if !exists("g:agenda_files") || (g:agenda_files == [])
         if has('dialog_con') || has('dialog_gui')
-            call confirm("No agenda files defined.  Will add current file to agenda files.")
+            unsilent call confirm("No agenda files defined.  Will add current file to agenda files.")
         endif
         call s:CurfileAgenda()
     endif
@@ -3063,7 +3065,7 @@ function! OrgRunAgenda(date,count,...)
 
     endif   
     if !exists("g:agenda_files") || (g:agenda_files == [])
-        call confirm("No agenda files defined.  Will add current file to agenda files.")
+        unsilent call confirm("No agenda files defined.  Will add current file to agenda files.")
         call s:CurfileAgenda()
     endif
     if exists('b:v.sparse_list') && (len(b:v.sparse_list) > 0)
@@ -3094,17 +3096,17 @@ function! OrgRunAgenda(date,count,...)
     let b:v.fulltodos = fulltodos
     silent exe '%d'
     set nowrap
-    map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    map <silent> <buffer> vt :call OrgRunAgenda(strftime("%Y-%m-%d"), 'd',g:org_search_spec)<CR>
-    map <silent> <buffer> vd :call OrgRunAgenda(g:agenda_startdate, 'd',g:org_search_spec,g:agenda_startdate)<CR>
-    map <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 'w',g:org_search_spec)<CR>
-    map <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 'm',g:org_search_spec)<CR>
-    map <silent> <buffer> vy :call OrgRunAgenda(g:agenda_startdate, 'y',g:org_search_spec)<CR>
-    map <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
-    map <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
-    map <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
-    map <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
+    nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
+    nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
+    nmap <silent> <buffer> vt :call OrgRunAgenda(strftime("%Y-%m-%d"), 'd',g:org_search_spec)<CR>
+    nmap <silent> <buffer> vd :call OrgRunAgenda(g:agenda_startdate, 'd',g:org_search_spec,g:agenda_startdate)<CR>
+    nmap <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 'w',g:org_search_spec)<CR>
+    nmap <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 'm',g:org_search_spec)<CR>
+    nmap <silent> <buffer> vy :call OrgRunAgenda(g:agenda_startdate, 'y',g:org_search_spec)<CR>
+    nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
+    nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
+    nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
+    nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
     "nmap <silent> <buffer> r :call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)<CR>
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
@@ -4780,7 +4782,7 @@ function! s:GetOpenClock()
     let found_line = 0
     let file = ''
     if !exists('g:agenda_files') || (g:agenda_files == [])
-        call confirm("No agenda files defined, will search only this buffer for open clocks.")
+        unsilent call confirm("No agenda files defined, will search only this buffer for open clocks.")
         let found = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
     else
         let g:in_agenda_search = 1
@@ -6911,8 +6913,8 @@ function! s:OrgCustomTodoHighlights()
             let bg = get(d[item], 'guibg')
             exec 'hi! ' . item . ((fg>#'')  ? ' guifg=' . fg : '') . ((bg>#'') ? ' guibg=' . bg : '')
         else
-            let fg = get(d[item], 'guifg')
-            let bg = get(d[item], 'guibg')
+            let fg = get(d[item], 'ctermfg')
+            let bg = get(d[item], 'ctermfg')
             exec 'hi! ' . item . ((fg>#'')  ? ' ctermfg=' . fg : '') . ((bg>#'') ? ' ctermbg=' . bg : '')
         endif
 
@@ -7028,7 +7030,7 @@ function! OrgSetColors()
         endif
         exec 'hi! Org_Chosen_Agenda_Heading' . i . ' ' . hlstring
     endfor
-    hi! Org_Chosen_Agenda_Heading guibg=#444444
+    hi! Org_Chosen_Agenda_Heading guibg=#444444 ctermbg=gray
 endfunction
 autocmd ColorScheme  * :silent! call OrgSetColors()
 call OrgSetColors()
