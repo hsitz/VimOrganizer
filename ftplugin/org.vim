@@ -2789,12 +2789,9 @@ function! OrgRunSearch(search_spec,...)
     endif   
 
     try
-    "if bufname('%') ==? '__Agenda__'
-        "wincmd k
-        "bwipeout __Agenda__
-    "endif
+
     if bufnr('__Agenda__') >= 0
-        bwipeout __Agenda__
+        "bwipeout __Agenda__
     endif
 
     let g:agenda_head_lookup={}
@@ -2840,7 +2837,7 @@ function! s:ResultsToAgenda( search_type )
     let todoMatch = b:v.todoMatch
     let fulltodos = b:v.fulltodos
     if bufnr('__Agenda__') >= 0
-        bwipeout __Agenda__
+        "bwipeout __Agenda__
     endif
     :AAgenda
     let b:v={}
@@ -2849,7 +2846,7 @@ function! s:ResultsToAgenda( search_type )
     let b:v.todoDoneMatch = todoDoneMatch
     let b:v.todoMatch = todoMatch
     let b:v.fulltodos = fulltodos
-    %d
+    "%d
     set nowrap
     map <buffer> <silent> <tab> :call OrgAgendaGetText()<CR>
     map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
@@ -2859,9 +2856,9 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
     nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
-    nmap <silent> <buffer> <s-right>    :call <SID>AgendaReplaceTodo()<CR>
+    nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
     " c-s-cr already taken
-    nmap <silent> <buffer> <s-left>    :call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
+    nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
     "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
     "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
     "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
@@ -2870,7 +2867,7 @@ function! s:ResultsToAgenda( search_type )
     "wincmd J
     let i = 0
     call s:ADictPlaceSigns()
-    call setline(line('$')+1, ["Headlines matching search spec: ".g:org_search_spec,''])
+    call setline(line('$'), ["Headlines matching search spec: ".g:org_search_spec,''])
     if a:search_type ==? 'agenda_todo'
         let msg = "Press num to redo search: "
         let numstr= ''
@@ -2881,7 +2878,7 @@ function! s:ResultsToAgenda( search_type )
             let numstr .= '('.num.')'.item.'  '
             execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
         endfor
-        call append(1,split(msg.numstr,'\%72c\S*\zs '))
+        call append(line('$'),split(msg.numstr,'\%72c\S*\zs '))
     endif
     for key in sort(keys(g:adict))
         call setline(line("$")+1, key . ' ' . 
@@ -2989,7 +2986,7 @@ function! s:DateDictToScreen()
                 \ . ' matching FILTER: ' . search_spec  )
                 "\ . ' with SearchSpec=' . search_spec  )
     call add(message,'')
-    call setline(line('$')+1,message)
+    call setline(line('$'),message)
     call s:DateDictPlaceSigns()
     let gap = 0
     let mycount = len(keys(g:agenda_date_dict)) 
@@ -3115,7 +3112,7 @@ function! s:SetupDateAgendaWin()
     let todoMatch = b:v.todoMatch
     let fulltodos = b:v.fulltodos
     if bufnr('__Agenda__') >= 0
-        bwipeout __Agenda__
+        "bwipeout __Agenda__
     endif
     :AAgenda
     let b:v={}
@@ -3124,7 +3121,7 @@ function! s:SetupDateAgendaWin()
     let b:v.todoDoneMatch = todoDoneMatch
     let b:v.todoMatch = todoMatch
     let b:v.fulltodos = fulltodos
-    silent exe '%d'
+    "silent exe '%d'
     set nowrap
     nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
