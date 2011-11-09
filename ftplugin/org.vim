@@ -946,7 +946,7 @@ function! OrgTodoDashboard()
     endif
     echohl MoreMsg
     echo " ================================="
-    echo " Todos defined in this document are:"
+    echo " Todos defined in this " . (bufname("%") ==? ('__Agenda__') ? "heading's" : "" ) . " document are:"
     echo "    " . b:v.todo_setup
     echo " ================================="
     echo " Press key for a todo command:"
@@ -2758,7 +2758,7 @@ function! s:MakeAgenda(date,count,...)
     for file in g:agenda_files
         call s:LocateFile(file)
         let b:v.org_dict = {}
-        " only do CATEGORIES for dict if no search spec
+        " just do CATEGORIES for dict if no search spec
         if g:org_search_spec ==# ''
             call OrgMakeDictInherited()
         else
@@ -2859,6 +2859,9 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
     nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
+    nmap <silent> <buffer> <s-right>    :call <SID>AgendaReplaceTodo()<CR>
+    " c-s-cr already taken
+    nmap <silent> <buffer> <s-left>    :call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
     "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
     "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
     "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
@@ -2867,7 +2870,7 @@ function! s:ResultsToAgenda( search_type )
     "wincmd J
     let i = 0
     call s:ADictPlaceSigns()
-    call setline(1, ["Headlines matching search spec: ".g:org_search_spec,''])
+    call setline(line('$')+1, ["Headlines matching search spec: ".g:org_search_spec,''])
     if a:search_type ==? 'agenda_todo'
         let msg = "Press num to redo search: "
         let numstr= ''
@@ -2986,7 +2989,7 @@ function! s:DateDictToScreen()
                 \ . ' matching FILTER: ' . search_spec  )
                 "\ . ' with SearchSpec=' . search_spec  )
     call add(message,'')
-    call setline(1,message)
+    call setline(line('$')+1,message)
     call s:DateDictPlaceSigns()
     let gap = 0
     let mycount = len(keys(g:agenda_date_dict)) 
@@ -3079,6 +3082,33 @@ function! OrgRunAgenda(date,count,...)
     else
         call s:MakeAgenda(a:date,a:count)
     endif
+    call s:SetupDateAgendaWin()
+    "we are no in newly created agenda buf/window
+    
+    for key in keys(g:agenda_date_dict)
+        call sort(g:agenda_date_dict[key].l, 's:AgendaCompare')
+    endfor
+    call s:DateDictToScreen()
+    if win >= 0
+        let year = matchstr(t:agenda_date,'\d\d\d\d')
+        let month = matchstr(t:agenda_date,'\d-\zs\d\d\ze-')
+        execute 'Calendar ' . year .' '. str2nr(month) 
+        execute bufwinnr('Agenda').'wincmd w'
+    endif
+    " rigamarole to get status line window, if any, back to zero height
+    let curheight=winheight(0)
+    wincmd k
+    resize
+    wincmd j
+    execute 1
+    execute 'resize ' . curheight   
+
+    finally
+        "set mouseshape-=n:busy,v:busy,i:busy
+    endtry
+
+endfunction
+function! s:SetupDateAgendaWin()
     let todos = b:v.todoitems
     let todoNotDoneMatch = b:v.todoNotDoneMatch
     let todoDoneMatch = b:v.todoDoneMatch
@@ -3112,31 +3142,8 @@ function! OrgRunAgenda(date,count,...)
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
     command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
-
-    "wincmd J
-    for key in keys(g:agenda_date_dict)
-        call sort(g:agenda_date_dict[key].l, 's:AgendaCompare')
-    endfor
-    call s:DateDictToScreen()
-    if win >= 0
-        let year = matchstr(t:agenda_date,'\d\d\d\d')
-        let month = matchstr(t:agenda_date,'\d-\zs\d\d\ze-')
-        execute 'Calendar ' . year .' '. str2nr(month) 
-        execute bufwinnr('Agenda').'wincmd w'
-    endif
-    " rigamarole to get status line window, if any, back to zero height
-    let curheight=winheight(0)
-    wincmd k
-    resize
-    wincmd j
-    execute 1
-    execute 'resize ' . curheight   
-
-    finally
-        "set mouseshape-=n:busy,v:busy,i:busy
-    endtry
-
 endfunction
+
 function! OrgRefreshCalendarAgenda()
     let g:org_search_spec = matchstr(getline(5),'FILTER:\s*\zs.*$')
     if g:org_search_spec =~ '\c^None'
@@ -3817,25 +3824,8 @@ function! OrgAgendaGetText(...)
             endif
             let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.confirmhead)
             let newhead = s:OrgGetHead_l(newhead)
-            " HIGHLIGHt the headline ***************************
-            "set foldlevel=1
+            
             execute newhead
-            "normal! zv
-            "if getline(line('.')) =~ b:v.headMatch
-            "    "restrict to headings only
-            "    call s:OrgExpandSubtree(newhead,0)
-            "endif
-            "normal! z.
-            "normal V
-            "redraw
-            ""sleep 100m
-            "normal V
-            "let b:v.chosen_agenda_heading = s:OrgGetHead()
-            "call clearmatches()
-            "let headlevel = s:Ind(b:v.chosen_agenda_heading)
-            "let headlevel = (headlevel > 6) ? '' : headlevel-1
-            "call matchadd('Org_Chosen_Agenda_Heading' . headlevel,'\%' . b:v.chosen_agenda_heading .'l')
-            " ****************************
 
             if cycle_todo
                 if a:0 >= 2
@@ -5914,9 +5904,9 @@ function! OrgFoldLevel(line)
     "if exists('g:flist')
     "    call add(g:flist,a:line)
     "endif
-    "if g:org_folds == 0
-    "    return 0
-    "endif
+    if g:org_folds == 0
+        return 0
+    endif
     " STUFF to short-circuit FOR SPARSE TREE LEVELS
     if exists('w:sparse_on') && w:sparse_on && (get(s:sparse_lines,a:line) == 1)
         if index(b:v.sparse_list,a:line+1) >= 0
@@ -6389,6 +6379,9 @@ function! s:AgendaBufHighlight()
     call s:OrgCustomTodoHighlights()
     
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
+    nmap <silent> <buffer> <s-right>    :call <SID>AgendaReplaceTodo()<CR>
+    " c-s-cr already taken
+    nmap <silent> <buffer> <s-left>    :call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
 
 endfunction
 function! s:AgendaHighlight()
@@ -7019,10 +7012,15 @@ function! OrgSetColors()
 
     call s:OrgCustomTodoHighlights()
 
-    " this for block and line after set highlights for headings in main
+    " below is for block and line after set highlights for headings in main
     " buffer when they're selected in Agenda.  Used in OrgFoldText().
     for i in range(1,5)
         let hlstring = org#GetGroupHighlight('OL' . i)
+        if hlstring =~ 'ctermbg'
+            let hlstring = substitute(hlstring,'ctermbg=\S+','ctermbg=gray','')
+        else
+            let hlstring = hlstring . ' ctermbg=gray'
+        endif
         if hlstring =~ 'guibg'
             let hlstring = substitute(hlstring,'guibg=\S+','guibg=#444444','')
         else
@@ -7443,8 +7441,9 @@ endfunction
 
 nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
 nmap <silent> <buffer> <s-CR>    :call <SID>ReplaceTodo()<CR>
+nmap <silent> <buffer> <s-right>    :call <SID>ReplaceTodo()<CR>
 " c-s-cr already taken
-"nmap <silent> <buffer> <c-s-CR>    :call <SID>ReplaceTodo('todo-bkwd')<CR>
+nmap <silent> <buffer> <s-left>    :call <SID>ReplaceTodo('todo-bkwd')<CR>
 if !has('gui_running')
     nmap <silent> <buffer> <localleader>nt   :call <SID>ReplaceTodo()<CR>
 endif
