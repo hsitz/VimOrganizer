@@ -204,24 +204,35 @@ function! CustomSearchesSetup()
                 \    { 'name':"Next week's agenda", 'type':'agenda', 
                 \                'agenda_date':'+1w','agenda_duration':'w'}
                 \    ,{ 'name':"Next week's TODOS", 'type':'agenda', 
-                \                'agenda_date':'+1w','agenda_duration':'w','spec'='+UNFINISHED_TODOS'}
+                \                'agenda_date':'+1w','agenda_duration':'w','spec':'+UNFINISHED_TODOS'}
                 \    , { 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
                 \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
+                \    , [ { 'name':"Next week's agenda", 'type':'agenda', 
+                \                'agenda_date':'+1w','agenda_duration':'w'}
+                \        ,{ 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
+                \      ]   
                 \           ]
 endfunction
 function! RunCustom(searchnum)
-    let mydict = g:org_custom_searches[a:searchnum]
-    if mydict.type ==? 'agenda'
-        call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
-                        \  get(mydict, 'agenda_duration', 'w'),
-                        \  get(mydict, 'spec','')  )
-    elseif mydict.type ==? 'sparse_tree'
-        call OrgRunSearch( mydict.spec, 1 )
-    elseif mydict.type ==? 'sparse_tree_regex'
-        silent call s:SparseTreeRun(mydict.spec)
-    elseif mydict.type ==? 'heading_list'
-        call OrgRunSearch( mydict.spec )
+    if type(g:org_custom_searches[a:searchnum]) == type({})
+        let search_list = [ g:org_custom_searches[a:searchnum] ]
+    else
+        let search_list = g:org_custom_searches[a:searchnum] 
     endif
+    for item in search_list
+        let mydict = item
+        if mydict.type ==? 'agenda'
+            call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
+                            \  get(mydict, 'agenda_duration', 'w'),
+                            \  get(mydict, 'spec','')  )
+        elseif mydict.type ==? 'sparse_tree'
+            call OrgRunSearch( mydict.spec, 1 )
+        elseif mydict.type ==? 'sparse_tree_regex'
+            silent call s:SparseTreeRun(mydict.spec)
+        elseif mydict.type ==? 'heading_list'
+            call OrgRunSearch( mydict.spec )
+        endif
+    endfor
 endfunction
 "Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
@@ -6233,9 +6244,17 @@ function! OrgCustomSearchMenu()
         echo " ----------------------------------"
         let i = 1
         for item in g:org_custom_searches
-            "echo '   (' . i . ') ' . item.name . '  ' . item.type 
-            echo printf(" (%d) %-25s %10s", i, item.name, item.type )
+            if type(item)==type({})
+                echo printf(" (%d) %-25s %10s", i, item.name, item.type )
+            elseif type(item) == type([])
+                echo printf(" (%d) %-25s %10s", i, item[0].name, item[0].type )
+                for each in item[1:]
+                    "echo printf(" (%d) %-25s %10s", i, each.name, each.type )
+                    echo printf("    + %-25s %10s", each.name, each.type )
+                endfor
+            endif
             let i += 1
+            unlet item
         endfor
         echo " "
         let key = nr2char(getchar())
@@ -6307,6 +6326,9 @@ function! OrgAgendaDashboard()
             exec save_win . 'wincmd w'
         endif
         try
+            if key =~ '[tTaALcCmM]' && bufnr('__Agenda__') >= 0
+                bwipeout __Agenda__
+            endif
             if key ==? 't'
                 silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
             elseif key ==? 'a'
