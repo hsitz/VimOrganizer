@@ -75,3 +75,18 @@ function! org#GetGroupHighlight(group)
 
 endfunction
 
+function! org#ISODateToYWD(date)
+    "returns y,w,d which are iso week spec for date
+    let date = a:date
+    "let d = 1 + ((calutil#dow(date) + 4) % 7)
+    let d = 1 + calutil#dow(date)
+    let jul_nThur = calutil#jul(date) + 4 - d
+    let y = calutil#cal(jul_nThur)[0:3]
+    let julJan1 = calutil#jul(date[0:3] . '-01-01')
+    let w = 1 + ((jul_nThur - julJan1) / 7)
+    return [y,w,d]
+endfunction
+    
+    
+
+

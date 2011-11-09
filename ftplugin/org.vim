@@ -1119,7 +1119,7 @@ function! s:CheckDateRepeaterDone(state1,state2)
                 let i = 0
                 while newdate <= org#Timestamp()[0:9]
                     if i == 9
-                        call confirm('Ten adjustments failed to bring to future date.')
+                        unsilent call confirm('Ten adjustments failed to bring to future date.')
                         break
                     endif
                     let newdate = DateCueResult(cue,newdate)
@@ -1129,7 +1129,7 @@ function! s:CheckDateRepeaterDone(state1,state2)
             let mydow = calutil#dayname(newdate)
             call s:SetProp(dateprop,'<' . newdate . ' ' . mydow . thisdate[14:] . '>')
             " break as soon as one repeater is found
-            call confirm('Repeater date: entering log and resetting date.')
+            unsilent call confirm('Repeater date: entering log and resetting date.')
             break
         endif
     endfor
@@ -2988,16 +2988,34 @@ function! s:DateDictPlaceSigns()
 endfunction
 
 function! s:DateDictToScreen()
-    let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
-                \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
-                \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
+    "let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
+    "            \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
+    "            \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
     let search_spec = g:org_search_spec ># '' ? g:org_search_spec : 'None - include all heads'
-    call add(message,"Agenda view for " . g:agenda_startdate 
-                \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
-                \ . ' matching FILTER: ' . search_spec  )
-                "\ . ' with SearchSpec=' . search_spec  )
-    call add(message,'')
-    call setline(line('$'),message)
+    let d = g:org_agenda_days
+    let start_week = 'W' . org#ISODateToYWD(g:agenda_startdate)[1]
+    let end_date = calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
+    let end_week = 'W' . org#ISODateToYWD(end_date)[1]
+    if d==1                |  let type = 'Day-agenda (' . start_week . '):'
+    elseif d==7            |  let type = 'Week-agenda (' . start_week . '):'
+    elseif (d>27 && d<32)  | let type = 'Month-agenda (' . start_week . '-' . end_week . '):'
+    elseif (d>364 && d<366) | let type = 'Year-agenda:'
+    else                   | let type = 'Agenda:'
+    endif
+
+    let cur_start = search('^\(Agenda:\|\S\+-agenda\)','cnw','')
+    if cur_start > 0
+        exec cur_start
+        let cur_end = search('^=\{22}','cn','')
+        let cur_end = (cur_end==0) ? line('$') : cur_end
+        exec cur_start . ',' . cur_end . 'd'
+    endif
+    "call add(message,"Agenda view for " . g:agenda_startdate 
+    "            \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
+    "            \ . ' matching FILTER: ' . search_spec  )
+    "call add(message,'')
+    "call setline(line('$'),message)
+    call setline(line('$'),type)
     call s:DateDictPlaceSigns()
     let gap = 0
     let mycount = len(keys(g:agenda_date_dict)) 
@@ -4340,7 +4358,7 @@ function! OrgDateDashboard()
     elseif key ==? 't'
         call OrgDateEdit('TIMESTAMP')
     elseif key ==? 'g'
-        call OrgGenericDateEdit()
+        call OrgDateEdit('ATCURSOR')
     else
         echo "No date command selected."
     endif
@@ -4349,47 +4367,8 @@ function! OrgDateDashboard()
     call setpos('.',save_cursor)
 endfunction
 
-function! OrgGenericDateEdit()
-    " edit date at cursor, not necessarily any specific type
-    let save_cursor = getpos('.')
-    let old_cal_navi = g:calendar_navi
-    unlet g:calendar_navi
-    try
-        let my_date = GetDateSpecAtCursor()
-        let orig_date = matchstr( my_date, '[[<]\zs\d\d\d\d-\d\d-\d\d' )
-        let orig_time = matchstr( my_date, '[[<]\d\d\d\d-\d\d-\d\d ... \zs\d\d:\d\d' )
-
-        if matchstr(my_date,'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
-           call confirm("Date has a repeater.  Please edit by hand.")
-           return
-        endif
-
-        let cal_result = CalEdit(orig_date, orig_time)
-
-        " put new date into text
-        call setpos('.', save_cursor)
-        if cal_result =~ '^.\d\d\d\d-\d\d'
-            let @x = cal_result[1:-2]
-            if my_date ># ''
-                "replace existing date within delimiters
-                exec 'normal vi' . my_date[0] . 'd'
-                normal h"xpll
-            else
-                "paste in brand new date
-                exec 'normal i <> '
-                normal hh"xpll
-            endif
-        endif
-        redraw
-        echo 
-        redraw
-    finally
-        let g:calendar_navi = old_cal_navi
-    endtry
-endfunction
-
 function! OrgDateEdit(type)
-    " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP 
+    " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP/ATCURSOR 
     let save_cursor = getpos('.')
     let old_cal_navi = g:calendar_navi
     unlet g:calendar_navi
@@ -4408,32 +4387,59 @@ function! OrgDateEdit(type)
             let bufline = getline(buffer_lineno)
             let file = expand("%:t")
         endif
-        if dtype =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\)'
-            let my_date = s:GetProp(dtype,buffer_lineno, file)
+        if dtype =~ '\(DEADLINE\|SCHEDULED\|CLOSED\|TIMESTAMP\|ATCURSOR\)'
+            if dtype == 'ATCURSOR'
+                let my_date = GetDateSpecAtCursor()
+            else
+                let my_date = s:GetProp(dtype,buffer_lineno, file)
+            endif
         
+            let bracket = my_date[0]
             let orig_date = matchstr( my_date, '[[<]\zs\d\d\d\d-\d\d-\d\d' )
             let orig_time = matchstr( my_date, '[[<]\d\d\d\d-\d\d-\d\d ... \zs\d\d:\d\d' )
-
-            if matchstr(bufline,'[[<]\d\d\d\d-\d\d-\d\d.\{-}+\d\+') != ''
-               call confirm("Date has a repeater.  Please edit by hand.")
-               return
+            if orig_time ># ''
+                let rpt_or_warning = matchstr( my_date, ' \d\d:\d\d\zs .*\ze.$')
+            else    
+                let rpt_or_warning = matchstr( my_date, '-\d\d-\d\d \S\S\S\zs .*\ze.$')
             endif
 
             let cal_result = CalEdit(orig_date, orig_time)
+            if bracket == '['
+                let cal_result = '[' . cal_result[1:-2] . rpt_or_warning .  ']'
+            else
+                let cal_result = '<' . cal_result[1:-2] . rpt_or_warning .  '>'
+            endif
 
             " back to main window if agenda is above calendar after close
             if (from_agenda == 0) && bufname("%") ==? '__Agenda__'
                wincmd k 
             endif
 
-            " set buffer text with new date . . . 
-            call s:SetProp(dtype,cal_result,buffer_lineno, file)
+            if dtype == 'ATCURSOR'
+                " put new date into text
+                call setpos('.', save_cursor)
+                if cal_result =~ '^.\d\d\d\d-\d\d'
+                    let @x = cal_result[1:-2]
+                    if my_date ># ''
+                        "replace existing date within delimiters
+                        exec 'normal vi' . my_date[0] . 'd'
+                        normal h"xpll
+                    else
+                        "paste in brand new date
+                        exec 'normal i <> '
+                        normal hh"xpll
+                    endif
+                endif
+            else
+                " set the prop with new date . . . 
+                call s:SetProp(dtype,cal_result,buffer_lineno, file)
+            endif
 
             redraw
             echo 
             redraw
         else
-            echo "Date type must be one of: DEADLINE, SCHEDULED, CLOSED, or TIMESTAMP."
+            echo "Date type wasn't DEADLINE, SCHEDULED, CLOSED, TIMESTAMP, or ATCURSOR."
         endif
     finally
         let g:calendar_navi = old_cal_navi
@@ -7392,7 +7398,7 @@ amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Deadline<tab>,dd :call OrgDateEdit
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Scheduled<tab>,ds :call OrgDateEdit('SCHEDULED')<cr>
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Closed<tab>,dc :call OrgDateEdit('CLOSED')<cr>
 amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Timestamp<tab>,dt :call OrgDateEdit('TIMESTAMP')<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgGenericDateEdit()<cr>
+amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgDateEdit('ATCURSOR')<cr>
 amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
 amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
