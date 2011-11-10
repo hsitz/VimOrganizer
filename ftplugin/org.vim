@@ -939,7 +939,8 @@ function! s:PreviousTodo(curtodo)
     return newtodo
 endfunction
 
-function! OrgTodoDashboard()
+function! OrgTodoDashboard(...)
+    let key = (a:0==1) ? a:1 : ''
     let save_cursor = getpos('.')
     let save_window = winnr()
     if bufname("%") ==? ('__Agenda__')
@@ -955,28 +956,31 @@ function! OrgTodoDashboard()
         let props = s:GetProperties(line('.'),0)
         let Replace_func = function('s:ReplaceTodo')
     endif
-    echohl MoreMsg
-    echo " ================================="
-    echo " Todos defined in this " . (bufname("%") ==? ('__Agenda__') ? "heading's" : "" ) . " document are:"
-    echo "    " . b:v.todo_setup
-    echo " ================================="
-    echo " Press key for a todo command:"
-    echo " ---------------------------------"
-    echo " f (or n)  cycle current heading's todo Forward/Next"
-    echo " b (or p)  cycle current heading's todo Backward/Previous"
-    echo " t         mark current heading with initial 'unfinished' state"
-    echo " d         mark current heading with main 'finished' state"
-    "if bufname("%") !=? ('__Agenda__')
-        let i = 1
-        for item in b:v.todoitems 
-            echo ' ' . i . '   mark current heading as ' . item
-            let i += 1
-        endfor
-    "endif
-    echo " "
-    echohl Question
-    let key = nr2char(getchar())
-    redraw
+
+    if key ==# ''
+        echohl MoreMsg
+        echo " ================================="
+        echo " Todos defined in this " . (bufname("%") ==? ('__Agenda__') ? "heading's" : "" ) . " document are:"
+        echo "    " . b:v.todo_setup
+        echo " ================================="
+        echo " Press key for a todo command:"
+        echo " ---------------------------------"
+        echo " f (or n)  cycle current heading's todo Forward/Next"
+        echo " b (or p)  cycle current heading's todo Backward/Previous"
+        echo " t         mark current heading with initial 'unfinished' state"
+        echo " d         mark current heading with main 'finished' state"
+        "if bufname("%") !=? ('__Agenda__')
+            let i = 1
+            for item in b:v.todoitems 
+                echo ' ' . i . '   mark current heading as ' . item
+                let i += 1
+            endfor
+        "endif
+        echo " "
+        echohl Question
+        let key = nr2char(getchar())
+        redraw
+    endif
     "let thisline = getline(line('.'))
     "let curTodo = matchstr(thisline, '\*\+ \zs\S\+')
     
@@ -4224,7 +4228,8 @@ function! CalEdit( sdate, stime )
 endfunction
 
 command! OrgColumns :call OrgColumnsDashboard()
-function! OrgColumnsDashboard()
+function! OrgColumnsDashboard(...)
+    let key = (a:0==1) ? a:1 : ''
     let save_cursor = getpos('.')
     if !exists('w:v.columnview')
         let w:v={'columnview':0}
@@ -4236,46 +4241,49 @@ function! OrgColumnsDashboard()
     if !exists('b:v.org_columns_show_headings')
         let b:v.org_columns_show_headings = 0
     endif
+    let force_all = 0
+
     echohl WarningMsg
     let save_more = &more
     set nomore
-    let force_all = 0
     while 1
-        echohl MoreMsg
-        echo "=========================================="
-        echo " Buffer default columns:           " . b:v.buffer_columns
-        echo " Current default columns:          " . w:v.org_current_columns
-        echo " Column view is currently:         " . (w:v.columnview==1 ? 'ON' : 'OFF')
-        echo " Show column headers is currently: " . (b:v.org_columns_show_headings ? 'ON' : 'OFF')
-        echo " Heading line count is currently:  " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
-        if (w:v.columnview == 0) && (force_all == 1)
-                echo " NEXT CHOICE WILL BE APPLIED TO ENTIRE BUFFER"
+    if key ==# ''
+            echohl MoreMsg
+            echo "=========================================="
+            echo " Buffer default columns:           " . b:v.buffer_columns
+            echo " Current default columns:          " . w:v.org_current_columns
+            echo " Column view is currently:         " . (w:v.columnview==1 ? 'ON' : 'OFF')
+            echo " Show column headers is currently: " . (b:v.org_columns_show_headings ? 'ON' : 'OFF')
+            echo " Heading line count is currently:  " . (g:org_show_fold_lines==1 ? 'ON' : 'OFF')
+            if (w:v.columnview == 0) && (force_all == 1)
+                    echo " NEXT CHOICE WILL BE APPLIED TO ENTIRE BUFFER"
+            endif
+            echo " "
+            echo " Press key to enter a columns command"
+            echo " ------------------------------------"
+            if (w:v.columnview == 0) && (force_all == 0)
+                    echo " f   force all of buffer to use chosen columns"
+            endif
+            if w:v.org_current_columns != b:v.buffer_columns
+                echo " r   revert to buffer default columns"
+            endif
+            echo " t   toggle column view on/off"
+            echo " h   toggle show headings on/off"
+            echo " l   line count on/off"
+            if len(g:org_custom_column_options) > 0 
+                echo " Custom columns settings:"
+            endif
+            let i = 0
+            while i < len(g:org_custom_column_options) 
+                echo " " . i . "   " . g:org_custom_column_options[i]
+                let i += 1
+            endwhile
+            echo " ------------------------------------"
+            echo " "
+            echohl Question
+            let key = nr2char(getchar())
+            redraw
         endif
-        echo " "
-        echo " Press key to enter a columns command"
-        echo " ------------------------------------"
-        if (w:v.columnview == 0) && (force_all == 0)
-                echo " f   force all of buffer to use chosen columns"
-        endif
-        if w:v.org_current_columns != b:v.buffer_columns
-            echo " r   revert to buffer default columns"
-        endif
-        echo " t   toggle column view on/off"
-        echo " h   toggle show headings on/off"
-        echo " l   line count on/off"
-        if len(g:org_custom_column_options) > 0 
-            echo " Custom columns settings:"
-        endif
-        let i = 0
-        while i < len(g:org_custom_column_options) 
-            echo " " . i . "   " . g:org_custom_column_options[i]
-            let i += 1
-        endwhile
-        echo " ------------------------------------"
-        echo " "
-        echohl Question
-        let key = nr2char(getchar())
-        redraw
         
         if key ==? 'f'
             let force_all = 1
@@ -4324,7 +4332,8 @@ function! OrgColumnsDashboard()
     setlocal foldtext=OrgFoldText()
     call setpos('.',save_cursor)
 endfunction
-function! OrgDateDashboard()
+function! OrgDateDashboard(...)
+    let key = (a:0==1) ? a:1 : ''
     let save_cursor = getpos('.')
     let save_window = winnr()
     if bufname("%") ==? ('__Agenda__')
@@ -4335,20 +4344,23 @@ function! OrgDateDashboard()
     else
         let props = s:GetProperties(line('.'),0)
     endif
-    echohl MoreMsg
-    echo " ================================="
-    echo " Press key, for a date command:"
-    echo " ---------------------------------"
-    echo " d   set DEADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
-    echo " s   set SCHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
-    echo " c   set CLOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
-    echo " t   set TIMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
-    echo " g   set date at cursor"
-    echo " "        
-    echo " "
-    echohl Question
-    let key = nr2char(getchar())
-    redraw
+
+    if key ==# ''
+        echohl MoreMsg
+        echo " ================================="
+        echo " Press key, for a date command:"
+        echo " ---------------------------------"
+        echo " d   set DEADLINE for current heading (currently: " . get(props,'DEADLINE','NONE') . ')'
+        echo " s   set SCHEDULED for current heading (currently: " . get(props,'SCHEDULED','NONE') . ')'
+        echo " c   set CLOSED for current heading (currently: " . get(props,'CLOSED','NONE') . ')'
+        echo " t   set TIMESTAMP for current heading (currently: " . get(props,'TIMESTAMP','NONE') . ')'
+        echo " g   set date at cursor"
+        echo " "        
+        echo " "
+        echohl Question
+        let key = nr2char(getchar())
+        redraw
+    endif
     if key ==? 'd'
         call OrgDateEdit('DEADLINE')
     elseif key ==? 's'
@@ -4404,6 +4416,9 @@ function! OrgDateEdit(type)
             endif
 
             let cal_result = CalEdit(orig_date, orig_time)
+            if cal_result ==# ''
+                return
+            endif
             if bracket == '['
                 let cal_result = '[' . cal_result[1:-2] . rpt_or_warning .  ']'
             else

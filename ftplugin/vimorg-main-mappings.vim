@@ -28,6 +28,15 @@ nnoremap <silent> <buffer> <localleader>co :call OrgClockOut()<cr>
 noremap <buffer> <localleader>x :call OrgExportDashboard()<cr>
 noremap <buffer> <localleader>d :call OrgDateDashboard()<cr>
 noremap <buffer> <localleader>b :call OrgTableDashboard()<cr>
+for char in split('fnbptd12345','\zs')
+    exec 'noremap <silent> <buffer> <localleader>t' . char . ' :call OrgTodoDashboard("' . char . '")<cr>'
+endfor
+for char in split('dsctg','\zs')
+    exec 'noremap <silent> <buffer> <localleader>d' . char . ' :call OrgDateDashboard("' . char . '")<cr>'
+endfor
+for char in split('hlt12345','\zs')
+    exec 'noremap <silent> <buffer> <localleader>m' . char . ' :call OrgColumnsDashboard("' . char . '")<cr>'
+endfor
 "noremap <silent> <buffer> <localleader>dg :call OrgGenericDateEdit()<cr>
 "noremap <silent> <buffer> <localleader>dt :call OrgDateEdit('TIMESTAMP')<cr>
 "noremap <silent> <buffer> <localleader>dd :call OrgDateEdit('DEADLINE')<cr>
