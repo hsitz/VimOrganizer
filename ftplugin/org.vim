@@ -2861,7 +2861,7 @@ function! s:ResultsToAgenda( search_type )
     let b:v.todoDoneMatch = todoDoneMatch
     let b:v.todoMatch = todoMatch
     let b:v.fulltodos = fulltodos
-    "%d
+    %d
     set nowrap
     map <buffer> <silent> <tab> :call OrgAgendaGetText()<CR>
     map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
