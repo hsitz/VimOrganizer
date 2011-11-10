@@ -2992,9 +2992,10 @@ function! s:DateDictPlaceSigns()
 endfunction
 
 function! s:DateDictToScreen()
-    "let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
-    "            \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
-    "            \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
+    :%d   "delete all lines
+    let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
+                \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
+                \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
     let search_spec = g:org_search_spec ># '' ? g:org_search_spec : 'None - include all heads'
     let d = g:org_agenda_days
     let start_week = 'W' . org#ISODateToYWD(g:agenda_startdate)[1]
@@ -3014,12 +3015,13 @@ function! s:DateDictToScreen()
         let cur_end = (cur_end==0) ? line('$') : cur_end
         exec cur_start . ',' . cur_end . 'd'
     endif
-    "call add(message,"Agenda view for " . g:agenda_startdate 
-    "            \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
-    "            \ . ' matching FILTER: ' . search_spec  )
-    "call add(message,'')
+    call add(message,"Agenda view for " . g:agenda_startdate 
+                \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
+                \ . ' matching FILTER: ' . search_spec  )
+    call add(message,'')
+    call add(message,type)
     "call setline(line('$'),message)
-    call setline(line('$'),type)
+    call setline(line('$'),message)
     call s:DateDictPlaceSigns()
     let gap = 0
     let mycount = len(keys(g:agenda_date_dict)) 
@@ -3375,7 +3377,7 @@ function! s:RepeatMatch(rptdate, date1, date2)
     if basedate > date1
         let date1 = basedate
     endif
-    let baserpt = matchstr(a:rptdate, ' \S\S\S [.+ ]+\zs\S\+\ze.*>')
+    let baserpt = matchstr(a:rptdate, ' \S\S\S [.+]\{0,1}+\zs\S\+\ze.*>')
     let rptnum = matchstr(baserpt, '^\d\+')
     let rpttype = matchstr(baserpt, '^\d\+\zs.')
     let g:rptlist = []
@@ -5904,7 +5906,7 @@ function! OrgDoSingleFold(line)
         " I know runaway can happen if at last heading in document,
         " not sure where else
         let runaway_count = 0
-        if (cur_end >= line("$")) || (OrgFoldLevel(cur_end+1) ==? '<0')
+        if (cur_end >= line("$")) "|| (OrgFoldLevel(cur_end+1) ==? '<0')
             return
         endif
         if getline(cur_end+1) =~ b:v.drawerMatch
