@@ -6517,6 +6517,34 @@ function! s:OrgHasEmacsVar()
     endif
     return result
 endfunction
+function! OrgGetClockTable(filelist, options)
+    let i = 0
+    let filelist = a:filelist
+    let filestr = ''
+    while i < len(filelist)
+        let filelist[i] = substitute(expand(filelist[i]),'\','/','g')
+        let filelist[i] = '"' . substitute(filelist[i],' ','\ ','g') . '" '
+        let filestr .=  filelist[i] 
+        let i += 1
+    endwhile
+    let clkfile = '~/cblock.org'
+    
+    let mylist = ['#+BEGIN: clocktable :scope (' . filestr . ') ' . a:options ,'','#+END:','']
+    
+    call writefile(mylist, expand(clkfile) )
+
+    let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . clkfile . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-dblock-update)(save-buffer buf)(kill-buffer buf)))' 
+        let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
+        redraw
+        unsilent echo "Calculating in Emacs. . . "
+        if exists('*xolox#shell#execute')
+            silent call xolox#shell#execute(orgcmd, 1)
+        else
+          silent  exe '!' . orgcmd
+        endif
+        
+        return readfile(expand('~/cblock.org'))
+endfunction
 function! OrgEvalBlock()
     let savecursor = getpos('.')
     let save_showcmd = &showcmd | set noshowcmd
@@ -6529,7 +6557,9 @@ function! OrgEvalBlock()
     endif
     let end = search('\c^#+END','n','') 
     let start=line('.')
-    exec (start+1) . ',' . (end-1) . 'delete'
+    if start > end - 1
+        exec (start+1) . ',' . (end-1) . 'delete'
+    endif
     exec start
     let line_mark = '@@@@@' . start . '@e@f@g@h'
     exec 'normal o' . line_mark 
@@ -6558,6 +6588,7 @@ function! OrgEvalBlock()
 
         let &showcmd = save_showcmd
     call setpos('.',savecursor)
+    "return readfile(expand('~/org-block.org'))
 endfunction
 
 function! s:OrgTableOptionList(A,L,P)
@@ -6658,7 +6689,8 @@ function! OrgEvalTable(...) range
     let savecursor = getpos('.')
     if a:firstline == a:lastline
         " get start, end for whole table
-        call search('^\s*[^|]','b','')
+        "call search('^\s*[^|]','b','')
+        call search('^\(\s*|\)\@!','b','')
         let start=line('.')
         call search('^\(\s*|\)\@!','','')
         let end=line('.')
