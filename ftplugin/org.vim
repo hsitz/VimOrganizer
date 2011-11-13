@@ -213,7 +213,7 @@ function! CustomSearchesSetup()
                 \      ]   
                 \           ]
 endfunction
-function! RunCustom(searchnum)
+function! s:RunCustom(searchnum)
     if type(g:org_custom_searches[a:searchnum]) == type({})
         let search_list = [ g:org_custom_searches[a:searchnum] ]
     else
@@ -6283,7 +6283,7 @@ function! OrgCustomSearchMenu()
         let key = nr2char(getchar())
         let itemnum = str2nr(key)
         if itemnum > 0 && itemnum <= len(g:org_custom_searches)
-            call RunCustom( itemnum - 1 )
+            call s:RunCustom( itemnum - 1 )
         else
             echo 'No search was chosen.'
         endif
@@ -7460,6 +7460,8 @@ amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
 amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
+amenu &Org.-Sep7- :
+amenu <silent> &Org.R&e-read\ Config\ Lines :call OrgProcessConfigLines()<cr>
 
 "*********************************************************************
 "*********************************************************************
