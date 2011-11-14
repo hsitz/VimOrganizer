@@ -197,6 +197,7 @@ let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov
 let s:include_inherited_props=0
 let s:AgendaBufferName = "__Agenda__"
 let s:sparse_lines = {}
+let s:search_list = []
 
 "testing stuff
 function! CustomSearchesSetup()
@@ -205,21 +206,62 @@ function! CustomSearchesSetup()
                 \                'agenda_date':'+1w','agenda_duration':'w'}
                 \    ,{ 'name':"Next week's TODOS", 'type':'agenda', 
                 \                'agenda_date':'+1w','agenda_duration':'w','spec':'+UNFINISHED_TODOS'}
-                \    , { 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
+                \    , { 'name':'Home tags', 'type':'tags', 'spec':'+HOME'}
                 \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
                 \    , [ { 'name':"Next week's agenda", 'type':'agenda', 
                 \                'agenda_date':'+1w','agenda_duration':'w'}
-                \        ,{ 'name':'Home tags', 'type':'heading_list', 'spec':'+HOME'}
+                \        ,{ 'name':'Home tags', 'type':'tags', 'spec':'+HOME'}
                 \      ]   
                 \           ]
 endfunction
-function! s:RunCustom(searchnum)
-    if type(g:org_custom_searches[a:searchnum]) == type({})
-        let search_list = [ g:org_custom_searches[a:searchnum] ]
+function! s:RunCustom(search)
+    " search arg is either number of predefined custom search,
+    " or full spec for search from agenda dashboard
+    if type(a:search) == type(1)
+        let search_spec = g:org_custom_searches[a:search]
     else
-        let search_list = g:org_custom_searches[a:searchnum] 
+        let search_spec = a:search
     endif
-    for item in search_list
+    
+    let prev_search_list = s:search_list
+    if type(search_spec) == type({})
+        "single spec
+        let s:search_list = [ search_spec ]
+    else
+        " block agenda specs
+        let s:search_list = search_spec
+    endif
+
+    let this_time_list = s:search_list
+    if this_time_list[0].type !~ 'sparse_tree'
+        let curfile = expand("%:p")
+        :AAgenda
+        " delete redo block (always just one) if any
+        if this_time_list[0].type == 'redo'
+            let redo_num = this_time_list[0].redo_num
+            let this_time_list = [ prev_search_list[redo_num-1] ]
+            normal gg
+            for i in range(1,redo_num - 1)
+                call search('^==============','','')
+            endfor
+            let start_line = line('.') + 1
+            let test_end = search('^=========','W','')
+            let end_line = test_end > 0 ? test_end : line('$')
+            exec start_line . ',' . end_line . 'delete'
+            call append(start_line - 1,['',''])  " append to agenda buf
+            let s:agenda_insert_point = start_line 
+        else
+            let s:agenda_insert_point = line('$')
+        endif
+        call s:LocateFile(curfile)
+    endif
+
+    let i = 0
+    for item in this_time_list
+        if i > 0 
+            let s:agenda_insert_point = line('$')
+            call append(s:agenda_insert_point,['',repeat('=',70),'',''])  " append to agenda buf
+        endif
         let mydict = item
         if mydict.type ==? 'agenda'
             call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
@@ -229,10 +271,15 @@ function! s:RunCustom(searchnum)
             call OrgRunSearch( mydict.spec, 1 )
         elseif mydict.type ==? 'sparse_tree_regex'
             silent call s:SparseTreeRun(mydict.spec)
-        elseif mydict.type ==? 'heading_list'
+        elseif mydict.type ==? 'tags'
+            call OrgRunSearch( mydict.spec )
+        elseif mydict.type ==? 'tags-todo'
+            " add todos to spec
             call OrgRunSearch( mydict.spec )
         endif
+        let i += 1
     endfor
+    nohl   
 endfunction
 "Section Tag and Todo Funcs
 function! OrgProcessConfigLines()
@@ -2861,7 +2908,7 @@ function! s:ResultsToAgenda( search_type )
     let b:v.todoDoneMatch = todoDoneMatch
     let b:v.todoMatch = todoMatch
     let b:v.fulltodos = fulltodos
-    %d
+    "%d
     set nowrap
     map <buffer> <silent> <tab> :call OrgAgendaGetText()<CR>
     map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
@@ -2992,7 +3039,7 @@ function! s:DateDictPlaceSigns()
 endfunction
 
 function! s:DateDictToScreen()
-    :%d   "delete all lines
+    ":%d   "delete all lines
     let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
                 \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
                 \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
@@ -3008,78 +3055,106 @@ function! s:DateDictToScreen()
     else                   | let type = 'Agenda:'
     endif
 
-    let cur_start = search('^\(Agenda:\|\S\+-agenda\)','cnw','')
-    if cur_start > 0
-        exec cur_start
-        let cur_end = search('^=\{22}','cn','')
-        let cur_end = (cur_end==0) ? line('$') : cur_end
-        exec cur_start . ',' . cur_end . 'd'
-    endif
     call add(message,"Agenda view for " . g:agenda_startdate 
                 \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
                 \ . ' matching FILTER: ' . search_spec  )
     call add(message,'')
     call add(message,type)
-    "call setline(line('$'),message)
-    call setline(line('$'),message)
+    
     call s:DateDictPlaceSigns()
     let gap = 0
     let mycount = len(keys(g:agenda_date_dict)) 
     for key in sort(keys(g:agenda_date_dict))
         if empty(g:agenda_date_dict[key].l)
             let gap +=1
-            call setline(line('$')+ 1,g:agenda_date_dict[key].marker)
+            call add(message, g:agenda_date_dict[key].marker)
         else
             if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
-                silent execute line("$")-gap+2 . ',$d'
-                call setline(line("$"), ['','  [. . . ' .gap. ' empty days omitted ]',''])
+                call remove(message, len(message)-gap, -1 )
+                let message = message + ['','  [. . . ' .gap. ' empty days omitted ]','']
             endif
             let gap = 0
-            call setline(line('$')+ 1,g:agenda_date_dict[key].marker)
-            call setline(line('$')+ 1,g:agenda_date_dict[key].l)
+            call add(message, g:agenda_date_dict[key].marker)
             if ((g:org_agenda_days == 1) || (key == strftime("%Y-%m-%d"))) && exists('g:org_timegrid') && (g:org_timegrid != [])
-                call s:PlaceTimeGrid(g:agenda_date_dict[key].marker)
+                let message = message + s:PlaceTimeGrid(g:agenda_date_dict[key].l)
+            else
+                let message = message + g:agenda_date_dict[key].l
             endif
         endif
     endfor
+    " ------------------------
+    "let insert_line = s:agenda_insert_point
+    "call add(message,"Agenda view for " . g:agenda_startdate 
+    "            \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
+    "            \ . ' matching FILTER: ' . search_spec  )
+    "call add(message,'')
+    "call add(message,type)
+    "
+    "call append(insert_line,message)
+    "let insert_line += len(message)
+    "call s:DateDictPlaceSigns()
+    "let gap = 0
+    "let mycount = len(keys(g:agenda_date_dict)) 
+    "for key in sort(keys(g:agenda_date_dict))
+    "    if empty(g:agenda_date_dict[key].l)
+    "        let gap +=1
+    "        call append(insert_line+ 1,g:agenda_date_dict[key].marker)
+    "        let insert_line += 1
+    "    else
+    "        if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
+    "            silent execute insert_line-gap+2 . ',$d'
+    "            call setline(insert_line, ['','  [. . . ' .gap. ' empty days omitted ]',''])
+    "        endif
+    "        let gap = 0
+    "        call append(insert_line+ 1,g:agenda_date_dict[key].marker)
+    "        let insert_line += 1
+    "        call append(insert_line+ 1,g:agenda_date_dict[key].l)
+    "        let insert_line += len(g:agenda_date_dict[key].l)
+    "        if ((g:org_agenda_days == 1) || (key == strftime("%Y-%m-%d"))) && exists('g:org_timegrid') && (g:org_timegrid != [])
+    "            call s:PlaceTimeGrid(g:agenda_date_dict[key].marker)
+    "        endif
+    "    endif
+    "endfor
     if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
-        silent execute line("$")-gap+2 . ',$d'
-        call setline(line("$"), ['','  [. . . ' .gap. ' empty days omitted ]',''])
+        call remove(message, len(message)-gap, -1 )
+        let message = message + ['','  [. . . ' .gap. ' empty days omitted ]','']
     endif
+    " finally, place all the prepared result lines in agenda buffer
+    "call setline(s:agenda_insert_point, join(message,"\n"))
+    call append(s:agenda_insert_point-1, message)
 endfunction
-function! s:PlaceTimeGrid(marker)
-    let grid = s:TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
-    call search(a:marker)
-    exec line('.')+1
-    if getline(line('.'))=~'\%24c\d\d:\d\d'
-        "if, at least one time item put grid lines in and then sort with other time items
-        let start = line('.')
-        call append(line('.'),grid)
-        while (matchstr(getline(line('.')),'\%24c\d\d:\d\d'))
-            if line('.') != line('$')
-                exec line('.')+1
-                let end = line('.')-1
-            else
-                let end = line('.')
-                break
-            endif
+function! s:TimeGridSort(s1, s2)
+    return (a:s1[23:] == a:s2[23:]) ? 0 : (a:s1[23:] > a:s2[23:]) ? 1 : -1
+endfunction
+function! s:PlaceTimeGrid(lines)
+    let lines = a:lines
+    " assemble timegrid for agenda view
+    if lines[0] =~ '\%24c\d\d:\d\d'
+        "if, at least one time item put grid lines in and sort with other time items
+        let grid = s:TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
+        let lines = grid + lines
+        let i = len(grid) - 1
+        while (matchstr(lines[i],'\%24c\d\d:\d\d') && i < len(lines))
+            let i += 1
         endwhile
-        exec start.','.end.'sort /.*\%23c/'
+        let lines = sort(lines[0:i-1], 's:TimeGridSort') + lines[i :]
         " now delete duplicates where grid is same as actual entry
-        exec end
-        while line('.') >= start
-            let match1 = matchstr(getline(line('.')),'\%24c.*\%29c')
-            let match2 = matchstr(getline(line('.')-1),'\%24c.*\%29c')
-            if match1 ==? match2
-                if match1[0] ==? ' '
-                    normal ddk
-                else
-                    normal kdd
-                endif
-            endif
-            exec line('.')-1
-        endwhile
+        " skip this part until rest is working. . . 
+        "let i = 0
+        "while i < len(lines)
+        "    let match1 = matchstr(getline(line('.')),'\%24c.*\%29c')
+        "    let match2 = matchstr(getline(line('.')-1),'\%24c.*\%29c')
+        "    if match1 ==? match2
+        "        if match1[0] ==? ' '
+        "            normal ddk
+        "        else
+        "            normal kdd
+        "        endif
+        "    endif
+        "    exec line('.')-1
+        "endwhile
     endif
+    return lines
 endfunction
 function! OrgRunAgenda(date,count,...)
     try
@@ -6353,19 +6428,24 @@ function! OrgAgendaDashboard()
                 bwipeout __Agenda__
             endif
             if key ==? 't'
-                silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
+                "silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
+                silent call s:RunCustom({'type':'tags','spec':'+ANY_TODO'})
             elseif key ==? 'a'
                 "if (g:org_search_spec ==# '') 
                     "let g:org_search_spec = g:agenda_default_search_spec
                 "endif
-                silent execute "call OrgRunAgenda(s:Today(),'w', g:org_agenda_default_search_spec)"
+                "silent execute "call OrgRunAgenda(s:Today(),'w', g:org_agenda_default_search_spec)"
+                let today = s:Today()
+                silent call s:RunCustom({'type':'agenda','agenda_date':today, 'agenda_duration':'w'})
+
             elseif key ==? 'L'
                 silent execute "call s:Timeline()"
             elseif key ==? 'c'
                 execute "call OrgCustomSearchMenu()"
             elseif key ==? 'm'
                 let mysearch = input("Enter search string: ")
-                silent execute "call OrgRunSearch(mysearch)"
+                silent call s:RunCustom({'type':'tags','spec':mysearch})
+                "silent execute "call OrgRunSearch(mysearch)"
             elseif key ==? 'h'
                 let g:org_sparse_spec = input("Enter search string: ")
                 if bufname("%") ==? '__Agenda__'
@@ -6517,9 +6597,9 @@ function! s:OrgHasEmacsVar()
     endif
     return result
 endfunction
-function! OrgGetClockTable(filelist, options)
+function! OrgGetClocktable(filelist, options)
     let i = 0
-    let filelist = a:filelist
+    let filelist = copy(a:filelist)
     let filestr = ''
     while i < len(filelist)
         let filelist[i] = substitute(expand(filelist[i]),'\','/','g')
