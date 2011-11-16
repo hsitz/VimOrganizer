@@ -216,6 +216,10 @@ function! CustomSearchesSetup()
                 \                'agenda_date':'+1w','agenda_duration':'w'}
                 \        ,{ 'name':'Home tags', 'type':'tags', 'spec':'+HOME'}
                 \      ]   
+                \    ,  [ { 'name':'Home tags', 'type':'tags', 'spec':'+HOME'}
+                \        ,{ 'name':"Next week's agenda", 'type':'agenda', 
+                \                'agenda_date':'+1w','agenda_duration':'w'}
+                \      ]   
                 \           ]
 endfunction
 function! s:RunCustom(search)
@@ -227,7 +231,7 @@ function! s:RunCustom(search)
         let search_spec = a:search
     endif
     
-    let temp_list = copy(s:last_search_list)
+    "let temp_list = copy(s:last_search_list)
     if type(search_spec) == type({})
         "single spec
         let s:search_list = [ search_spec ]
@@ -235,11 +239,11 @@ function! s:RunCustom(search)
         " block agenda specs
         let s:search_list = search_spec
     endif
-    if s:search_list[0].type != 'redo'
-        let s:last_search_list = copy(s:search_list)
-    else
-        let s:last_search_list = copy(temp_list)
-    endif
+    "if s:search_list[0].type != 'redo'
+    "    let s:last_search_list = copy(s:search_list)
+    "else
+    "    let s:last_search_list = copy(temp_list)
+    "endif
 
     let this_time_list = s:search_list
     if this_time_list[0].type !~ 'sparse_tree'
@@ -248,8 +252,9 @@ function! s:RunCustom(search)
         " delete redo block (always just one) if any
         "if this_time_list[0].type == 'redo'
         if get(this_time_list[0],'redo_num') > 0
-            let redo_num = this_time_list[0].redo_num
-            let this_time_list = [ s:last_search_list[redo_num-1] ]
+            let redo_num = s:AgendaBlockNum(this_time_list[0].redo_num)
+            "let redo_num = s:AgendaBlockNum(redo_num)
+            "let this_time_list = [ s:last_search_list[redo_num-1] ]
             normal gg
             for i in range(1,redo_num - 1)
                 call search('^==============','','')
@@ -2939,7 +2944,9 @@ function! s:ResultsToAgenda( search_type )
     map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> ,r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
+    "nmap <silent> <buffer> ,r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
+    nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo','spec': matchstr(getline(1),'spec: \zs.*$')})<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
     nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
@@ -3234,11 +3241,11 @@ function! s:SetupDateAgendaWin()
     set nowrap
     nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
     nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
     nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
@@ -3256,7 +3263,7 @@ function! OrgRefreshCalendarAgenda()
        let g:org_search_spec = ''
     endif
     "call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
-    call s:RunCustom({'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
+    call OrgRunCustom({'redo_num': line('.'),'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
 endfunction
 function! s:Resize()
     let cur = winheight(0)
@@ -3710,10 +3717,10 @@ function! OrgAgendaMove(direction,count)
 
     if g:org_agenda_days == 1
         "call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec,g:agenda_startdate)
-        call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
+        call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
     else
         "call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec)
-        call s:RunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days ,'spec': g:org_search_spec})
+        call s:RunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days ,'spec': g:org_search_spec})
     endif
 endfunction
 
@@ -5723,7 +5730,6 @@ function! OrgFoldText(...)
     endif
     return l:line
 endfunction
-
 function! s:MySort(comppattern) range
     let b:v.sortcompare = a:comppattern
     let b:v.complist = ['\s*\S\+','\s*\S\+\s\+\zs\S\+','\s*\(\S\+\s\+\)\{2}\zs\S\+'
@@ -6367,6 +6373,20 @@ function! OrgCustomSearchMenu()
     endif
 endfunction
 
+function! s:AgendaBlockNum(line)
+    let block_num = 0
+    let sep_list = []
+    silent g/^========/call add(sep_list,line('.'))
+    call add(sep_list,line('$'))
+    for i in range(1,len(sep_list))
+       if  a:line < sep_list[i-1]
+           let block_num = i
+           break
+       endif
+    endfor
+    return block_num
+    
+endfunction
 function! OrgAgendaDashboard()
     if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
         " move agenda to cur tab if it exists and is on a different tab
