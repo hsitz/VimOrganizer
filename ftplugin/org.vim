@@ -132,6 +132,9 @@ endif
 if !exists('g:org_tags_alist')
     let g:org_tags_alist = ''
 endif
+if !exists('g:org_agenda_include_clocktable')
+    let g:org_agenda_include_clocktable = 0
+endif
 if !exists('g:org_confirm_babel_evaluate')
     let g:org_confirm_babel_evaluate = 0
 endif
@@ -198,6 +201,7 @@ let s:include_inherited_props=0
 let s:AgendaBufferName = "__Agenda__"
 let s:sparse_lines = {}
 let s:search_list = []
+let s:last_search_list = []
 
 "testing stuff
 function! CustomSearchesSetup()
@@ -223,7 +227,7 @@ function! s:RunCustom(search)
         let search_spec = a:search
     endif
     
-    let prev_search_list = s:search_list
+    let temp_list = copy(s:last_search_list)
     if type(search_spec) == type({})
         "single spec
         let s:search_list = [ search_spec ]
@@ -231,25 +235,34 @@ function! s:RunCustom(search)
         " block agenda specs
         let s:search_list = search_spec
     endif
+    if s:search_list[0].type != 'redo'
+        let s:last_search_list = copy(s:search_list)
+    else
+        let s:last_search_list = copy(temp_list)
+    endif
 
     let this_time_list = s:search_list
     if this_time_list[0].type !~ 'sparse_tree'
         let curfile = expand("%:p")
         :AAgenda
         " delete redo block (always just one) if any
-        if this_time_list[0].type == 'redo'
+        "if this_time_list[0].type == 'redo'
+        if get(this_time_list[0],'redo_num') > 0
             let redo_num = this_time_list[0].redo_num
-            let this_time_list = [ prev_search_list[redo_num-1] ]
+            let this_time_list = [ s:last_search_list[redo_num-1] ]
             normal gg
             for i in range(1,redo_num - 1)
                 call search('^==============','','')
             endfor
-            let start_line = line('.') + 1
+            let start_line = (line('.') == 1) ? 1 : line('.') + 1
             let test_end = search('^=========','W','')
-            let end_line = test_end > 0 ? test_end : line('$')
-            exec start_line . ',' . end_line . 'delete'
+            let end_line = test_end > 0 ? test_end - 1 : line('$')
+            silent exec start_line . ',' . end_line . 'delete'
             call append(start_line - 1,['',''])  " append to agenda buf
             let s:agenda_insert_point = start_line 
+        elseif len(this_time_list) == 1
+            silent exec '%d'
+            let s:agenda_insert_point = 1
         else
             let s:agenda_insert_point = line('$')
         endif
@@ -259,14 +272,25 @@ function! s:RunCustom(search)
     let i = 0
     for item in this_time_list
         if i > 0 
+            call append(line('$'),['',repeat('=',70),'',''])  " append to agenda buf
             let s:agenda_insert_point = line('$')
-            call append(s:agenda_insert_point,['',repeat('=',70),'',''])  " append to agenda buf
         endif
         let mydict = item
         if mydict.type ==? 'agenda'
-            call OrgRunAgenda( DateCueResult( mydict.agenda_date, s:Today()), 
+            let mydate = DateCueResult( mydict.agenda_date, s:Today())
+            let mydur = get(mydict, 'agenda_duration','w')
+            let mydur = (mydur == 'w') ? '7' : (mydur == 'd' ? '1' : mydur)
+            "let mydur = str2nr(mydur)
+            call OrgRunAgenda( mydate, 
                             \  get(mydict, 'agenda_duration', 'w'),
                             \  get(mydict, 'spec','')  )
+            let save_line = line('.')
+            let last_line = search('^============','W','') - 1
+            exec (last_line <= 0) ? line('$') : last_line
+            if (g:org_agenda_include_clocktable == 1) 
+                call append(line('.'),OrgGetClocktable(g:agenda_files,' :narrow 40! :tstart ' . '"<' . mydate . ' xxx 00:00>" :tend "<' . calutil#cal(calutil#jul(mydate) + mydur ) . ' xxx 00:00>" :link ')[2:-3])
+            endif
+            exec save_line
         elseif mydict.type ==? 'sparse_tree'
             call OrgRunSearch( mydict.spec, 1 )
         elseif mydict.type ==? 'sparse_tree_regex'
@@ -279,6 +303,7 @@ function! s:RunCustom(search)
         endif
         let i += 1
     endfor
+    set foldlevel=999
     nohl   
 endfunction
 "Section Tag and Todo Funcs
@@ -2929,7 +2954,9 @@ function! s:ResultsToAgenda( search_type )
     "wincmd J
     let i = 0
     call s:ADictPlaceSigns()
-    call setline(line('$'), ["Headlines matching search spec: ".g:org_search_spec,''])
+    "call setline(line('$'), ["Headlines matching search spec: ".g:org_search_spec,''])
+    let lines = []
+    let lines = lines +  ["Headlines matching search spec: ".g:org_search_spec,'']
     if a:search_type ==? 'agenda_todo'
         let msg = "Press num to redo search: "
         let numstr= ''
@@ -2940,16 +2967,18 @@ function! s:ResultsToAgenda( search_type )
             let numstr .= '('.num.')'.item.'  '
             execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
         endfor
-        call append(line('$'),split(msg.numstr,'\%72c\S*\zs '))
+        "call append(line('$'),split(msg.numstr,'\%72c\S*\zs '))
+        call add(lines,split(msg.numstr,'\%72c\S*\zs '))
     endif
     for key in sort(keys(g:adict))
-        call setline(line("$")+1, key . ' ' . 
+        call add(lines , key . ' ' . 
                     \ printf("%-12.12s",g:adict[key].CATEGORY ) . ' ' .
                     \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
                     \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
                     "\ org#Pad(g:adict[key].file,13)  . 
         let i += 1
     endfor
+    call append(s:agenda_insert_point,lines)
 endfunction
 
 function! s:ResultsToSparseTree()
@@ -3040,7 +3069,7 @@ endfunction
 
 function! s:DateDictToScreen()
     ":%d   "delete all lines
-    let message = ["Press <f> or <b> for next or previous period, q to close agenda," ,
+    let lines = ["Press <f> or <b> for next or previous period, q to close agenda," ,
                 \ "<Enter> on a heading to synch main file, <ctl-Enter> to goto line," ,
                 \ "<tab> to cycle heading text, <shift-Enter> to cycle Todos.",'']
     let search_spec = g:org_search_spec ># '' ? g:org_search_spec : 'None - include all heads'
@@ -3055,11 +3084,11 @@ function! s:DateDictToScreen()
     else                   | let type = 'Agenda:'
     endif
 
-    call add(message,"Agenda view for " . g:agenda_startdate 
+    call add(lines,"Agenda view for " . g:agenda_startdate 
                 \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
                 \ . ' matching FILTER: ' . search_spec  )
-    call add(message,'')
-    call add(message,type)
+    call add(lines,'')
+    call add(lines,type)
     
     call s:DateDictPlaceSigns()
     let gap = 0
@@ -3067,61 +3096,28 @@ function! s:DateDictToScreen()
     for key in sort(keys(g:agenda_date_dict))
         if empty(g:agenda_date_dict[key].l)
             let gap +=1
-            call add(message, g:agenda_date_dict[key].marker)
+            call add(lines, g:agenda_date_dict[key].marker)
         else
             if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
-                call remove(message, len(message)-gap, -1 )
-                let message = message + ['','  [. . . ' .gap. ' empty days omitted ]','']
+                call remove(lines, len(lines)-gap, -1 )
+                let lines = lines + ['','  [. . . ' .gap. ' empty days omitted ]','']
             endif
             let gap = 0
-            call add(message, g:agenda_date_dict[key].marker)
+            call add(lines, g:agenda_date_dict[key].marker)
             if ((g:org_agenda_days == 1) || (key == strftime("%Y-%m-%d"))) && exists('g:org_timegrid') && (g:org_timegrid != [])
-                let message = message + s:PlaceTimeGrid(g:agenda_date_dict[key].l)
+                let lines = lines + s:PlaceTimeGrid(g:agenda_date_dict[key].l)
             else
-                let message = message + g:agenda_date_dict[key].l
+                let lines = lines + g:agenda_date_dict[key].l
             endif
         endif
     endfor
-    " ------------------------
-    "let insert_line = s:agenda_insert_point
-    "call add(message,"Agenda view for " . g:agenda_startdate 
-    "            \ . " to ". calutil#cal(calutil#jul(g:agenda_startdate)+g:org_agenda_days-1)
-    "            \ . ' matching FILTER: ' . search_spec  )
-    "call add(message,'')
-    "call add(message,type)
-    "
-    "call append(insert_line,message)
-    "let insert_line += len(message)
-    "call s:DateDictPlaceSigns()
-    "let gap = 0
-    "let mycount = len(keys(g:agenda_date_dict)) 
-    "for key in sort(keys(g:agenda_date_dict))
-    "    if empty(g:agenda_date_dict[key].l)
-    "        let gap +=1
-    "        call append(insert_line+ 1,g:agenda_date_dict[key].marker)
-    "        let insert_line += 1
-    "    else
-    "        if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
-    "            silent execute insert_line-gap+2 . ',$d'
-    "            call setline(insert_line, ['','  [. . . ' .gap. ' empty days omitted ]',''])
-    "        endif
-    "        let gap = 0
-    "        call append(insert_line+ 1,g:agenda_date_dict[key].marker)
-    "        let insert_line += 1
-    "        call append(insert_line+ 1,g:agenda_date_dict[key].l)
-    "        let insert_line += len(g:agenda_date_dict[key].l)
-    "        if ((g:org_agenda_days == 1) || (key == strftime("%Y-%m-%d"))) && exists('g:org_timegrid') && (g:org_timegrid != [])
-    "            call s:PlaceTimeGrid(g:agenda_date_dict[key].marker)
-    "        endif
-    "    endif
-    "endfor
+
     if (gap > g:org_agenda_skip_gap) && (g:org_agenda_minforskip <= mycount)
-        call remove(message, len(message)-gap, -1 )
-        let message = message + ['','  [. . . ' .gap. ' empty days omitted ]','']
+        call remove(lines, len(lines)-gap, -1 )
+        let lines = lines + ['','  [. . . ' .gap. ' empty days omitted ]','']
     endif
     " finally, place all the prepared result lines in agenda buffer
-    "call setline(s:agenda_insert_point, join(message,"\n"))
-    call append(s:agenda_insert_point-1, message)
+    call append(s:agenda_insert_point-1, lines)
 endfunction
 function! s:TimeGridSort(s1, s2)
     return (a:s1[23:] == a:s2[23:]) ? 0 : (a:s1[23:] > a:s2[23:]) ? 1 : -1
@@ -3215,6 +3211,9 @@ function! OrgRunAgenda(date,count,...)
     endtry
 
 endfunction
+function! OrgRunCustom(arg)
+    call s:RunCustom(a:arg)
+endfunction
 function! s:SetupDateAgendaWin()
     let todos = b:v.todoitems
     let todoNotDoneMatch = b:v.todoNotDoneMatch
@@ -3235,11 +3234,11 @@ function! s:SetupDateAgendaWin()
     set nowrap
     nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> vt :call OrgRunAgenda(strftime("%Y-%m-%d"), 'd',g:org_search_spec)<CR>
-    nmap <silent> <buffer> vd :call OrgRunAgenda(g:agenda_startdate, 'd',g:org_search_spec,g:agenda_startdate)<CR>
-    nmap <silent> <buffer> vw :call OrgRunAgenda(g:agenda_startdate, 'w',g:org_search_spec)<CR>
-    nmap <silent> <buffer> vm :call OrgRunAgenda(g:agenda_startdate, 'm',g:org_search_spec)<CR>
-    nmap <silent> <buffer> vy :call OrgRunAgenda(g:agenda_startdate, 'y',g:org_search_spec)<CR>
+    nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
     nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
     nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
@@ -3256,7 +3255,8 @@ function! OrgRefreshCalendarAgenda()
     if g:org_search_spec =~ '\c^None'
        let g:org_search_spec = ''
     endif
-    call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
+    "call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
+    call s:RunCustom({'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
 endfunction
 function! s:Resize()
     let cur = winheight(0)
@@ -3709,9 +3709,11 @@ function! OrgAgendaMove(direction,count)
     endif
 
     if g:org_agenda_days == 1
-        call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec,g:agenda_startdate)
+        "call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec,g:agenda_startdate)
+        call OrgRunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
     else
-        call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec)
+        "call OrgRunAgenda(g:agenda_startdate,g:org_agenda_days,g:org_search_spec)
+        call s:RunCustom({'redo_num':1, 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days ,'spec': g:org_search_spec})
     endif
 endfunction
 
@@ -6504,7 +6506,10 @@ function! s:AgendaBufHighlight()
     nmap <silent> <buffer> <s-right>    :call <SID>AgendaReplaceTodo()<CR>
     " c-s-cr already taken
     nmap <silent> <buffer> <s-left>    :call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
-
+    if has("conceal")
+        "for agenda clocktable
+        syn region Org_Full_Link concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
+    endif	
 endfunction
 function! s:AgendaHighlight()
     if g:org_gray_agenda
@@ -6615,8 +6620,8 @@ function! OrgGetClocktable(filelist, options)
 
     let part1 = '(let ((org-confirm-babel-evaluate nil)(buf (find-file \' . s:cmd_line_quote_fix . '"' . clkfile . '\' . s:cmd_line_quote_fix . '"' . '))) (progn (org-dblock-update)(save-buffer buf)(kill-buffer buf)))' 
         let orgcmd = g:org_command_for_emacsclient . ' --eval ' . s:cmd_line_quote_fix . '"' . part1 . s:cmd_line_quote_fix . '"'
-        redraw
-        unsilent echo "Calculating in Emacs. . . "
+        "redraw
+        "unsilent echo "Calculating in Emacs. . . "
         if exists('*xolox#shell#execute')
             silent call xolox#shell#execute(orgcmd, 1)
         else
@@ -6637,7 +6642,7 @@ function! OrgEvalBlock()
     endif
     let end = search('\c^#+END','n','') 
     let start=line('.')
-    if start > end - 1
+    if start < end - 1
         exec (start+1) . ',' . (end-1) . 'delete'
     endif
     exec start

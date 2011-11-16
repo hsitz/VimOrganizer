@@ -38,7 +38,7 @@ syntax match Org_Tag +\s*:\S*:$+
 syntax match Org_Drawer +^\s*:\(PROPERTIES\|LOGBOOK\|END\):\ze.*+
 syntax match Org_Date +[<[]\d\d\d\d-\d\d-\d\d.\{-1,}[\]>]+
 syntax match Org_Star +\*\+\*+me=e-1 containedin=OL1,OL2,OL3,OL4,OL5,OL6
-syntax match Org_Table +^\s*|.\+|\s*$+
+syntax match Org_Table +^\s*|.\+|\s*$+ contains=Org_Full_Link,Org_Half_Link
 "syntax match NEXT '\* \zsNEXT' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 "syntax match CANCELED '\* \zsCANCELED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 "syntax match TODO '\* \zsTODO' containedin=OL1,OL2,OL3,OL4,OL5,OL6
@@ -46,7 +46,7 @@ syntax match Org_Table +^\s*|.\+|\s*$+
 "syntax match DONE '\* \zsDONE' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 
 syntax match Org_Config_Line '^#+.*' containedin=Org_Block,Org_Src_Block
-syntax region Org_Block start='\c^#+begin.*$' end='\c^#+end.*' keepend contains=Org_Config_Line
+syntax region Org_Block start='\c^#+begin.*$' end='\c^#+end.*' keepend contains=Org_Config_Line,Org_Table
 syntax region Org_Src_Block start='\c^#+begin_src.*$' end='\c^#+end.*' keepend contains=Org_Config_Line
 
 syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars
