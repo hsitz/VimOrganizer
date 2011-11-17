@@ -50,11 +50,11 @@ syntax match Org_Config_Line '^#+.*' containedin=Org_Block,Org_Src_Block
 syntax region Org_Block start='\c^#+begin.*$' end='\c^#+end.*' keepend contains=Org_Config_Line,Org_Table
 syntax region Org_Src_Block start='\c^#+begin_src.*$' end='\c^#+end.*' keepend contains=Org_Config_Line
 
-"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL3"
-"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL3"
+"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' contained"
+"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' contained"
 syntax match OL1 +^\(*\)\{1}\s.*+ 
 syntax match OL2 +^\(*\)\{2}\s.*+ 
-syntax match OL3 +^\(*\)\{3}\s.*+ contains=ALL
+syntax match OL3 +^\(*\)\{3}\s.*+ 
 syntax match OL4 +^\(*\)\{4}\s.*+ 
 syntax match OL5 +^\(*\)\{5}\s.*+ 
 syntax match OL6 +^\(*\)\{6}\s.*+ 

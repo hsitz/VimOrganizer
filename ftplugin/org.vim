@@ -472,10 +472,13 @@ function! OrgTodoSetup(todolist_str)
         endif
         let i += 1
     endwhile
-    let b:v.todoMatch = '\*\+\s*\zs\('.b:v.todoMatch[:-2] . ')'
-    let b:v.todoDoneMatch = '\*\+\s*\zs\('.b:v.todoDoneMatch[:-2] . ')'
-    let b:v.todoNotDoneMatch = '\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
+    let b:v.todoMatch = '^\*\+\s*\zs\('.b:v.todoMatch[:-2] . ')'
+    let b:v.todoDoneMatch = '^\*\+\s*\zs\('.b:v.todoDoneMatch[:-2] . ')'
+    let b:v.todoNotDoneMatch = '^\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
     let b:v.fulltodos = todolist
+
+    call matchadd('DONETODO',b:v.todoDoneMatch)
+    call matchadd('NOTDONETODO',b:v.todoNotDoneMatch)
 
     for item in keys( b:v.tododict )
         let item_char = tolower( b:v.tododict[item].todochar)
@@ -1139,7 +1142,7 @@ function! s:ReplaceTodo(...)
     endif
 
     " if going to main done state check for repeater and change date if necessary
-    if  (bufnr("%") != bufnr('Agenda')) && (newtodo =~ b:v.todoDoneMatch[10:])
+    if  (bufnr("%") != bufnr('Agenda')) && (newtodo =~ b:v.todoDoneMatch[11:])
         let newtodo = s:CheckDateRepeaterDone(todoword, newtodo)
     endif
     let s:last_newtodo = newtodo    " used to set agenda line in next pass from agenda
@@ -3160,13 +3163,11 @@ function! OrgRunAgenda(date,count,...)
     try
 
     if bufname('%') ==? '__Agenda__'
-        " vsplit agenda ***************
-        "wincmd h
-        " *******************
-        wincmd k
+        "wincmd k
     endif
     let g:agenda_head_lookup={}
     let win = bufwinnr('Calendar')
+    let file = expand('%:p')
     if win >= 0 
         execute win . 'wincmd w'
         normal ggjjj
@@ -3202,11 +3203,14 @@ function! OrgRunAgenda(date,count,...)
         execute 'Calendar ' . year .' '. str2nr(month) 
         execute bufwinnr('Agenda').'wincmd w'
     endif
-    " rigamarole to get status line window, if any, back to zero height
+    " we're in agenda, do rigamarole to get top column heading window, 
+    " if any, back to zero height
     let curheight=winheight(0)
-    wincmd k
+    call s:LocateFile(file)
+    "wincmd k
     resize
-    wincmd j
+    call s:LocateFile('__Agenda__')
+    "wincmd j
     execute 1
     execute 'resize ' . curheight   
 
@@ -3566,7 +3570,7 @@ function! s:Timeline(...)
     endif
     if bufname("%") ==? '__Agenda__'
         "go back up to main org buffer
-        wincmd k
+        "wincmd k
     endif
     if exists('g:org_search_spec')
         let prev_spec = g:org_search_spec
@@ -4506,9 +4510,10 @@ function! OrgDateEdit(type)
                 let cal_result = '<' . cal_result[1:-2] . rpt_or_warning .  '>'
             endif
 
-            " back to main window if agenda is above calendar after close
+            " back to main window if agenda is present and cursor is in it
             if (from_agenda == 0) && bufname("%") ==? '__Agenda__'
-               wincmd k 
+               "wincmd k 
+               exe bufwinnr(file) . 'wincmd w'
             endif
 
             if dtype == 'ATCURSOR'
@@ -5876,16 +5881,13 @@ function! s:OrgAgendaToBuf()
     if &fdm != 'expr'
         set fdm=expr
     endif
-    " vsplit agenda *********************
-    "vsplit
-    " *********************
-    split
-    "wincmd J
-    execute "b"cur_buf
-    "call s:LocateFile(g:tofile . '.org')
-    wincmd x
-    "let new_buf=bufnr("%")
-    "setlocal cursorline
+
+    "split
+    "execute "b"cur_buf
+    AAgenda
+    call s:LocateFile(g:tofile )
+    "wincmd x
+
     set foldlevel=1
     execute g:showndx
     normal! zv
@@ -5904,7 +5906,7 @@ function! s:OrgAgendaToBuf()
     let headlevel = (headlevel > 6) ? '' : headlevel-1
     call matchadd('Org_Chosen_Agenda_Heading' . headlevel,'\%' . b:v.chosen_agenda_heading .'l')
     "wincmd j
-    execute bufnr('Agenda').'wincmd w'
+    execute bufwinnr('Agenda').'wincmd w'
     "wincmd c
     "split
     "wincmd j
@@ -5918,8 +5920,9 @@ function! s:OrgAgendaToBuf()
     if win >= 0
         Calendar
         execute 1
-        wincmd l
-        wincmd j
+        call s:LocateFile('__Agenda__')
+        "wincmd l
+        "wincmd j
     endif
 endfunction
 
@@ -6218,13 +6221,14 @@ function! s:AgendaBufferOpen(new_win)
 
     " If the current buffer is modified then open the scratch buffer in a new
     " window
-    if !split_win && &modified
-        let split_win = 1
-    endif
+    "if !split_win && &modified
+    "    let split_win = 1
+    "endif
 
     " Check whether the scratch buffer is already created
     let scr_bufnum = bufnr(s:AgendaBufferName)
-    if scr_bufnum == -1
+    "if scr_bufnum == -1
+    if scr_bufnum == -123423425834
         " open a new scratch buffer
         if split_win
             " vsplit agenda ***************
@@ -6254,7 +6258,13 @@ function! s:AgendaBufferOpen(new_win)
                 " vspli agenda ********************
                 "exe "vsplit +buffer" . scr_bufnum
                 " **************************
-                exe "split +buffer" . scr_bufnum
+                "exe "split +buffer" . scr_bufnum
+                if exists('g:vsplit') && (g:vsplit==1)
+                    exe "vsplit +buffer __Agenda__"
+                else
+                    exe "split +buffer __Agenda__"
+                endif
+
             else
                 exe "buffer " . scr_bufnum
             endif
@@ -6385,12 +6395,15 @@ function! OrgAgendaDashboard()
     if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
         " move agenda to cur tab if it exists and is on a different tab
         let curtab = tabpagenr()
+        " go to current agenda win and close it
         call s:LocateFile('__Agenda__')
         wincmd c
+        "back to start tab and open
         execute "tabnext ".curtab
-        split
-        winc j
-        buffer __Agenda__
+        "split
+        "winc j
+        "buffer __Agenda__
+        AAgenda
     else
         " show dashboard if there is no agenda buffer or it's 
         " already on this tab page
@@ -6592,6 +6605,7 @@ autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
 "command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
 " Command to open the scratch buffer in a new split window
 command! -nargs=0 AAgenda call s:AgendaBufferOpen(1)
+command! -nargs=0 FindAgenda call s:AgendaBufferOpen(0)
 
 command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()
@@ -7089,7 +7103,8 @@ function! s:OrgCustomTodoHighlights()
             exec 'syntax match ' . item . ' ' .  '+ \*\+ \zs' . item . ' + containedin=AOL1,AOL2,AOL3,AOL4,AOL5,AOL6' 
             " containedin=AOL1'
         else
-            exec 'syntax match ' . item . ' ' .  '+\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
+            "exec 'syntax match ' . item . ' ' .  '+\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
+            call matchadd(item, '^\*\+\s' . item . ' ')
         endif
         "call matchadd(item, '^.*\* \zs' . item . ' ')
     endfor
@@ -7601,8 +7616,14 @@ if !exists('g:org_tag_setup')
 endif
 
 call OrgProcessConfigLines()
-exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
-exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"syntax match OL1 +^\(*\)\{1}\s.*+ 
+"syntax match OL2 +^\(*\)\{2}\s.*+ 
+"syntax match OL3 +^\(*\)\{3}\s.*+ contains=CONTAINED
+"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
+"using matchadd b/c syntax match wouldn't show up as contained in OL group
+"with start of '^'
 
 "Menu stuff
 function! MenuCycle()
