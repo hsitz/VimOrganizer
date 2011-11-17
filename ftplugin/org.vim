@@ -472,9 +472,9 @@ function! OrgTodoSetup(todolist_str)
         endif
         let i += 1
     endwhile
-    let b:v.todoMatch = '^\*\+\s*\zs\('.b:v.todoMatch[:-2] . ')'
-    let b:v.todoDoneMatch = '^\*\+\s*\zs\('.b:v.todoDoneMatch[:-2] . ')'
-    let b:v.todoNotDoneMatch = '^\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
+    let b:v.todoMatch = '\*\+\s*\zs\('.b:v.todoMatch[:-2] . ')'
+    let b:v.todoDoneMatch = '\*\+\s*\zs\('.b:v.todoDoneMatch[:-2] . ')'
+    let b:v.todoNotDoneMatch = '\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
     let b:v.fulltodos = todolist
 
     for item in keys( b:v.tododict )
@@ -1139,7 +1139,7 @@ function! s:ReplaceTodo(...)
     endif
 
     " if going to main done state check for repeater and change date if necessary
-    if  (bufnr("%") != bufnr('Agenda')) && (newtodo =~ b:v.todoDoneMatch[11:])
+    if  (bufnr("%") != bufnr('Agenda')) && (newtodo =~ b:v.todoDoneMatch[10:])
         let newtodo = s:CheckDateRepeaterDone(todoword, newtodo)
     endif
     let s:last_newtodo = newtodo    " used to set agenda line in next pass from agenda
@@ -2944,7 +2944,6 @@ function! s:ResultsToAgenda( search_type )
     map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    "nmap <silent> <buffer> ,r :call OrgRunSearch(matchstr(getline(1),'spec: \zs.*$'))<CR>
     nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
     "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo','spec': matchstr(getline(1),'spec: \zs.*$')})<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
@@ -2974,7 +2973,6 @@ function! s:ResultsToAgenda( search_type )
             let numstr .= '('.num.')'.item.'  '
             execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
         endfor
-        "call append(line('$'),split(msg.numstr,'\%72c\S*\zs '))
         call add(lines,split(msg.numstr,'\%72c\S*\zs '))
     endif
     for key in sort(keys(g:adict))
@@ -2982,7 +2980,6 @@ function! s:ResultsToAgenda( search_type )
                     \ printf("%-12.12s",g:adict[key].CATEGORY ) . ' ' .
                     \ s:PrePad(matchstr(g:adict[key].ITEM,'^\*\+ '),8) .
                     \ matchstr(g:adict[key].ITEM,'\* \zs.*$'))
-                    "\ org#Pad(g:adict[key].file,13)  . 
         let i += 1
     endfor
     call append(s:agenda_insert_point,lines)
@@ -3250,7 +3247,6 @@ function! s:SetupDateAgendaWin()
     nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
     nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
     nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
-    "nmap <silent> <buffer> r :call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)<CR>
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
@@ -3262,7 +3258,6 @@ function! OrgRefreshCalendarAgenda()
     if g:org_search_spec =~ '\c^None'
        let g:org_search_spec = ''
     endif
-    "call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
     call OrgRunCustom({'redo_num': line('.'),'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration': g:org_agenda_days, 'spec': g:org_search_spec})
 endfunction
 function! s:Resize()
@@ -4874,7 +4869,6 @@ function! OrgClockIn(...)
         if s:IsTagLine(line(".")+1)
             execute line('.')+1
         endif
-        "exe 'normal o:CLOCK: ' . s:GetClock()
         call append(line('.'),'  :CLOCK: '.s:GetClock())
         let dict={'file':expand("%"),'line':line('.'),'Timestamp':org#Timestamp()}
         call add(g:org_clock_history,dict)
@@ -6385,8 +6379,8 @@ function! s:AgendaBlockNum(line)
        endif
     endfor
     return block_num
-    
 endfunction
+
 function! OrgAgendaDashboard()
     if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
         " move agenda to cur tab if it exists and is on a different tab
@@ -7095,7 +7089,7 @@ function! s:OrgCustomTodoHighlights()
             exec 'syntax match ' . item . ' ' .  '+ \*\+ \zs' . item . ' + containedin=AOL1,AOL2,AOL3,AOL4,AOL5,AOL6' 
             " containedin=AOL1'
         else
-            exec 'syntax match ' . item . ' ' .  '+^.*\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
+            exec 'syntax match ' . item . ' ' .  '+\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
         endif
         "call matchadd(item, '^.*\* \zs' . item . ' ')
     endfor

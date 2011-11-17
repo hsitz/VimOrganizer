@@ -41,23 +41,26 @@ syntax match Org_Star +\*\+\*+me=e-1 containedin=OL1,OL2,OL3,OL4,OL5,OL6
 syntax match Org_Table +^\s*|.\+|\s*$+ contains=Org_Full_Link,Org_Half_Link
 "syntax match NEXT '\* \zsNEXT' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 "syntax match CANCELED '\* \zsCANCELED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
-"syntax match TODO '\* \zsTODO' containedin=OL1,OL2,OL3,OL4,OL5,OL6
+ 
 "syntax match STARTED '\* \zsSTARTED' containedin=OL1,OL2,OL3,OL4,OL5,OL6
+"syntax match TODO '^\*\+ \zsTODO' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 "syntax match DONE '\* \zsDONE' containedin=OL1,OL2,OL3,OL4,OL5,OL6
 
 syntax match Org_Config_Line '^#+.*' containedin=Org_Block,Org_Src_Block
 syntax region Org_Block start='\c^#+begin.*$' end='\c^#+end.*' keepend contains=Org_Config_Line,Org_Table
 syntax region Org_Src_Block start='\c^#+begin_src.*$' end='\c^#+end.*' keepend contains=Org_Config_Line
 
-syntax match OL1 +^\(*\)\{1}\s.*+ contains=stars
-syntax match OL2 +^\(*\)\{2}\s.*+ contains=stars
-syntax match OL3 +^\(*\)\{3}\s.*+ contains=stars
-syntax match OL4 +^\(*\)\{4}\s.*+ contains=stars
-syntax match OL5 +^\(*\)\{5}\s.*+ contains=stars
-syntax match OL6 +^\(*\)\{6}\s.*+ contains=stars
-syntax match OL7 +^\(*\)\{7}\s.*+ contains=stars
-syntax match OL8 +^\(*\)\{8}\s.*+ contains=stars
-syntax match OL9 +^\(*\)\{9}\s.*+ contains=stars
+"exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL3"
+"exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL3"
+syntax match OL1 +^\(*\)\{1}\s.*+ 
+syntax match OL2 +^\(*\)\{2}\s.*+ 
+syntax match OL3 +^\(*\)\{3}\s.*+ contains=ALL
+syntax match OL4 +^\(*\)\{4}\s.*+ 
+syntax match OL5 +^\(*\)\{5}\s.*+ 
+syntax match OL6 +^\(*\)\{6}\s.*+ 
+syntax match OL7 +^\(*\)\{7}\s.*+ 
+syntax match OL8 +^\(*\)\{8}\s.*+ 
+syntax match OL9 +^\(*\)\{9}\s.*+ 
 
 " character highlights
 syn match Org_Code '=\S.\{-}\S='
