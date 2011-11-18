@@ -248,13 +248,13 @@ function! s:RunCustom(search)
     let this_time_list = s:search_list
     if this_time_list[0].type !~ 'sparse_tree'
         let curfile = expand("%:p")
+        let curtab = tabpagenr()
+        let curwin = winnr()
         :AAgenda
         " delete redo block (always just one) if any
-        "if this_time_list[0].type == 'redo'
         if get(this_time_list[0],'redo_num') > 0
+            "redo_num is block in agenda to redo
             let redo_num = s:AgendaBlockNum(this_time_list[0].redo_num)
-            "let redo_num = s:AgendaBlockNum(redo_num)
-            "let this_time_list = [ s:last_search_list[redo_num-1] ]
             normal gg
             for i in range(1,redo_num - 1)
                 call search('^==============','','')
@@ -271,7 +271,9 @@ function! s:RunCustom(search)
         else
             let s:agenda_insert_point = line('$')
         endif
-        call s:LocateFile(curfile)
+        "call s:LocateFile(curfile)
+        execute 'tabnext ' . curtab
+        execute bufwinnr(bufnr(curfile)) . 'wincmd w'
     endif
 
     let i = 0
@@ -293,7 +295,7 @@ function! s:RunCustom(search)
             let last_line = search('^============','W','') - 1
             exec (last_line <= 0) ? line('$') : last_line
             if (g:org_agenda_include_clocktable == 1) 
-                call append(line('.'),OrgGetClocktable(g:agenda_files,' :narrow 40! :tstart ' . '"<' . mydate . ' xxx 00:00>" :tend "<' . calutil#cal(calutil#jul(mydate) + mydur ) . ' xxx 00:00>" :link ')[2:-3])
+                call append(line('.'),OrgGetClocktable(g:agenda_files,' :narrow 40! :tstart ' . '"<' . mydate . ' xxx 00:00>" :tend "<' . calutil#cal(calutil#jul(mydate) + mydur ) . ' xxx 00:00>" :link ')[3:-3])
             endif
             exec save_line
         elseif mydict.type ==? 'sparse_tree'
@@ -2761,7 +2763,10 @@ function! s:MakeResults(search_spec,...)
         let sparse_search = a:1
     endif
     let save_cursor = getpos(".")
-    let curfile = substitute(expand("%"),' ','\\ ','g')
+    "let curfile = substitute(expand("%"),' ','\\ ','g')
+    let curfile = substitute(expand("%:p"),' ','\\ ','g')
+    let curtab = tabpagenr()
+    let curwin = winnr()
 
     let g:org_search_spec = a:search_spec
     let g:org_todoitems=[]
@@ -2786,7 +2791,9 @@ function! s:MakeResults(search_spec,...)
             call s:OrgIfExprResults(ifexpr,sparse_search)
         endfor
         unlet g:in_agenda_search
-        call s:LocateFile(curfile)
+        "call s:LocateFile(curfile)
+        execute 'tabnext ' . curtab
+        execute curwin . 'wincmd w'
     endif
     call setpos(".",save_cursor)
 endfunction
@@ -2826,7 +2833,9 @@ function! s:MakeAgenda(date,count,...)
         let as_today = a:2
     endif
     
-    call s:OrgSaveLocation()
+    "call s:OrgSaveLocation()
+    let curtab = tabpagenr()
+    let curwin = winnr()
 
     let l:count = a:count
     if l:count ==? 'd' | let l:count = 1 | endif
@@ -2869,7 +2878,9 @@ function! s:MakeAgenda(date,count,...)
     endfor
     unlet g:in_agenda_search
 
-    call s:OrgRestoreLocation()
+    "call s:OrgRestoreLocation()
+    exec 'tabnext ' . curtab
+    exec curwin . 'wincmd w'
 
 endfunction
 
@@ -6394,12 +6405,12 @@ endfunction
 function! OrgAgendaDashboard()
     if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
         " move agenda to cur tab if it exists and is on a different tab
-        let curtab = tabpagenr()
-        " go to current agenda win and close it
-        call s:LocateFile('__Agenda__')
-        wincmd c
-        "back to start tab and open
-        execute "tabnext ".curtab
+        "let curtab = tabpagenr()
+        "" go to current agenda win and close it
+        "call s:LocateFile('__Agenda__')
+        "wincmd c
+        ""back to start tab and open
+        "execute "tabnext ".curtab
         "split
         "winc j
         "buffer __Agenda__
