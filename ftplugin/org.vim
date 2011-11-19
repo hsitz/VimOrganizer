@@ -69,6 +69,7 @@ let w:sparse_on = 0
 "    let w:v.columnview = 0
 "endif
 
+let b:v.last_dict_time = 0
 let b:v.clock_to_logbook = 1
 let b:v.messages = []
 let b:v.global_cycle_levels_to_show=4
@@ -231,6 +232,12 @@ function! s:RunCustom(search)
         let search_spec = a:search
     endif
     
+    if !exists("g:agenda_files") || (g:agenda_files == [])
+        if has('dialog_con') || has('dialog_gui')
+            unsilent call confirm("No agenda files defined.  Will add current file to agenda files.")
+        endif
+        call s:CurfileAgenda()
+    endif
     "let temp_list = copy(s:last_search_list)
     if type(search_spec) == type({})
         "single spec
@@ -272,8 +279,8 @@ function! s:RunCustom(search)
             let s:agenda_insert_point = line('$')
         endif
         "call s:LocateFile(curfile)
-        execute 'tabnext ' . curtab
-        execute bufwinnr(bufnr(curfile)) . 'wincmd w'
+        "execute 'tabnext ' . curtab
+        "execute bufwinnr(bufnr(curfile)) . 'wincmd w'
     endif
 
     let i = 0
@@ -2334,6 +2341,10 @@ function! s:IProp(headline,property)
 endfunction 
 
 function! OrgMakeDictInherited()
+    if b:v.last_dict_time > getftime(expand('%:p'))
+        return
+    endif
+    let b:v.last_dict_time = localtime()
     call OrgProcessConfigLines()
     let b:v.org_dict =  {'0':{'c':[],'CATEGORY':b:v.org_inherited_defaults['CATEGORY'] }}
     function! b:v.org_dict.iprop(ndx,property) dict
@@ -2367,6 +2378,10 @@ function! OrgMakeDictInherited()
 endfunction
 
 function! OrgMakeDict()
+    if b:v.last_dict_time > getftime(expand('%:p'))
+        return
+    endif
+    let b:v.last_dict_time = localtime()
     let b:v.org_dict = {}
     call OrgMakeDictInherited()
     function! b:v.org_dict.SumTime(ndx,property) dict
@@ -2783,7 +2798,13 @@ function! s:MakeResults(search_spec,...)
         let g:in_agenda_search = 1
         for file in g:agenda_files
             "execute 'tab drop ' . file
-            call s:LocateFile(file)
+            "call s:LocateFile(file)
+            let bnum = bufnr(file)
+            if bnum == -1 
+                execute 'tabedit ' . file
+            else
+               execute 'b' . bnum 
+            endif
             let s:filenum = index(g:agenda_files,file)
             call OrgMakeDict()
             let ifexpr = s:OrgIfExpr()
@@ -2860,8 +2881,14 @@ function! s:MakeAgenda(date,count,...)
     call s:MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
-        call s:LocateFile(file)
-        let b:v.org_dict = {}
+        "call s:LocateFile(file)
+        let bnum = bufnr(file)
+        if bnum == -1 
+            execute 'tabedit ' . file
+        else
+           execute 'b' . bnum 
+        endif
+        "let b:v.org_dict = {}
         " just do CATEGORIES for dict if no search spec
         if g:org_search_spec ==# ''
             call OrgMakeDictInherited()
@@ -2945,7 +2972,8 @@ function! s:ResultsToAgenda( search_type )
     if bufnr('__Agenda__') >= 0
         "bwipeout __Agenda__
     endif
-    :AAgenda
+    ":AAgenda
+    :EditAgenda
     let b:v={}
     let b:v.todoitems = todos
     let b:v.todoNotDoneMatch = todoNotDoneMatch
@@ -3242,7 +3270,8 @@ function! s:SetupDateAgendaWin()
     if bufnr('__Agenda__') >= 0
         "bwipeout __Agenda__
     endif
-    :AAgenda
+    ":AAgenda
+    EditAgenda
     let b:v={}
     let b:v.todoitems = todos
     let b:v.todoNotDoneMatch = todoNotDoneMatch
@@ -5243,31 +5272,32 @@ endfunction
 function! s:LocateFile(filename)
     let filename = a:filename
 
-    "if !exists("g:agenda_files") || (g:agenda_files == [])
-    "    call confirm('You have no agenda files defined right now.\n'
-    "                \ . 'Will assign current file to agenda files.')
-    "    call s:CurfileAgenda()
-    "endif
-    "let myvar = ''
-    "" set filename
-
-    "if filename != '__Agenda__'
-    "    " but change to be full name if appropriate
-    "    for item in g:agenda_files
-    "        " match fullpathname or just filename w/o path
-    "        if (item ==? a:filename) || (item =~ matchstr(a:filename,'.*[/\\]\zs.*'))
-    "            let filename = item
-    "            break
-    "        endif
-    "    endfor
-    "endif
-
     if bufwinnr(filename) >= 0
         silent execute bufwinnr(filename)."wincmd w"
     else
-        execute 'tab drop ' . filename
-        if &ft != 'org'
-            call org#SetOrgFileType()
+        if org#redir('tabs') =~ fnamemodify(filename, ':t')
+            " proceed on assumption that file is open
+            let this_tab = tabpagenr()
+            let last_tab = tabpagenr('$')
+            for i in range(1 , last_tab)
+                exec i . 'tabn'
+                if bufwinnr(filename) >= 0
+                    silent execute bufwinnr(filename)."wincmd w"
+                    break
+                elseif i == last_tab
+                    execute 'tab drop ' . filename
+                    if (&ft != 'org') && (filename != '__Agenda__')
+                        call org#SetOrgFileType()
+                    endif
+                endif
+                tabn
+            endfor
+        else
+            exe 'tabn ' . tabpagenr('$')
+            execute 'tab drop ' . filename
+            if (&ft != 'org') && (filename != '__Agenda__')
+                call org#SetOrgFileType()
+            endif
         endif
     endif
 
@@ -6239,7 +6269,7 @@ function! s:AgendaBufferOpen(new_win)
     " Check whether the scratch buffer is already created
     let scr_bufnum = bufnr(s:AgendaBufferName)
     "if scr_bufnum == -1
-    if scr_bufnum == -123423425834
+    if scr_bufnum == -1
         " open a new scratch buffer
         if split_win
             " vsplit agenda ***************
@@ -6252,7 +6282,7 @@ function! s:AgendaBufferOpen(new_win)
         " vsplit agenda *******************
         "wincmd L
         " ******************
-        wincmd J
+        "wincmd J
     else
         " Agenda buffer is already created. Check whether it is open
         " in one of the windows
@@ -6616,7 +6646,7 @@ autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
 "command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
 " Command to open the scratch buffer in a new split window
 command! -nargs=0 AAgenda call s:AgendaBufferOpen(1)
-command! -nargs=0 FindAgenda call s:AgendaBufferOpen(0)
+command! -nargs=0 EditAgenda call s:AgendaBufferOpen(0)
 
 command! -nargs=0 OrgToPDF :call s:ExportToPDF()
 command! -nargs=0 OrgToHTML :call s:ExportToHTML()

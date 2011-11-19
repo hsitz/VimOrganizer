@@ -49,6 +49,20 @@ function! org#Timestamp()
     return strftime("%Y-%m-%d %a %H:%M")
 endfunction
 
+function! org#redir(command)
+  let save_a = @a
+  try 
+    silent! redir @a
+    silent! exe a:command
+    redir END
+  finally
+    " Always restore everything
+    let res = @a
+    let @a = save_a
+    return res
+  endtry
+endfunction
+
 function! org#GetGroupHighlight(group)
     " this code was copied and modified from code posted on StackOverflow
     " http://stackoverflow.com/questions/1331213/how-to-modify-existing-highlight-group-in-vim
