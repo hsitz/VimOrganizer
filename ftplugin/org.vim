@@ -2383,6 +2383,9 @@ function! OrgMakeDict()
     endif
     let b:v.last_dict_time = localtime()
     let b:v.org_dict = {}
+    "save buffer changes since last_dict
+    write!
+    " and recreate the dict
     call OrgMakeDictInherited()
     function! b:v.org_dict.SumTime(ndx,property) dict
         let prop = a:property
@@ -6275,7 +6278,12 @@ function! s:AgendaBufferOpen(new_win)
             " vsplit agenda ***************
             "exe "vnew " . s:AgendaBufferName
             " ***************************
-            exe "new " . s:AgendaBufferName
+            if exists('g:vsplit') && (g:vsplit==1)
+                exe "vsplit __Agenda__"
+            else
+                exe "split __Agenda__"
+            endif
+            "`exe "new " . s:AgendaBufferName
         else
             exe "edit " . s:AgendaBufferName
         endif
