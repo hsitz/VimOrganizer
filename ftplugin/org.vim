@@ -238,7 +238,7 @@ function! s:RunCustom(search)
         endif
         call s:CurfileAgenda()
     endif
-    "let temp_list = copy(s:last_search_list)
+
     if type(search_spec) == type({})
         "single spec
         let s:search_list = [ search_spec ]
@@ -246,11 +246,6 @@ function! s:RunCustom(search)
         " block agenda specs
         let s:search_list = search_spec
     endif
-    "if s:search_list[0].type != 'redo'
-    "    let s:last_search_list = copy(s:search_list)
-    "else
-    "    let s:last_search_list = copy(temp_list)
-    "endif
 
     let this_time_list = s:search_list
     if this_time_list[0].type !~ 'sparse_tree'
@@ -278,9 +273,6 @@ function! s:RunCustom(search)
         else
             let s:agenda_insert_point = line('$')
         endif
-        "call s:LocateFile(curfile)
-        "execute 'tabnext ' . curtab
-        "execute bufwinnr(bufnr(curfile)) . 'wincmd w'
     endif
 
     let i = 0
@@ -294,7 +286,7 @@ function! s:RunCustom(search)
             let mydate = DateCueResult( mydict.agenda_date, s:Today())
             let mydur = get(mydict, 'agenda_duration','w')
             let mydur = (mydur == 'w') ? '7' : (mydur == 'd' ? '1' : mydur)
-            "let mydur = str2nr(mydur)
+            
             call OrgRunAgenda( mydate, 
                             \  get(mydict, 'agenda_duration', 'w'),
                             \  get(mydict, 'spec','')  )
@@ -6275,22 +6267,14 @@ function! s:AgendaBufferOpen(new_win)
     if scr_bufnum == -1
         " open a new scratch buffer
         if split_win
-            " vsplit agenda ***************
-            "exe "vnew " . s:AgendaBufferName
-            " ***************************
             if exists('g:vsplit') && (g:vsplit==1)
                 exe "vsplit __Agenda__"
             else
                 exe "split __Agenda__"
             endif
-            "`exe "new " . s:AgendaBufferName
         else
             exe "edit " . s:AgendaBufferName
         endif
-        " vsplit agenda *******************
-        "wincmd L
-        " ******************
-        "wincmd J
     else
         " Agenda buffer is already created. Check whether it is open
         " in one of the windows
@@ -6304,10 +6288,6 @@ function! s:AgendaBufferOpen(new_win)
         else
             " open a window and put existing Agenda in
             if split_win
-                " vspli agenda ********************
-                "exe "vsplit +buffer" . scr_bufnum
-                " **************************
-                "exe "split +buffer" . scr_bufnum
                 if exists('g:vsplit') && (g:vsplit==1)
                     exe "vsplit +buffer __Agenda__"
                 else
