@@ -70,6 +70,7 @@ let w:sparse_on = 0
 "endif
 
 let b:v.last_dict_time = 0
+let b:v.last_idict_time = 0
 let b:v.clock_to_logbook = 1
 let b:v.messages = []
 let b:v.global_cycle_levels_to_show=4
@@ -2332,11 +2333,13 @@ function! s:IProp(headline,property)
     endif
 endfunction 
 
-function! OrgMakeDictInherited()
-    if b:v.last_dict_time > getftime(expand('%:p'))
+function! OrgMakeDictInherited(...)
+    let get_tags = ((a:0==1) && (a:1 =='get_tags_too')) ? 1 : 0
+    if (b:v.last_idict_time >= getftime(expand('%:p')) && (&modified==0))
         return
     endif
-    let b:v.last_dict_time = localtime()
+    let b:v.last_idict_time = localtime()
+    write!
     call OrgProcessConfigLines()
     let b:v.org_dict =  {'0':{'c':[],'CATEGORY':b:v.org_inherited_defaults['CATEGORY'] }}
     function! b:v.org_dict.iprop(ndx,property) dict
@@ -2366,13 +2369,30 @@ function! OrgMakeDictInherited()
    endwhile 
    " parent properties assigned above, now explicity record CATEGORY for 
    " any headlines where CATEGORY won't be inherited
-   silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
+   if get_tags == 0
+       silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
+    else
+       silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
+       silent g/^\*\+ \S/call s:GetBasicMeta(line('.'))
+    endif
 endfunction
-
+function! s:GetBasicMeta(line)
+   "let b:v.org_dict[a:line].CATEGORY = matchstr(getline(a:line),":CATEGORY:\\s*\\zs.*")
+   let this_line = getline(a:line)
+   let todo =  matchstr(this_line,b:v.todoMatch)
+   "let b:v.org_dict[a:line].TODO = matchstr(getline(a:line),b:v.todoMatch)
+   if s:IsTagLine(a:line + 1)
+       let tags = matchstr(this_line,'^\s*\zs.*')
+    else
+        let tags = ''
+   endif
+   let b:v.org_dict[a:line].props = {'ITEM': this_line,'TODO':todo,'TAGS':tags}
+endfunction
 function! OrgMakeDict()
-    if b:v.last_dict_time > getftime(expand('%:p'))
+    if (b:v.last_dict_time >= getftime(expand('%:p')) && (&modified==0))
         return
     endif
+    " save new dict time to use in future searches
     let b:v.last_dict_time = localtime()
     let b:v.org_dict = {}
     "save buffer changes since last_dict
@@ -2638,21 +2658,23 @@ function! s:OrgIfExpr()
             elseif item[0] ==? '-'
                 let op = '!~'
             endif
+            " if it's in todoitems assume it's a todo search item, not a tag
             if index(b:v.todoitems,item[1:]) >= 0
-                let item = '(thisline ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
+                let item = '(lineprops.TODO ' . op . " '" . item[1:] . "')"
+                "let item = '(lineprops.TODO ' . op . " '^\\*\\+\\s*" . item[1:] . "')"
                 let b:v.my_if_list[i] = item
             elseif item[1:] =~? 'UNFINISHED_TODO\|UNDONE_TODO'
-                let item = '(thisline ' . op . " '" . b:v.todoNotDoneMatch . "')"
+                let item = '(lineprops.TODO ' . op . " '" . b:v.todoNotDoneMatch[11:] . "')"
                 let b:v.my_if_list[i] = item
             elseif item[1:] =~? 'FINISHED_TODO\|DONE_TODO'
-                let item = '(thisline ' . op . " '" . b:v.todoDoneMatch . "')"
+                let item = '(lineprops.TODO ' . op . " '" . b:v.todoDoneMatch[11:] . "')"
                 let b:v.my_if_list[i] = item
             elseif item[1:] ==? 'ANY_TODO'
-                let item = '(thisline ' . op . " '" . b:v.todoMatch . "')"
+                let item = '(lineprops.TODO ' . op . " '" . b:v.todoMatch[11:] . "')"
                 let b:v.my_if_list[i] = item
             else
                 "not a todo so we treat it as a tag item
-                let item = '(thisline ' . op . " ':" . item[1:] . ":')"
+                let item = '(get(lineprops,"TAGS","") ' . op . " ':" . item[1:] . ":')"
                 let b:v.my_if_list[i] = item
             endif
             let i += 1 
@@ -2801,7 +2823,12 @@ function! s:MakeResults(search_spec,...)
                execute 'b' . bnum 
             endif
             let s:filenum = index(g:agenda_files,file)
-            call OrgMakeDict()
+            if g:org_search_spec =~ '[<>\=!]'
+                call OrgMakeDict()
+            else
+                " it's just todos and/or tags
+                call OrgMakeDictInherited('get_tags_too')
+            endif
             let ifexpr = s:OrgIfExpr()
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
             call s:OrgIfExprResults(ifexpr,sparse_search)
@@ -2883,13 +2910,14 @@ function! s:MakeAgenda(date,count,...)
         else
            execute 'b' . bnum 
         endif
-        "let b:v.org_dict = {}
         " just do CATEGORIES for dict if no search spec
-        if g:org_search_spec ==# ''
+        "if g:org_search_spec ==# ''
+            " do inherited even if search spec, todos and tags are handled by
+            " GetDateHeads()
             call OrgMakeDictInherited()
-        else
-            call OrgMakeDict()
-        endif
+        "else
+        "    call OrgMakeDict()
+        "endif
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today ># ''
@@ -3314,8 +3342,10 @@ function! s:GetDateHeads(date1,count,...)
     let date1 = a:date1
     let date2 = calutil#Jul2Cal(calutil#Cal2Jul(split(date1,'-')[0],split(date1,'-')[1],split(date1,'-')[2]) + a:count)
     execute 1
-    "while search('\(\|[^-]\)[[<]\d\d\d\d-\d\d-\d\d','W') > 0
     while search('[^-][[<]\d\d\d\d-\d\d-\d\d','W') > 0
+        "if ((g:org_search_spec ># '') && (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)==0))
+        "    continue
+        "endif
         let repeatlist = []
         let line = getline(line("."))
         let datematch = matchstr(line,'[[<]\d\d\d\d-\d\d-\d\d\ze')
