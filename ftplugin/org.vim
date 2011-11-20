@@ -4538,7 +4538,7 @@ function! OrgDateDashboard(...)
         call OrgDateEdit('CLOSED')
     elseif key ==? 't'
         call OrgDateEdit('TIMESTAMP')
-    elseif key ==? 'g'
+    elseif key ==? 'g' && (bufname('%') != '__Agenda__')
         call OrgDateEdit('ATCURSOR')
     else
         echo "No date command selected."
@@ -4618,6 +4618,14 @@ function! OrgDateEdit(type)
             else
                 " set the prop with new date . . . 
                 call s:SetProp(dtype,cal_result,buffer_lineno, file)
+                if (from_agenda == 1)
+                    "put prop change indicator on line if from agenda
+                    let cur_line = getline(line('.'))
+                    let mylen = winwidth(0) - 29
+                    let cur_line = (len(cur_line) > mylen) ? cur_line[:mylen] : cur_line . repeat(' ', mylen-len(cur_line))
+                    let change_indicator = ' ' . dtype[0] . ' => ' . dtype . ' on ' . cal_result 
+                    call setline(line('.'), cur_line . change_indicator)
+                endif
             endif
 
             redraw
@@ -5241,14 +5249,14 @@ function! s:SetProp(key, val,...)
         endif
         if foundline > 0
             exec foundline
-            exec 's/:\s*<\d\d\d\d.*$/'.':'.a:val
+            exec 's/:\s*<\d\d\d\d.*$/'.': '.a:val
         else
             let line_ind = len(matchstr(getline(line(".")),'^\**'))+1 + g:org_indent_from_head
             if s:IsTagLine(line('.')+1)
                 execute line('.') + 1
             endif
             call append(line("."),org#Pad(' ',line_ind)
-                        \ .':'.key.(key ==# ''?'':':').a:val)
+                        \ .':'.key.(key ==# '' ? '' : ': ').a:val)
         endif
     elseif key ==? 'tags'
         if s:IsTagLine(line('.') + 1)
@@ -6602,6 +6610,7 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
+    call matchadd( 'StatusLine',' [DSC] => [DSC].*>$')
     "
     let donepat = ' \*\+ \zs\(' . join(keys(g:org_todos_done_dict),'\|') . '\) '
     exec "syntax match DONETODO /" . donepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
