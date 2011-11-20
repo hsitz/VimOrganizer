@@ -3992,35 +3992,34 @@ function! OrgAgendaGetText(...)
         if (getline(line(".") + 1) =~ '^\d\+\s\+') || (line(".") == line("$")) ||
                     \ (getline(line(".") + 1 ) =~ '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d')
                     \ || (getline(line(".") + 1 ) =~ '\d empty days omitted')
-            let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
-            let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
+
             let starttab = tabpagenr() 
 
+            " go to the heading's file
+            let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
+            let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             call s:LocateFile(file)
+
             let save_cursor2 = getpos(".")
             
-            "if g:agenda_date_dict != {}
-           
-            "    let confirmhead = lineno
-            "elseif g:adict != {}
-            "    let confirmhead = lineno
-            "endif
             let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . lineno)
             let newhead = s:OrgGetHead_l(newhead)
             
             execute newhead
 
             if cycle_todo
+                " do todo operation
                 if a:0 >= 2
                     call s:ReplaceTodo(newtodo)
                 else
                     call s:ReplaceTodo()
                 endif
-                normal V
-                redraw
-                sleep 100m
-                normal V
+                "normal V
+                "redraw
+                "sleep 100m
+                "normal V
             else
+                " get the heading's text block
                 let lastline = s:OrgNextHead_l(newhead) - 1
                 if lastline > newhead
                     let g:text = getline(newhead,lastline)
@@ -4031,6 +4030,7 @@ function! OrgAgendaGetText(...)
                 endif
             endif
             call setpos(".",save_cursor2)
+            " now go back to agenda
             execute 'tabnext ' . starttab
             execute bufwinnr('Agenda').'wincmd w'
             if !cycle_todo
@@ -4038,7 +4038,7 @@ function! OrgAgendaGetText(...)
             endif
         else
             " we're dealing with toggle of agenda heading that already
-            " has main buffer heading text . . . 
+            " has main buffer heading text in agenda. . . 
             normal j
             let firstline = line(".")
             let daytextpat = '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d'
@@ -4073,9 +4073,20 @@ function! OrgAgendaGetText(...)
         endif
         echo "Todo cycled."
     endif
-    " now switch back quickly and highlight in main buffer
-    ":AgendaMoveToBuf
 endfunction
+
+function! s:MoveToHeadingFromAgenda(agenda_line)
+    "given line from agenda, go to the associated file and heading
+    let thisline = a:agenda_line
+    let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
+    let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
+    call s:LocateFile(file)
+    " need to check sign at this lineno, since for date agenda we're not necessarily at heading
+    let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . lineno)
+    let newhead = s:OrgGetHead_l(newhead)
+    execute newhead
+endfunction
+
 
 function! s:IsVisibleHeading(line)
     " returns 1 if line is of a visible heading,
@@ -5963,7 +5974,10 @@ function! s:OrgAgendaToBuf()
     "wincmd x
 
     set foldlevel=1
-    execute g:showndx
+    let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . g:showndx)
+    let newhead = s:OrgGetHead_l(newhead)
+    execute newhead
+    "execute g:showndx
     normal! zv
     if getline(line('.')) =~ b:v.headMatch
         "restrict to headings only
