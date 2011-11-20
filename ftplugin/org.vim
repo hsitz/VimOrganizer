@@ -759,8 +759,10 @@ function! s:GetTagList(line)
     let text = getline(a:line+1)
     if (text !~ b:v.drawerMatch) && (text !~ b:v.dateMatch) && (text =~ s:remstring)
         let tags = matchlist(text,':\(\S*\):\s*$')
+        " include replacement of mistaken double colons with single colon
+        let tagstr = substitute(tags[1],'::',':','g')
         if !empty(tags)
-            return split(tags[1],':')
+            return split(tagstr,':')
         else
             return []
         endif
@@ -2340,6 +2342,7 @@ function! OrgMakeDictInherited(...)
     endif
     let b:v.last_idict_time = localtime()
     write!
+    let b:v.org_dict = {}
     call OrgProcessConfigLines()
     let b:v.org_dict =  {'0':{'c':[],'CATEGORY':b:v.org_inherited_defaults['CATEGORY'] }}
     function! b:v.org_dict.iprop(ndx,property) dict
@@ -2373,7 +2376,7 @@ function! OrgMakeDictInherited(...)
        silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
     else
        silent execute 'g/^\s*:CATEGORY:/let b:v.org_dict[s:OrgGetHead()].CATEGORY = matchstr(getline(line(".")),":CATEGORY:\\s*\\zs.*")'
-       silent g/^\*\+ \S/call s:GetBasicMeta(line('.'))
+       silent g/^\*\+\s*\S/call s:GetBasicMeta(line('.'))
     endif
 endfunction
 function! s:GetBasicMeta(line)
@@ -2394,7 +2397,7 @@ function! OrgMakeDict()
     endif
     " save new dict time to use in future searches
     let b:v.last_dict_time = localtime()
-    let b:v.org_dict = {}
+    "let b:v.org_dict = {}
     "save buffer changes since last_dict
     write!
     " and recreate the dict
@@ -3995,14 +3998,14 @@ function! OrgAgendaGetText(...)
 
             call s:LocateFile(file)
             let save_cursor2 = getpos(".")
-            "let confirmhead = s:OrgGetHead_l(headline)
-            if g:agenda_date_dict != {}
-                "let confirmhead = g:agenda_head_lookup[lineno]
-                let confirmhead = lineno
-            elseif g:adict != {}
-                let confirmhead = lineno
-            endif
-            let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.confirmhead)
+            
+            "if g:agenda_date_dict != {}
+           
+            "    let confirmhead = lineno
+            "elseif g:adict != {}
+            "    let confirmhead = lineno
+            "endif
+            let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . lineno)
             let newhead = s:OrgGetHead_l(newhead)
             
             execute newhead
@@ -4034,6 +4037,8 @@ function! OrgAgendaGetText(...)
                 call append(line("."),g:text)
             endif
         else
+            " we're dealing with toggle of agenda heading that already
+            " has main buffer heading text . . . 
             normal j
             let firstline = line(".")
             let daytextpat = '^\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d'
@@ -4050,6 +4055,8 @@ function! OrgAgendaGetText(...)
                 let lastline = line(".") - 1
             endif
             call setpos(".",save_cursor)
+            " see if it there are changes that need to be
+            " pushed back to main buffer
             call s:AgendaPutText()
             silent execute firstline . ', ' . lastline . 'd'
         endif
@@ -4058,6 +4065,7 @@ function! OrgAgendaGetText(...)
     endif
     call setpos(".",save_cursor)
     if cycle_todo
+        " we did cycle in main buffer, now do in agenda
         if a:0 >= 2
             call s:ReplaceTodo(s:last_newtodo)
         else
@@ -4066,7 +4074,7 @@ function! OrgAgendaGetText(...)
         echo "Todo cycled."
     endif
     " now switch back quickly and highlight in main buffer
-    :AgendaMoveToBuf
+    ":AgendaMoveToBuf
 endfunction
 
 function! s:IsVisibleHeading(line)
@@ -5582,7 +5590,7 @@ function! s:GetFoldColumns(line)
     for item in (w:v.org_colview_list)
         let [ fmt, field, hdr ] = matchlist(item,'%\(\d*\)\(\S\{-}[^({]*\)(*\(\S*\))*')[1:3]
         if field ==# 'ITEM' | continue | endif
-        let fldtext = get(props,field,'')
+        let fldtext = get(props,toupper(field),'')
         let fmt = (fmt ==# '') ? g:org_columns_default_width :  fmt 
         " truncate text if too long
         let fldtext = (len(fldtext)<=fmt) ? fldtext : (fldtext[:fmt-3] . '..')

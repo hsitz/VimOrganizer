@@ -1,5 +1,7 @@
 * VimOrganizer CheatSheet
-** Outline Navigation
+** TODO Outline Navigation
+   :home:work:
+   abc
    TAB                  cycle visibilty of single headline/subtree
 
    Shift-TAB            cycle visibility of entire outline
@@ -21,14 +23,14 @@
    space.  This document is an example showing headings, subheadings,
    and text underneath each.
 *** Adding new headlines
-****   Enter, shift+Enter   
+**** TODO Enter, shift+Enter   
         add another headline of same level
         <enter> works only in normal mode
-****   Ctrl+Enter 
+**** Ctrl+Enter 
         add another headline of lower-level
-****   Ctrl+Shift+Enter 
+**** DONE Ctrl+Shift+Enter 
         add another headline of higher-level
-** Time Stamps/Date-time prompt
+** TODO Time Stamps/Date-time prompt
    The following commands may be issued anywhere within a headline and will 
    enter or edit the corresponding date for the headline.  One date of 
    each type may be defined per headline (i.e, 'deadline', 'scheduled', 
