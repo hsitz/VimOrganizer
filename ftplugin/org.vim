@@ -29,6 +29,7 @@ let b:v.lasttext_lev=''
 let maplocalleader = ","        " Org key mappings prepend single comma
 
 let s:sfile = expand("<sfile>:p:h")
+let s:agenda_marks = []
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
 let b:v.tableMatch = '^\(\s*|.*|\s*$\|#+TBLFM\)'
@@ -2063,6 +2064,7 @@ function! s:DeleteSigns()
     sign define piet text=>>
     sign define fbegin text=>
     sign define fend text=<
+    sign define marked text=>
 endfunction
 
 function! s:GetPlacedSignsString(buffer)
@@ -3020,6 +3022,8 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
     " c-s-cr already taken
     nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
+    nmap <silent> <buffer> m           :call <SID>ToggleAgendaMark(line('.'))<CR>
+    nmap <silent> <buffer> ,m           :call <SID>DeleteAgendaMarks()<CR>
     "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
     "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
     "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
@@ -3052,7 +3056,23 @@ function! s:ResultsToAgenda( search_type )
     endfor
     call append(s:agenda_insert_point,lines)
 endfunction
-
+function! s:ToggleAgendaMark(line)
+    let line = a:line
+    let list_item = index(s:agenda_marks,line)
+    if list_item == -1
+        call add(s:agenda_marks,line)
+        execute "sign place " . line('.') . " line=" . line('.') . " name=marked buffer=".bufnr("%")
+    else
+        call remove(s:agenda_marks,list_item)
+        execute "sign unplace " . line('.') . " buffer=".bufnr("%")
+    endif
+endfunction
+function! s:DeleteAgendaMarks()
+    for item in s:agenda_marks
+        execute "sign unplace " . item . " buffer=".bufnr("%")
+    endfor
+    let s:agenda_marks = []
+endfunction
 function! s:ResultsToSparseTree()
         "call s:ClearSparseTree()
         let w:sparse_on = 1
@@ -4617,14 +4637,30 @@ function! OrgDateEdit(type)
                 endif
             else
                 " set the prop with new date . . . 
-                call s:SetProp(dtype,cal_result,buffer_lineno, file)
-                if (from_agenda == 1)
-                    "put prop change indicator on line if from agenda
-                    let cur_line = getline(line('.'))
-                    let mylen = winwidth(0) - 29
-                    let cur_line = (len(cur_line) > mylen) ? cur_line[:mylen] : cur_line . repeat(' ', mylen-len(cur_line))
-                    let change_indicator = ' ' . dtype[0] . ' => ' . dtype . ' on ' . cal_result 
-                    call setline(line('.'), cur_line . change_indicator)
+                if (from_agenda == 0)
+                    "just set the prop if we're in org file buffer
+                    call s:SetProp(dtype,cal_result,buffer_lineno, file)
+                else
+                    if empty(s:agenda_marks)
+                        " just mark and do current item
+                        let s:agenda_marks = [line('.')]
+                    endif
+                    for item in s:agenda_marks
+                        exec item
+                        let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+                        let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+                        let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
+                        let bufline = OrgGetLine(buffer_lineno,file)
+                        call s:SetProp(dtype,cal_result,buffer_lineno, file)
+                        "put prop change indicator on line(s)
+                        let cur_line = getline(line('.'))
+                        let mylen = winwidth(0) - 29
+                        let cur_line = (len(cur_line) > mylen) ? cur_line[:mylen] : cur_line . repeat(' ', mylen-len(cur_line))
+                        let change_indicator = ' ' . dtype[0] . ' => ' . dtype . ' on ' . cal_result 
+                        call setline(line('.'), cur_line . change_indicator)
+                        execute 'sign unplace ' . item . ' buffer=' . bufnr('%')
+                    endfor
+                    let s:agenda_marks = []
                 endif
             endif
 
@@ -5249,7 +5285,7 @@ function! s:SetProp(key, val,...)
         endif
         if foundline > 0
             exec foundline
-            exec 's/:\s*<\d\d\d\d.*$/'.': '.a:val
+            exec 's/:\s*<\d\d\d\d.*$/' . (key ==# '' ? ':' : ': ') . a:val
         else
             let line_ind = len(matchstr(getline(line(".")),'^\**'))+1 + g:org_indent_from_head
             if s:IsTagLine(line('.')+1)
@@ -6610,7 +6646,7 @@ function! s:AgendaBufHighlight()
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
-    call matchadd( 'StatusLine',' [DSC] => [DSC].*>$')
+    call matchadd( 'StatusLine',' [DSCT] => [DSCT].*>$')
     "
     let donepat = ' \*\+ \zs\(' . join(keys(g:org_todos_done_dict),'\|') . '\) '
     exec "syntax match DONETODO /" . donepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
