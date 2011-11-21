@@ -7354,11 +7354,13 @@ function! OrgRefileDashboard()
     echo " Press key for a refile command:"
     echo " --------------------------------"
     echo " h   refile heading (including subtree) to point"
-    echo " p   refile heading (including subtree) to point"
+    echo " p   refile heading (including subtree) to persisted point"
+    echo " a   refile heading (including subtree) to archive point"
     echo " j   jump to refile point"
     echo " x   jump to persistent refile point"
+    echo " v   jump to archive point"
     echo " s   set persistent refile point"
-    echo " "
+    echo " r   set archive point"
     echo " "
     echohl Question
     let key = nr2char(getchar())
@@ -7367,12 +7369,18 @@ function! OrgRefileDashboard()
         call OrgRefile(line('.'))
     elseif key ==? 'p'
         call OrgRefileToPermPoint(line('.'))
+    elseif key ==? 'a'
+        call OrgRefileToPermPoint(line('.'))
     elseif key ==? 'j'
         call OrgJumpToRefilePoint()
     elseif key ==? 'x'
         call OrgJumpToRefilePointPersistent()
+    elseif key ==? 'v'
+        call OrgJumpToArchivePoint()
     elseif key ==? 's'
         call OrgSetRefilePoint()
+    elseif key ==? 'r'
+        call OrgSetArchivePoint()
     else
         echo "No refile option selected."
     endif
@@ -7466,6 +7474,15 @@ function! OrgJumpToRefilePointPersistent()
         echo 'No persistent refile point assigned.'
     endif
 endfunction
+function! OrgJumpToArchivePoint()
+    if exists('s:archive_refile_point') && (len(s:archive_refile_point)==2)
+        let p = s:archive_refile_point
+        call OrgGotoHeading( p[0], p[1])
+        normal zv
+    else
+        echo 'No persistent refile point assigned.'
+    endif
+endfunction
 function! OrgJumpToRefilePoint()
     let my_refile_point = GetTarget()
     if len(my_refile_point)==2
@@ -7478,25 +7495,42 @@ endfunction
 function! OrgSetRefilePoint()
     let s:persistent_refile_point = GetTarget()
 endfunction
+function! OrgSetArchivePoint()
+    let s:archive_refile_point = GetTarget()
+endfunction
+
+function! OrgRefileToArchive(headline)
+    if exists('s:archive_refile_point') && (s:archive_refile_point[1] !=# '')
+        silent call DoRefile( s:archive_refile_point, [a:headline] )
+        redraw!
+        let p = s:archive_refile_point
+        echo "Heading and its subtree refiled to: \n" . p[0] . '/' . p[1]
+    else
+        echo 'Refile aborted, archive point not assigned.'
+    endif
+endfunction
 function! OrgRefileToPermPoint(headline)
-    if s:persistent_refile_point[1] !=# ''
+    if exists('s:persistent_refile_point') && (s:persistent_refile_point[1] !=# '')
         silent call DoRefile( s:persistent_refile_point, a:headline )
         redraw!
         echo "Heading and its subtree refiled to: \n" . s:persistent_refile_point[0] . '/' . s:persistent_refile_point[1]
     else
-        echo 'Refile aborted.'
+        echo 'Refile aborted, persistent point not defined.'
     endif
 endfunction
 function! OrgRefile(headline)
    " let head = (a:0 > 0) ? a:1 : line('.')
     let targ_list = GetTarget()
     if targ_list[1] !=# ''
-        silent call DoRefile( targ_list, a:headline )
+        silent call DoRefile( targ_list, [a:headline] )
         redraw!
         echo "Heading and its subtree refiled to: \n" . targ_list[0] . '/' . targ_list[1]
     else
         echo 'Refile aborted.'
     endif
+endfunction
+func! GetMarks()
+    echo s:agenda_marks
 endfunction
 function! ChangeLevel( text_lines, change_val )
     let mylines = split( a:text_lines, "\n")
@@ -7515,26 +7549,66 @@ function! ChangeLevel( text_lines, change_val )
     endwhile
     return mylines
 endfunction
-function! DoRefile(targ_list,headline)
+function! DoRefile(targ_list,heading_list)
 
     let targ_list = a:targ_list
-    let headline = a:headline
+    let heading_list = a:heading_list
+    let file_lines_dict = {}
     call s:OrgSaveLocation()
-    let refile_stars = s:Ind(headline) - 1
-    silent execute headline . ',' . s:OrgSubtreeLastLine_l(headline) .  'delete x'
-    call OrgGotoHeading(targ_list[0],targ_list[1])
-    let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
-    if refile_stars != target_stars
-        let x = ChangeLevel( @x, target_stars - refile_stars )
+
+    if bufname('%') == '__Agenda__'
+        if len(s:agenda_marks) >= 1
+            let heading_list = s:agenda_marks
+        endif
+        " go through and assemble dict of files and lists of lines for each
+        for item in heading_list
+            exec item
+            let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+            let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
+            let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
+            
+            if type(get(file_lines_dict,file)) == 0
+                let file_lines_dict[file] = [buffer_lineno]
+            else
+                call add(file_lines_dict[file], buffer_lineno)
+            endif
+        endfor
     else
-        let x = split( @x, "\n")
+        let file_lines_dict = { expand('%:p'):heading_list}
     endif
-    if g:org_reverse_note_order
-        exec (s:OrgNextHead() - 1)
-    else
-        exec s:OrgSubtreeLastLine()
-    endif
-    silent call append(line('.') , x)
+
+    func! ReverseSort(i1, i2)
+       return a:i1 == a:i2 ? 0 : a:i1 > a:i2 ? -1 : 1
+    endfunc
+    for afile in keys(file_lines_dict)
+        call s:LocateFile(afile)
+        for aline in sort(file_lines_dict[afile],'ReverseSort')
+            exec aline
+            let refile_stars = s:Ind(aline) - 1
+            " delete subhead, but first guarantee it's not in a fold
+            normal! zv
+            silent execute aline . ',' . s:OrgSubtreeLastLine_l(aline) .  'delete x'
+            " now go to refile point and put back in
+            call OrgGotoHeading(targ_list[0],targ_list[1])
+            let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
+            if refile_stars != target_stars
+                let x = ChangeLevel( @x, target_stars - refile_stars )
+            else
+                let x = split( @x, "\n")
+            endif
+            if g:org_reverse_note_order
+                let insert_line = s:OrgNextHead() - 1
+                if insert_line == -1
+                    let insert_line = line('$')
+                endif
+                exec insert_line
+            else
+                exec s:OrgSubtreeLastLine()
+            endif
+            silent call append(line('.') , x)
+        endfor  " for lines in this file
+    endfor " for files in file_lines_dict
+    let s:agenda_marks=[]
     call s:OrgRestoreLocation()
 endfunction
 function! OrgGotoHeading(target_file, target_head, ...)
