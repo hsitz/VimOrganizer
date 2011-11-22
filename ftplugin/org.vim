@@ -28,8 +28,6 @@ let b:v.org_loaded=0
 let b:v.lasttext_lev=''
 let maplocalleader = ","        " Org key mappings prepend single comma
 
-let s:sfile = expand("<sfile>:p:h")
-let s:agenda_marks = []
 let b:v.dateMatch = '\(\d\d\d\d-\d\d-\d\d\)'
 let b:v.headMatch = '^\*\+\s'
 let b:v.tableMatch = '^\(\s*|.*|\s*$\|#+TBLFM\)'
@@ -146,6 +144,10 @@ if has('win32') || has('win64')
 else
     let s:cmd_line_quote_fix = ''
 endif
+let g:org_filename_wildcards = ['*.org']
+let s:sfile = expand("<sfile>:p:h")
+let s:agenda_marks = []
+let s:last_refile_point = []
 let g:org_todos_done_dict = {}
 let g:org_todos_notdone_dict = {}
 let g:org_agenda_todos_done_pattern = ''
@@ -1739,6 +1741,10 @@ endfunction
 nmap <buffer> <localleader>,q :<C-U>call OrgMoveLevel(line('.'),'up',v:count1)<cr>
 
 function! OrgMoveLevel(line, direction,...)
+    if (getline(a:line) !~ b:v.headMatch)
+        echo "Must be on a heading line to move subtrees."
+        return
+    endif
     if a:0>=1
         let mycount = a:1
     else
@@ -5365,6 +5371,7 @@ function! s:LocateFile(filename)
     else
         if org#redir('tabs') =~ fnamemodify(filename, ':t')
             " proceed on assumption that file is open
+            " if match found in tablist
             let this_tab = tabpagenr()
             let last_tab = tabpagenr('$')
             for i in range(1 , last_tab)
@@ -5372,6 +5379,7 @@ function! s:LocateFile(filename)
                 if bufwinnr(filename) >= 0
                     silent execute bufwinnr(filename)."wincmd w"
                     break
+                " if file not found then use tab drop to open new file
                 elseif i == last_tab
                     execute 'tab drop ' . filename
                     if (&ft != 'org') && (filename != '__Agenda__')
@@ -6440,7 +6448,12 @@ function! EditAgendaFiles()
     let line = repeat('-',winwidth(0)-5)
     call append("$",[line] + [msg2,"To add files to 'g:agenda_files' copy or move them ","to between the preceding lines and press :W to save (or :q to cancel):","",""])
     for item in g:org_agenda_select_dirs
-        call append("$",split(globpath(item,"*.org"),"\n"))
+        for wild_card in g:org_filename_wildcards
+            let dir_files = split(globpath(item,wild_card),"\n")
+        endfor
+        let heading_path = substitute(expand('~'),'\','\\\\','g')
+        call map(dir_files,'substitute( v:val  , ' . "'" . heading_path . "'" . ' , ''~'','''')')
+        call append("$",dir_files)
     endfor
 endfunction
 function! s:SaveAgendaFiles()
@@ -7351,21 +7364,19 @@ call OrgSetColors()
 function! OrgRefileDashboard()
     echohl MoreMsg
     echo " ================================"
+    echo " Persisted point is:"
+    echo " Archive point is:"
+    echo " ================================"
     echo " Press key for a refile command:"
     echo " --------------------------------"
-    echo " h   refile heading (including subtree) to point"
-    echo " p   refile heading (including subtree) to persisted point"
-    echo " a   refile heading (including subtree) to archive point"
-    echo " j   jump to refile point"
-    echo " x   jump to persistent refile point"
-    echo " v   jump to archive point"
-    echo " s   set persistent refile point"
-    echo " r   set archive point"
+    echo " r / p / a   refile subtree to new point/persisted point/archive point"
+    echo " j / t / v   jump to refile point/persistent point/archive point""
+    echo " s / c       set persistent refile point / archive point"
     echo " "
     echohl Question
     let key = nr2char(getchar())
     redraw
-    if key ==? 'h'
+    if key ==? 'r'
         call OrgRefile(line('.'))
     elseif key ==? 'p'
         call OrgRefileToPermPoint(line('.'))
@@ -7373,13 +7384,13 @@ function! OrgRefileDashboard()
         call OrgRefileToPermPoint(line('.'))
     elseif key ==? 'j'
         call OrgJumpToRefilePoint()
-    elseif key ==? 'x'
+    elseif key ==? 's'
         call OrgJumpToRefilePointPersistent()
     elseif key ==? 'v'
         call OrgJumpToArchivePoint()
     elseif key ==? 's'
         call OrgSetRefilePoint()
-    elseif key ==? 'r'
+    elseif key ==? 'c'
         call OrgSetArchivePoint()
     else
         echo "No refile option selected."
@@ -7400,6 +7411,7 @@ function! OutlineHeads()
     return result 
 endfunction
 function! GetMyItems(arghead)
+    " assemble and return list of subheads of argument file/heading
     let arghead = a:arghead
     let result = []
     if a:arghead[-1:] == '*'
@@ -7454,11 +7466,11 @@ function! GetTarget()
                 break
             endif
             let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom,HeadingList')
-            if heading ==# ''
-                let heading = ''
+            let head = matchstr(heading,'.\{-}/\zs.*')
+            if head ==# ''
                 continue
             else
-                return [ s:refile_file, matchstr(heading,'.\{-}/\zs.*')]
+                return [ s:refile_file, head]
             endif
         endwhile
     finally
@@ -7519,7 +7531,6 @@ function! OrgRefileToPermPoint(headline)
     endif
 endfunction
 function! OrgRefile(headline)
-   " let head = (a:0 > 0) ? a:1 : line('.')
     let targ_list = GetTarget()
     if targ_list[1] !=# ''
         silent call DoRefile( targ_list, [a:headline] )
@@ -7556,6 +7567,7 @@ function! DoRefile(targ_list,heading_list)
     let file_lines_dict = {}
     call s:OrgSaveLocation()
 
+
     if bufname('%') == '__Agenda__'
         if len(s:agenda_marks) >= 1
             let heading_list = s:agenda_marks
@@ -7568,8 +7580,10 @@ function! DoRefile(targ_list,heading_list)
             let buffer_lineno = s:ActualBufferLine(lineno,bufnr(file))
             
             if type(get(file_lines_dict,file)) == 0
+                " add first line item
                 let file_lines_dict[file] = [buffer_lineno]
             else
+                " add subsequent lines
                 call add(file_lines_dict[file], buffer_lineno)
             endif
         endfor
@@ -7577,39 +7591,92 @@ function! DoRefile(targ_list,heading_list)
         let file_lines_dict = { expand('%:p'):heading_list}
     endif
 
-    func! ReverseSort(i1, i2)
-       return a:i1 == a:i2 ? 0 : a:i1 > a:i2 ? -1 : 1
-    endfunc
+    " now that we have dict of file(s) and linelists in file_lines_dict
+    " we can go through and refile/archive 
+    let archiving = (targ_list[0] =~ '_archive')
+    if archiving 
+        call ArchiveSubtrees(targ_list, file_lines_dict)
+    else
+        for afile in keys(file_lines_dict)
+            for aline in sort(file_lines_dict[afile],'<SID>ReverseSort')
+                call s:LocateFile(afile)
+                exec aline
+                let refile_stars = s:Ind(aline) - 1
+                " delete subhead, but first guarantee it's not in a fold
+                normal! zv
+                
+                silent execute aline . ',' . s:OrgSubtreeLastLine_l(aline) .  'delete x'
+
+                " now go to refile point and put back in
+                call OrgGotoHeading(targ_list[0],targ_list[1])
+                let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
+                if refile_stars != target_stars
+                    let x = ChangeLevel( @x, target_stars - refile_stars )
+                else
+                    let x = split( @x, "\n")
+                endif
+                if g:org_reverse_note_order
+                    let insert_line = s:OrgNextHead() - 1
+                    if insert_line == -1
+                        let insert_line = line('$')
+                    endif
+                    exec insert_line
+                else
+                    exec s:OrgSubtreeLastLine()
+                endif
+                silent call append(line('.') , x)
+            
+            endfor  " for lines in this file
+        endfor " for files in file_lines_dict
+    endif
+    let s:agenda_marks=[]
+    "delete lines if in agenda . .. TODO
+    let s:last_refile_point = targ_list
+    call s:OrgRestoreLocation()
+endfunction
+func! s:ReverseSort(i1, i2)
+   return a:i1 == a:i2 ? 0 : a:i1 > a:i2 ? -1 : 1
+endfunc
+function! ArchiveSubtrees(targ_list, file_lines_dict)
+    let targ_list = a:targ_list
+    let file_lines_dict = a:file_lines_dict
+
     for afile in keys(file_lines_dict)
         call s:LocateFile(afile)
-        for aline in sort(file_lines_dict[afile],'ReverseSort')
+        call OrgMakeDictInherited()
+        " reverse sort avoids problems with deleting as we go . . .
+        for aline in sort(file_lines_dict[afile],'s:ReverseSort')
+            call s:LocateFile(afile)
             exec aline
             let refile_stars = s:Ind(aline) - 1
-            " delete subhead, but first guarantee it's not in a fold
+            " we will delete subhead, but first guarantee it's not in a fold
             normal! zv
+            
+            call s:SetProp('ARCHIVE_TIME', strftime('%Y-%m-%d %a %H:%M'))
+            call s:SetProp('ARCHIVE_FILE', afile)
+            call s:SetProp('ARCHIVE_OLPATH', matchstr(getline(s:OrgParentHead()),'^\*\+\s\+\zs.*$') )
+            call s:SetProp('ARCHIVE_CATEGORY', b:v.org_dict.iprop(aline,'CATEGORY'))
+
             silent execute aline . ',' . s:OrgSubtreeLastLine_l(aline) .  'delete x'
-            " now go to refile point and put back in
-            call OrgGotoHeading(targ_list[0],targ_list[1])
-            let target_stars = s:Ind(line('.')) " don't subtract 1 b/c refile will be subhead
+            
+            call s:LocateFile(targ_list[0])
+            if line('$') == 1
+                let prefix_lines = [' #    -*- mode: org -*-',
+                            \ ' vim:ft=org:','','',
+                            \ 'Archived entries from file ' . afile ]
+                call setline(1,prefix_lines)
+            endif
+            let target_stars = 1
             if refile_stars != target_stars
                 let x = ChangeLevel( @x, target_stars - refile_stars )
             else
                 let x = split( @x, "\n")
             endif
-            if g:org_reverse_note_order
-                let insert_line = s:OrgNextHead() - 1
-                if insert_line == -1
-                    let insert_line = line('$')
-                endif
-                exec insert_line
-            else
-                exec s:OrgSubtreeLastLine()
-            endif
-            silent call append(line('.') , x)
+            silent call append(line('$') , x)
         endfor  " for lines in this file
-    endfor " for files in file_lines_dict
-    let s:agenda_marks=[]
-    call s:OrgRestoreLocation()
+        " now write changes and quit
+        wq
+    endfor  " for files in file list
 endfunction
 function! OrgGotoHeading(target_file, target_head, ...)
     call s:LocateFile( a:target_file )
