@@ -7369,10 +7369,11 @@ function! OrgRefileDashboard()
     echo " ================================"
     echo " Press key for a refile command:"
     echo " --------------------------------"
-    echo " r / p / a   refile subtree to new point/persisted point/archive point"
-    echo " j / t / v   jump to refile point/persistent point/archive point""
-    echo " s / c       set persistent refile point / archive point"
-    echo " "
+    echo " r / p       refile subtree to new point/persisted pointi"
+    echo " j / t       jump to refile point/persistent point"
+    echo " s           set persistent refile point "
+    echo " a           archive to _archive file"
+    echo ""
     echohl Question
     let key = nr2char(getchar())
     redraw
@@ -7380,18 +7381,18 @@ function! OrgRefileDashboard()
         call OrgRefile(line('.'))
     elseif key ==? 'p'
         call OrgRefileToPermPoint(line('.'))
-    elseif key ==? 'a'
-        call OrgRefileToPermPoint(line('.'))
+    "elseif key ==? 'a'
+    "    call OrgRefileToPermPoint(line('.'))
     elseif key ==? 'j'
         call OrgJumpToRefilePoint()
-    elseif key ==? 's'
+    elseif key ==? 't'
         call OrgJumpToRefilePointPersistent()
-    elseif key ==? 'v'
-        call OrgJumpToArchivePoint()
     elseif key ==? 's'
         call OrgSetRefilePoint()
-    elseif key ==? 'c'
-        call OrgSetArchivePoint()
+    elseif key ==? 'a'
+        if confirm('Confirm that you want to archive subtree(s)','&Yes)
+            call DoRefile('_archive',[line('.')]
+        endif
     else
         echo "No refile option selected."
     endif
@@ -7593,7 +7594,7 @@ function! DoRefile(targ_list,heading_list)
 
     " now that we have dict of file(s) and linelists in file_lines_dict
     " we can go through and refile/archive 
-    let archiving = (targ_list[0] =~ '_archive')
+    let archiving = (targ_list[0] == '_archive')
     if archiving 
         call ArchiveSubtrees(targ_list, file_lines_dict)
     else
@@ -7625,14 +7626,26 @@ function! DoRefile(targ_list,heading_list)
                     exec s:OrgSubtreeLastLine()
                 endif
                 silent call append(line('.') , x)
-            
+                echo "Refiled " . x[0] . ' to: ' . join(targ_list,'/')
             endfor  " for lines in this file
         endfor " for files in file_lines_dict
     endif
-    let s:agenda_marks=[]
-    "delete lines if in agenda . .. TODO
-    let s:last_refile_point = targ_list
+    if !archiving
+        let s:last_refile_point = targ_list
+    endif
+
     call s:OrgRestoreLocation()
+    if bufname('%') == '__Agenda__'
+        for line in sort(s:agenda_marks,'s:ReverseSort')
+            exec line . 'delete'
+        endfor
+        if !empty('s:agenda_marks')
+            call s:DeleteAgendaMarks()
+        else   "just delete this line
+            delete
+        endif
+    endif    
+
 endfunction
 func! s:ReverseSort(i1, i2)
    return a:i1 == a:i2 ? 0 : a:i1 > a:i2 ? -1 : 1
@@ -7640,9 +7653,11 @@ endfunc
 function! ArchiveSubtrees(targ_list, file_lines_dict)
     let targ_list = a:targ_list
     let file_lines_dict = a:file_lines_dict
+    let msg = ''
 
     for afile in keys(file_lines_dict)
         call s:LocateFile(afile)
+        "need this dict for category
         call OrgMakeDictInherited()
         " reverse sort avoids problems with deleting as we go . . .
         for aline in sort(file_lines_dict[afile],'s:ReverseSort')
@@ -7659,7 +7674,7 @@ function! ArchiveSubtrees(targ_list, file_lines_dict)
 
             silent execute aline . ',' . s:OrgSubtreeLastLine_l(aline) .  'delete x'
             
-            call s:LocateFile(targ_list[0])
+            call s:LocateFile(afile . '_archive')
             if line('$') == 1
                 let prefix_lines = [' #    -*- mode: org -*-',
                             \ ' vim:ft=org:','','',
@@ -7673,9 +7688,13 @@ function! ArchiveSubtrees(targ_list, file_lines_dict)
                 let x = split( @x, "\n")
             endif
             silent call append(line('$') , x)
+            let msg .= "Archived " . x[0] . " to: " . afile . "_archive\n"
         endfor  " for lines in this file
-        " now write changes and quit
-        wq
+        " now write changes in this archive file and quit
+        silent wq
+        echo msg
+        echo "  Press any key to continue..."
+        call getchar()
     endfor  " for files in file list
 endfunction
 function! OrgGotoHeading(target_file, target_head, ...)
