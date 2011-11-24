@@ -100,6 +100,53 @@ function! org#ISODateToYWD(date)
     let w = 1 + ((jul_nThur - julJan1) / 7)
     return [y,w,d]
 endfunction
+
+function! org#LocateFile(filename)
+    let filename = a:filename
+
+    if bufwinnr(filename) >= 0
+        silent execute bufwinnr(filename)."wincmd w"
+    else
+        if org#redir('tabs') =~ fnamemodify(filename, ':t')
+            " proceed on assumption that file is open
+            " if match found in tablist
+            let this_tab = tabpagenr()
+            let last_tab = tabpagenr('$')
+            for i in range(1 , last_tab)
+                exec i . 'tabn'
+                if bufwinnr(filename) >= 0
+                    silent execute bufwinnr(filename)."wincmd w"
+                    break
+                " if file not found then use tab drop to open new file
+                elseif i == last_tab
+                    execute 'tab drop ' . filename
+                    if (&ft != 'org') && (filename != '__Agenda__')
+                        call org#SetOrgFileType()
+                    endif
+                endif
+                tabn
+            endfor
+        else
+            exe 'tabn ' . tabpagenr('$')
+            execute 'tab drop ' . filename
+            if (&ft != 'org') && (filename != '__Agenda__')
+                call org#SetOrgFileType()
+            endif
+        endif
+    endif
+
+endfunction
+
+function! org#SaveLocation()
+    let file_loc = bufname('%') ==? '__Agenda__' ? '__Agenda__' : expand('%:p')
+    let g:location = [ file_loc , getpos('.') ]
+endfunction
+function! org#RestoreLocation()
+    if expand('%:p') != g:location[0]
+        call org#LocateFile( g:location[0] )
+    endif
+    call setpos( '.', g:location[1] )
+endfunction
     
     
 

@@ -568,10 +568,10 @@ function! OrgTagsEdit(...)
         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
 
-        call s:OrgSaveLocation()
-        call s:LocateFile(file)
+        call org#SaveLocation()
+        call org#LocateFile(file)
         call s:SetDynamicTags()
-        call s:OrgRestoreLocation()
+        call org#RestoreLocation()
 
         let b:v.tagdict = getbufvar(file,'v').tagdict
         let b:v.tags_order = getbufvar(file,'v').tags_order
@@ -2087,7 +2087,7 @@ function! s:GetProperties(hl,withtextinfo,...)
         let curtab = tabpagenr()
         let curwin = winnr()
     " optional args are: a:1 - lineno, a:2 - file
-        call s:LocateFile(a:1)
+        call org#LocateFile(a:1)
     endif
     let datesdone = 0
     let result1 = {}
@@ -2826,7 +2826,7 @@ function! s:MakeResults(search_spec,...)
         let g:in_agenda_search = 1
         for file in g:agenda_files
             "execute 'tab drop ' . file
-            "call s:LocateFile(file)
+            "call org#LocateFile(file)
             let bnum = bufnr(file)
             if bnum == -1 
                 execute 'tabedit ' . file
@@ -2845,19 +2845,19 @@ function! s:MakeResults(search_spec,...)
             call s:OrgIfExprResults(ifexpr,sparse_search)
         endfor
         unlet g:in_agenda_search
-        "call s:LocateFile(curfile)
+        "call org#LocateFile(curfile)
         execute 'tabnext ' . curtab
         execute curwin . 'wincmd w'
     endif
     call setpos(".",save_cursor)
 endfunction
-function! s:OrgSaveLocation()
+function! s:SaveLocation()
     let file_loc = bufname('%') ==? '__Agenda__' ? '__Agenda__' : expand('%:p')
     let g:location = [ file_loc , getpos('.') ]
 endfunction
-function! s:OrgRestoreLocation()
+function! s:RestoreLocation()
     if expand('%:p') != g:location[0]
-        call s:LocateFile( g:location[0] )
+        call org#LocateFile( g:location[0] )
     endif
     call setpos( '.', g:location[1] )
 endfunction
@@ -2887,7 +2887,7 @@ function! s:MakeAgenda(date,count,...)
         let as_today = a:2
     endif
     
-    "call s:OrgSaveLocation()
+    "call org#SaveLocation()
     let curtab = tabpagenr()
     let curwin = winnr()
 
@@ -2914,7 +2914,7 @@ function! s:MakeAgenda(date,count,...)
     call s:MakeCalendar(g:agenda_startdate,g:org_agenda_days)
     let g:in_agenda_search=1
     for file in g:agenda_files
-        "call s:LocateFile(file)
+        "call org#LocateFile(file)
         let bnum = bufnr(file)
         if bnum == -1 
             execute 'tabedit ' . file
@@ -2939,7 +2939,7 @@ function! s:MakeAgenda(date,count,...)
     endfor
     unlet g:in_agenda_search
 
-    "call s:OrgRestoreLocation()
+    "call org#RestoreLocation()
     exec 'tabnext ' . curtab
     exec curwin . 'wincmd w'
 
@@ -3297,10 +3297,10 @@ function! OrgRunAgenda(date,count,...)
     " we're in agenda, do rigamarole to get top column heading window, 
     " if any, back to zero height
     let curheight=winheight(0)
-    call s:LocateFile(file)
+    call org#LocateFile(file)
     "wincmd k
     resize
-    call s:LocateFile('__Agenda__')
+    call org#LocateFile('__Agenda__')
     "wincmd j
     execute 1
     execute 'resize ' . curheight   
@@ -3912,8 +3912,8 @@ function! s:AgendaPutText(...)
             let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
             let starttab = tabpagenr() 
 
-            "call s:LocateFile(file.'.org')
-            call s:LocateFile(file)
+            "call org#LocateFile(file.'.org')
+            call org#LocateFile(file)
             if g:agenda_date_dict != {}
                 "let confirmhead = g:agenda_head_lookup[lineno]
                 let confirmhead = lineno
@@ -3984,8 +3984,8 @@ function! s:SaveHeadline(file, headline, lines)
     let lines=a:lines
     let starttab = tabpagenr() 
 
-    "call s:LocateFile(file.'.org')
-    call s:LocateFile(file)
+    "call org#LocateFile(file.'.org')
+    call org#LocateFile(file)
     "let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id='.headline)
     let newhead = a:headline
     execute newhead
@@ -4024,7 +4024,7 @@ function! OrgAgendaGetText(...)
             " go to the heading's file
             let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
             let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
-            call s:LocateFile(file)
+            call org#LocateFile(file)
 
             let save_cursor2 = getpos(".")
             
@@ -4106,7 +4106,7 @@ function! s:MoveToHeadingFromAgenda(agenda_line)
     let thisline = a:agenda_line
     let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
     let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
-    call s:LocateFile(file)
+    call org#LocateFile(file)
     " need to check sign at this lineno, since for date agenda we're not necessarily at heading
     let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . lineno)
     let newhead = s:OrgGetHead_l(newhead)
@@ -4252,20 +4252,20 @@ function! OrgSetLine(line, file, newtext)
     let save_cursor = getpos(".")
     let curfile = expand("%:t")
 
-    call s:LocateFile(a:file)
+    call org#LocateFile(a:file)
     call setline(a:line,a:newtext)
     
-    call s:LocateFile(curfile)
+    call org#LocateFile(curfile)
     call setpos('.',save_cursor)
 endfunction
 function! OrgGetLine(line, file)
     let save_cursor = getpos(".")
     let curfile = expand("%:t")
 
-    call s:LocateFile(a:file)
+    call org#LocateFile(a:file)
     let result = getline(a:line)
     
-    call s:LocateFile(curfile)
+    call org#LocateFile(curfile)
     call setpos('.',save_cursor)
     return result
 endfunction
@@ -5025,7 +5025,7 @@ function! s:GetOpenClock()
     else
         let g:in_agenda_search = 1
         for file in g:agenda_files
-            call s:LocateFile(file)
+            call org#LocateFile(file)
             let found_line = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
             let file = expand("%")
             if found_line > 0
@@ -5044,7 +5044,7 @@ function! OrgClockOut(...)
     else
         let oc = s:GetOpenClock()
         if oc[0] ># '' 
-           call s:LocateFile(oc[0])
+           call org#LocateFile(oc[0])
            execute oc[1]
         endif
     endif
@@ -5070,7 +5070,7 @@ function! OrgClockOut(...)
     else
         echo 'No open clock found. . . .'
     endif
-    call s:LocateFile(cur_file)
+    call org#LocateFile(cur_file)
     call setpos(".",save_cursor)
 endfunction
 function! s:UpdateAllClocks()
@@ -5203,7 +5203,7 @@ function! s:GetProp(key,...)
         let curtab = tabpagenr()
         let curwin = winnr()
     " optional args are: a:1 - lineno, a:2 - file
-        call s:LocateFile(a:2)
+        call org#LocateFile(a:2)
     endif
     if (a:0 >= 1) && (a:1 > 0)
         execute a:1 
@@ -5263,7 +5263,7 @@ function! s:SetProp(key, val,...)
     if a:0 >=2
         let curtab = tabpagenr()
         let curwin = winnr()
-        call s:LocateFile(a:2)
+        call org#LocateFile(a:2)
     endif
     if (a:0 >= 1) && (a:1 > 0)
         execute a:1 
@@ -5357,7 +5357,7 @@ function! OrgCycleAgendaFiles(direction)
         else
             let filename = g:agenda_files[0]
         endif
-        call s:LocateFile(filename)
+        call org#LocateFile(filename)
     else
         echo "No agenda files defined."
     endif
@@ -6013,8 +6013,8 @@ function! s:OrgAgendaToBuf()
     let ag_height = winheight(0)
     let cur_buf = bufnr("%")  " should be Agenda
     close!
-    call s:LocateFile(g:tofile )
-    "call s:LocateFile(g:tofile . '.org')
+    call org#LocateFile(g:tofile )
+    "call org#LocateFile(g:tofile . '.org')
     if &fdm != 'expr'
         set fdm=expr
     endif
@@ -6022,7 +6022,7 @@ function! s:OrgAgendaToBuf()
     "split
     "execute "b"cur_buf
     AAgenda
-    call s:LocateFile(g:tofile )
+    call org#LocateFile(g:tofile )
     "wincmd x
 
     set foldlevel=1
@@ -6060,7 +6060,7 @@ function! s:OrgAgendaToBuf()
     if win >= 0
         Calendar
         execute 1
-        call s:LocateFile('__Agenda__')
+        call org#LocateFile('__Agenda__')
         "wincmd l
         "wincmd j
     endif
@@ -6426,7 +6426,7 @@ function! s:ProcessCapture()
     normal gg
     silent write
     redo
-    call s:LocateFile('_Capture_')
+    call org#LocateFile('_Capture_')
     execute "bd"
 endfunction
 
@@ -6534,7 +6534,7 @@ function! OrgAgendaDashboard()
         " move agenda to cur tab if it exists and is on a different tab
         "let curtab = tabpagenr()
         "" go to current agenda win and close it
-        "call s:LocateFile('__Agenda__')
+        "call org#LocateFile('__Agenda__')
         "wincmd c
         ""back to start tab and open
         "execute "tabnext ".curtab
@@ -7175,6 +7175,15 @@ function! s:MailLookup()
     Utl openlink https://mail.google.com/mail/?hl=en&shva=1#search/after:2010-10-24+before:2010-10-26
     "https://mail.google.com/mail/?hl=en&shva=1#search/after%3A2010-10-24+before%3A2010-10-26
 endfunction
+function! s:UniqueList(list)
+    " returns the union of two lists
+    " (some algo ...)
+    let rdict = {}
+    for item in a:list
+            let rdict[item] = 1
+    endfor
+    return sort(keys(rdict))
+endfunc 
 function! s:Union(list1, list2)
     " returns the union of two lists
     " (some algo ...)
@@ -7364,34 +7373,36 @@ call OrgSetColors()
 function! OrgRefileDashboard()
     echohl MoreMsg
     echo " ================================"
-    echo " Persisted point is:"
-    echo " Archive point is:"
+    echo " Persisted point is: " . (!exists('persistent_refile_point') ? 'None' : join(s:persistent_refile_point,'/'))
+    echo " Last point used:    " . (!exists('s:last_refile_point') ? 'None' : join(s:last_refile_point,'/'))
     echo " ================================"
     echo " Press key for a refile command:"
     echo " --------------------------------"
-    echo " r / p       refile subtree to new point/persisted pointi"
-    echo " j / t       jump to refile point/persistent point"
-    echo " s           set persistent refile point "
-    echo " a           archive to _archive file"
+    echo " r / l / p  refile subtree to new point/last point/persisted pointi"
+    echo " j / s / t  jump to new point/last point/persistent point"
+    echo " s          set persistent refile point "
+    echo " a          archive to _archive file"
     echo ""
     echohl Question
     let key = nr2char(getchar())
     redraw
     if key ==? 'r'
         call OrgRefile(line('.'))
+    elseif key ==? 'l'
+        call OrgRefileToLastPoint(line('.'))
     elseif key ==? 'p'
         call OrgRefileToPermPoint(line('.'))
-    "elseif key ==? 'a'
-    "    call OrgRefileToPermPoint(line('.'))
     elseif key ==? 'j'
         call OrgJumpToRefilePoint()
+    elseif key ==? 's'
+        call OrgJumpToLastRefilePoint()
     elseif key ==? 't'
         call OrgJumpToRefilePointPersistent()
     elseif key ==? 's'
         call OrgSetRefilePoint()
     elseif key ==? 'a'
-        if confirm('Confirm that you want to archive subtree(s)','&Yes)
-            call DoRefile('_archive',[line('.')]
+        if confirm('Confirm that you want to archive subtree(s)',"&Yes\n&Cancel")
+            call DoRefile(['_archive'],[line('.')])
         endif
     else
         echo "No refile option selected."
@@ -7419,10 +7430,10 @@ function! GetMyItems(arghead)
         let arghead = arghead[:-2]
     endif
     let ilist = split(arghead,'/')
-    call s:OrgSaveLocation()
+    call org#SaveLocation()
     if expand("%:t") != ilist[0]
-        "call s:LocateFile( '~\Desktop\org_files\' . ilist[0] )
-        call s:LocateFile( fnamemodify(s:refile_file,":p:h:") . '/' . ilist[0] )
+        "call org#LocateFile( '~\Desktop\org_files\' . ilist[0] )
+        call org#LocateFile( fnamemodify(s:refile_file,":p:h:") . '/' . ilist[0] )
         if &ft != 'org'
             set ft=org
         endif
@@ -7433,12 +7444,14 @@ function! GetMyItems(arghead)
         let tolevel = len(ilist)
     endif
     exec 'g/^\*\{1,' . tolevel . '} /call add(result,OutlineHeads())'
-    call s:OrgRestoreLocation()
+    call org#RestoreLocation()
     return result
 endfunction
 function! FileList(arghead,sd,gf)
     let arghead = substitute(a:arghead,'\~','\\\~','g')
-    let s:myheads  = ['[current file]'] + copy(g:agenda_files)
+    "if bufname('%') ==# '__Agenda__'
+    "let s:myheads  = ['[current file]'] + copy(g:agenda_files)
+    let s:myheads  =  copy(g:agenda_files)
     let matches = filter( copy( s:myheads ),'v:val =~ arghead')
     redraw!
     return join( matches, "\n" )
@@ -7460,10 +7473,12 @@ function! GetTarget()
         cmap <c-BS> <C-\>egetcmdline()[-1:] == '/' ? matchstr(getcmdline()[:-2], '.*\ze/.*' ) . '/' : matchstr(getcmdline(), '.*\ze/.*') . '/'<CR>
         while 1
             let s:refile_file = ''
-            let s:refile_file = input("Target file: ","[current file]",'custom,FileList')
+            "let s:refile_file = input("Target file: ","[current file]",'custom,FileList')
+            let file_default = (bufname('%')==#'__Agenda__') ? g:agenda_files[0] : '[current file]'
+            let s:refile_file = input("Target file: ",file_default,'custom,FileList')
             if s:refile_file ==# '[current file]'
                 let s:refile_file = expand("%") 
-            elseif index(s:myheads,s:refile_file) == -1
+            elseif index(g:agenda_files,s:refile_file) == -1
                 break
             endif
             let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom,HeadingList')
@@ -7487,13 +7502,13 @@ function! OrgJumpToRefilePointPersistent()
         echo 'No persistent refile point assigned.'
     endif
 endfunction
-function! OrgJumpToArchivePoint()
-    if exists('s:archive_refile_point') && (len(s:archive_refile_point)==2)
-        let p = s:archive_refile_point
+function! OrgJumpToLastRefilePoint()
+    if exists('s:last_refile_point') && (len(s:archive_refile_point)==2)
+        let p = s:last_refile_point
         call OrgGotoHeading( p[0], p[1])
         normal zv
     else
-        echo 'No persistent refile point assigned.'
+        echo 'No last refile point yet.'
     endif
 endfunction
 function! OrgJumpToRefilePoint()
@@ -7517,18 +7532,27 @@ function! OrgRefileToArchive(headline)
         silent call DoRefile( s:archive_refile_point, [a:headline] )
         redraw!
         let p = s:archive_refile_point
-        echo "Heading and its subtree refiled to: \n" . p[0] . '/' . p[1]
+        echo "Tree refiled to: " . p[0] . '/' . p[1]
     else
         echo 'Refile aborted, archive point not assigned.'
     endif
 endfunction
 function! OrgRefileToPermPoint(headline)
     if exists('s:persistent_refile_point') && (s:persistent_refile_point[1] !=# '')
-        silent call DoRefile( s:persistent_refile_point, a:headline )
+        silent call DoRefile( s:persistent_refile_point, [a:headline] )
         redraw!
         echo "Heading and its subtree refiled to: \n" . s:persistent_refile_point[0] . '/' . s:persistent_refile_point[1]
     else
         echo 'Refile aborted, persistent point not defined.'
+    endif
+endfunction
+function! OrgRefileToLastPoint(headline)
+    if exists('s:last_refile_point') && (s:last_refile_point[1] !=# '')
+        silent call DoRefile( s:last_refile_point, [a:headline] )
+        redraw!
+        echo "Tree refiled to: " . s:last_refile_point[0] . '/' . s:last_refile_point[1]
+    else
+        echo 'Refile aborted, no last point yet.'
     endif
 endfunction
 function! OrgRefile(headline)
@@ -7536,7 +7560,7 @@ function! OrgRefile(headline)
     if targ_list[1] !=# ''
         silent call DoRefile( targ_list, [a:headline] )
         redraw!
-        echo "Heading and its subtree refiled to: \n" . targ_list[0] . '/' . targ_list[1]
+        echo "Tree refiled to: " . targ_list[0] . '/' . targ_list[1]
     else
         echo 'Refile aborted.'
     endif
@@ -7566,7 +7590,7 @@ function! DoRefile(targ_list,heading_list)
     let targ_list = a:targ_list
     let heading_list = a:heading_list
     let file_lines_dict = {}
-    call s:OrgSaveLocation()
+    call org#SaveLocation()
 
 
     if bufname('%') == '__Agenda__'
@@ -7599,8 +7623,14 @@ function! DoRefile(targ_list,heading_list)
         call ArchiveSubtrees(targ_list, file_lines_dict)
     else
         for afile in keys(file_lines_dict)
-            for aline in sort(file_lines_dict[afile],'<SID>ReverseSort')
-                call s:LocateFile(afile)
+            call org#LocateFile(afile)
+            " need to get heads and avoid duplicates in case we're in date agenda view
+            let linelist = file_lines_dict[afile]
+            call map( linelist, 's:OrgGetHead_l(v:val)')
+            let linelist = s:UniqueList(linelist)
+            "for aline in sort(file_lines_dict[afile],'<SID>ReverseSort')
+            for aline in sort(linelist,'<SID>ReverseSort')
+                call org#LocateFile(afile)
                 exec aline
                 let refile_stars = s:Ind(aline) - 1
                 " delete subhead, but first guarantee it's not in a fold
@@ -7634,12 +7664,12 @@ function! DoRefile(targ_list,heading_list)
         let s:last_refile_point = targ_list
     endif
 
-    call s:OrgRestoreLocation()
+    call org#RestoreLocation()
     if bufname('%') == '__Agenda__'
-        for line in sort(s:agenda_marks,'s:ReverseSort')
-            exec line . 'delete'
-        endfor
-        if !empty('s:agenda_marks')
+        if !empty(s:agenda_marks)
+            for line in sort(s:agenda_marks,'s:ReverseSort')
+                exec line . 'delete'
+            endfor
             call s:DeleteAgendaMarks()
         else   "just delete this line
             delete
@@ -7656,12 +7686,16 @@ function! ArchiveSubtrees(targ_list, file_lines_dict)
     let msg = ''
 
     for afile in keys(file_lines_dict)
-        call s:LocateFile(afile)
+        call org#LocateFile(afile)
         "need this dict for category
         call OrgMakeDictInherited()
+        " need to get heads and avoid duplicates in case we're in date agenda view
+        let linelist = file_lines_dict[afile]
+        call map( linelist, 's:OrgGetHead_l(v:val)')
+        let linelist = s:UniqueList(linelist)
         " reverse sort avoids problems with deleting as we go . . .
-        for aline in sort(file_lines_dict[afile],'s:ReverseSort')
-            call s:LocateFile(afile)
+        for aline in sort(linelist,'<SID>ReverseSort')
+            call org#LocateFile(afile)
             exec aline
             let refile_stars = s:Ind(aline) - 1
             " we will delete subhead, but first guarantee it's not in a fold
@@ -7674,7 +7708,7 @@ function! ArchiveSubtrees(targ_list, file_lines_dict)
 
             silent execute aline . ',' . s:OrgSubtreeLastLine_l(aline) .  'delete x'
             
-            call s:LocateFile(afile . '_archive')
+            call org#LocateFile(afile . '_archive')
             if line('$') == 1
                 let prefix_lines = [' #    -*- mode: org -*-',
                             \ ' vim:ft=org:','','',
@@ -7698,7 +7732,7 @@ function! ArchiveSubtrees(targ_list, file_lines_dict)
     endfor  " for files in file list
 endfunction
 function! OrgGotoHeading(target_file, target_head, ...)
-    call s:LocateFile( a:target_file )
+    call org#LocateFile( a:target_file )
     normal gg
     let head_list = split(a:target_head,'/')
     call search( '^\* ' . head_list[0], 'c', '')
