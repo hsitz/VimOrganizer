@@ -43,6 +43,8 @@ let b:v.mytags = ['buy','home','work','URGENT']
 let b:v.foldhi = ''
 let b:v.org_inherited_properties = ['COLUMNS']
 let b:v.org_inherited_defaults = {'CATEGORY':expand('%:t:r'),'COLUMNS':'%40ITEM %30TAGS'}
+let b:v.heading_marks = []
+let b:v.heading_marks_dict = {}
 let w:v.total_columns_width = 30
 let w:v.columnview = 0
 let w:v.org_item_len = 100 
@@ -146,7 +148,6 @@ else
 endif
 let g:org_filename_wildcards = ['*.org']
 let s:sfile = expand("<sfile>:p:h")
-let s:agenda_marks = []
 let s:last_refile_point = []
 let g:org_todos_done_dict = {}
 let g:org_todos_notdone_dict = {}
@@ -3018,8 +3019,9 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
     " c-s-cr already taken
     nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
-    nmap <silent> <buffer> m           :call <SID>ToggleAgendaMark(line('.'))<CR>
-    nmap <silent> <buffer> ,m           :call <SID>DeleteAgendaMarks()<CR>
+    nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
+    nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
+    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
     "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
     "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
     "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
@@ -3052,22 +3054,28 @@ function! s:ResultsToAgenda( search_type )
     endfor
     call append(s:agenda_insert_point,lines)
 endfunction
-function! s:ToggleAgendaMark(line)
+function! s:ToggleHeadingMark(line)
     let line = a:line
-    let list_item = index(s:agenda_marks,line)
+    if (bufname('%') == '__Agenda__' && getline(line) !~ '^\d\{8}\s')
+            \ || ((&filetype == 'org') && getline(line) !~ b:v.headMatch)
+        return
+    endif
+    let list_item = index(b:v.heading_marks,line)
+    let b:v.heading_marks_dict[line] = 1
     if list_item == -1
-        call add(s:agenda_marks,line)
+        call add(b:v.heading_marks,line)
         execute "sign place " . line('.') . " line=" . line('.') . " name=marked buffer=".bufnr("%")
     else
-        call remove(s:agenda_marks,list_item)
+        call remove(b:v.heading_marks,list_item)
         execute "sign unplace " . line('.') . " buffer=".bufnr("%")
     endif
 endfunction
-function! s:DeleteAgendaMarks()
-    for item in s:agenda_marks
+function! s:DeleteHeadingMarks()
+    for item in b:v.heading_marks
         execute "sign unplace " . item . " buffer=".bufnr("%")
     endfor
-    let s:agenda_marks = []
+    let b:v.heading_marks = []
+    let b:v.heading_marks_dict = {}
 endfunction
 function! s:ResultsToSparseTree()
         "call s:ClearSparseTree()
@@ -3336,6 +3344,9 @@ function! s:SetupDateAgendaWin()
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
+    nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
+    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
     command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
 endfunction
 
@@ -4637,11 +4648,11 @@ function! OrgDateEdit(type)
                     "just set the prop if we're in org file buffer
                     call s:SetProp(dtype,cal_result,buffer_lineno, file)
                 else
-                    if empty(s:agenda_marks)
+                    if empty(b:v.heading_marks)
                         " just mark and do current item
-                        let s:agenda_marks = [line('.')]
+                        let b:v.heading_marks = [line('.')]
                     endif
-                    for item in s:agenda_marks
+                    for item in b:v.heading_marks
                         exec item
                         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
                         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
@@ -4656,7 +4667,7 @@ function! OrgDateEdit(type)
                         call setline(line('.'), cur_line . change_indicator)
                         execute 'sign unplace ' . item . ' buffer=' . bufnr('%')
                     endfor
-                    let s:agenda_marks = []
+                    let b:v.heading_marks = []
                 endif
             endif
 
@@ -5801,7 +5812,9 @@ function! OrgFoldText(...)
                     \ winwidth(0)-len(l:line) - offset) 
     endif
     if exists('v:foldhighlight')
-        if foldstart == b:v.chosen_agenda_heading
+        if get(b:v.heading_marks_dict, v:foldstart) == 1
+            let v:foldhighlight =  hlID('CursorLine')
+        elseif foldstart == b:v.chosen_agenda_heading
             let v:foldhighlight = hlID('Org_Chosen_Agenda_Heading' . (myind>6 ? '' : myind-1))
         else
             let v:foldhighlight = level_highlight
@@ -7487,7 +7500,7 @@ function! OrgRefileToArchive(headline)
         silent call DoRefile( s:archive_refile_point, [a:headline] )
         redraw!
         let p = s:archive_refile_point
-        echo "Tree refiled to: " . p[0] . '/' . p[1]
+        echo "Tree(s) refiled to: " . p[0] . '/' . p[1]
     else
         echo 'Refile aborted, archive point not assigned.'
     endif
@@ -7496,7 +7509,7 @@ function! OrgRefileToPermPoint(headline)
     if exists('s:persistent_refile_point') && (s:persistent_refile_point[1] !=# '')
         silent call DoRefile( s:persistent_refile_point, [a:headline] )
         redraw!
-        echo "Heading and its subtree refiled to: \n" . s:persistent_refile_point[0] . '/' . s:persistent_refile_point[1]
+        echo "Tree(s) refiled to: \n" . s:persistent_refile_point[0] . '/' . s:persistent_refile_point[1]
     else
         echo 'Refile aborted, persistent point not defined.'
     endif
@@ -7505,7 +7518,7 @@ function! OrgRefileToLastPoint(headline)
     if exists('s:last_refile_point') && (s:last_refile_point[1] !=# '')
         silent call DoRefile( s:last_refile_point, [a:headline] )
         redraw!
-        echo "Tree refiled to: " . s:last_refile_point[0] . '/' . s:last_refile_point[1]
+        echo "Tree(s) refiled to: " . s:last_refile_point[0] . '/' . s:last_refile_point[1]
     else
         echo 'Refile aborted, no last point yet.'
     endif
@@ -7515,13 +7528,13 @@ function! OrgRefile(headline)
     if targ_list[1] !=# ''
         silent call DoRefile( targ_list, [a:headline] )
         redraw!
-        echo "Tree refiled to: " . targ_list[0] . '/' . targ_list[1]
+        echo "Tree(s) refiled to: " . targ_list[0] . '/' . targ_list[1]
     else
         echo 'Refile aborted.'
     endif
 endfunction
 func! GetMarks()
-    echo s:agenda_marks
+    echo b:v.heading_marks
 endfunction
 function! ChangeLevel( text_lines, change_val )
     let mylines = split( a:text_lines, "\n")
@@ -7549,8 +7562,8 @@ function! DoRefile(targ_list,heading_list)
 
 
     if bufname('%') == '__Agenda__'
-        if len(s:agenda_marks) >= 1
-            let heading_list = s:agenda_marks
+        if len(b:v.heading_marks) >= 1
+            let heading_list = b:v.heading_marks
         endif
         " go through and assemble dict of files and lists of lines for each
         for item in heading_list
@@ -7621,11 +7634,11 @@ function! DoRefile(targ_list,heading_list)
 
     call org#RestoreLocation()
     if bufname('%') == '__Agenda__'
-        if !empty(s:agenda_marks)
-            for line in sort(s:agenda_marks,'s:ReverseSort')
+        if !empty(b:v.heading_marks)
+            for line in sort(b:v.heading_marks,'s:ReverseSort')
                 exec line . 'delete'
             endfor
-            call s:DeleteAgendaMarks()
+            call s:DeleteHeadingMarks()
         else   "just delete this line
             delete
         endif
@@ -7913,6 +7926,8 @@ endfunction
 nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
 nmap <silent> <buffer> <s-CR>    :call <SID>ReplaceTodo()<CR>
 nmap <silent> <buffer> <s-right>    :call <SID>ReplaceTodo()<CR>
+nmap <silent> <buffer> <localleader><space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
+nmap <silent> <buffer> <localleader><c-space>     :call <SID>DeleteHeadingMarks()<CR>
 " c-s-cr already taken
 nmap <silent> <buffer> <s-left>    :call <SID>ReplaceTodo('todo-bkwd')<CR>
 if !has('gui_running')

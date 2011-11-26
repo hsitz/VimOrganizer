@@ -86,7 +86,7 @@ noremap <silent> <buffer>   <localleader>4  :call OrgExpandWithoutText(4)<CR>
 noremap <silent> <buffer>   <localleader>3  :call OrgExpandWithoutText(3)<CR>
 noremap <silent> <buffer>   <localleader>2  :call OrgExpandWithoutText(2)<CR>
 noremap <silent> <buffer>   <localleader>1  :call OrgExpandWithoutText(1)<CR>
-noremap <silent> <buffer>   <localleader><space>  :call OrgExpandWithoutText(1)<CR>
+"noremap <silent> <buffer>   <localleader><space>  :call OrgExpandWithoutText(1)<CR>
 "noremap <silent> <buffer>   <localleader>/ :let @/='exec call OrgExpandWithoutText(1)<CR>
 "noremap <silent> <buffer>   <localleader>/ :let @a='/^\*\{1,' . &foldlevel . '\} .*'|call LevSearch()<cr>
 nnoremap <buffer> <expr> <localleader>/ '/^\*\{1,' . &foldlevel . '\} .*'
