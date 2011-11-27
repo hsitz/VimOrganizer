@@ -3030,6 +3030,7 @@ function! s:ResultsToAgenda( search_type )
     "wincmd J
     let i = 0
     call s:ADictPlaceSigns()
+    let b:v.heading_marks_dict = {}
     "call setline(line('$'), ["Headlines matching search spec: ".g:org_search_spec,''])
     let lines = []
     let lines = lines +  ["Headlines matching search spec: ".g:org_search_spec,'']
@@ -3060,20 +3061,26 @@ function! s:ToggleHeadingMark(line)
             \ || ((&filetype == 'org') && getline(line) !~ b:v.headMatch)
         return
     endif
-    let list_item = index(b:v.heading_marks,line)
-    let b:v.heading_marks_dict[line] = 1
-    if list_item == -1
-        call add(b:v.heading_marks,line)
+    "let list_item = index(b:v.heading_marks,line)
+    let list_item = get(b:v.heading_marks_dict, line)
+    if list_item == 0
+        "call add(b:v.heading_marks,line)
+        let b:v.heading_marks_dict[line] = 1
         execute "sign place " . line('.') . " line=" . line('.') . " name=marked buffer=".bufnr("%")
     else
-        call remove(b:v.heading_marks,list_item)
+        "call remove(b:v.heading_marks,list_item)
+        unlet b:v.heading_marks_dict[line] 
         execute "sign unplace " . line('.') . " buffer=".bufnr("%")
     endif
 endfunction
 function! s:DeleteHeadingMarks()
-    for item in b:v.heading_marks
-        execute "sign unplace " . item . " buffer=".bufnr("%")
-    endfor
+    if bufname('%')=='__Agenda__'
+        for item in keys(b:v.heading_marks_dict)
+            execute "sign unplace " . item . " buffer=".bufnr("%")
+        endfor
+    else
+        sign unplace *
+    endif
     let b:v.heading_marks = []
     let b:v.heading_marks_dict = {}
 endfunction
@@ -3187,6 +3194,7 @@ function! s:DateDictToScreen()
     call add(lines,type)
     
     call s:DateDictPlaceSigns()
+    let b:v.heading_marks_dict = {}
     let gap = 0
     let mycount = len(keys(g:agenda_date_dict)) 
     for key in sort(keys(g:agenda_date_dict))
@@ -4648,11 +4656,12 @@ function! OrgDateEdit(type)
                     "just set the prop if we're in org file buffer
                     call s:SetProp(dtype,cal_result,buffer_lineno, file)
                 else
-                    if empty(b:v.heading_marks)
+                    if empty(b:v.heading_marks_list)
                         " just mark and do current item
-                        let b:v.heading_marks = [line('.')]
+                        "let b:v.heading_marks = [line('.')]
+                        let b:v.heading_marks_list[line('.')] = 1
                     endif
-                    for item in b:v.heading_marks
+                    for item in sort(b:v.heading_marks_dict, 's:ReverseSort')
                         exec item
                         let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
                         let lineno = str2nr(matchstr(getline(line('.')),'^\d\d\d\zs\d*'))
@@ -4668,6 +4677,7 @@ function! OrgDateEdit(type)
                         execute 'sign unplace ' . item . ' buffer=' . bufnr('%')
                     endfor
                     let b:v.heading_marks = []
+                    let b:v.heading_marks_list = {}
                 endif
             endif
 
@@ -6622,8 +6632,6 @@ function! s:AgendaBufHighlight()
     
     call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
     call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
-    syntax match Locator '^\d\+' conceal
-    syntax match TimeGridSpace '^ \{8}\ze *\d\d:\d\d' conceal
     call matchadd( 'Dayline', daytextpat )
     call matchadd( 'Weekendline', wkendtextpat)
     call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
@@ -6641,6 +6649,8 @@ function! s:AgendaBufHighlight()
     " c-s-cr already taken
     nmap <silent> <buffer> <s-left>    :call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
     if has("conceal")
+        syntax match Locator '^\d\+' conceal
+        syntax match TimeGridSpace '^ \{8}\ze *\d\d:\d\d' conceal
         "for agenda clocktable
         syn region Org_Full_Link concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
     endif	
@@ -7150,7 +7160,7 @@ function! s:UniqueList(list)
     for item in a:list
             let rdict[item] = 1
     endfor
-    return sort(keys(rdict))
+    return sort(map(keys(rdict),'str2nr(v:val)'))
 endfunc 
 function! s:Union(list1, list2)
     " returns the union of two lists
@@ -7523,6 +7533,22 @@ function! OrgRefileToLastPoint(headline)
         echo 'Refile aborted, no last point yet.'
     endif
 endfunction
+
+command! -buffer OrgGatherMarks :call <SID>GatherMarks()
+function! s:GatherMarks()
+    if getline(line('.')) !~ b:v.headMatch
+        echo "You must be on a heading to gather."
+        return
+    endif
+    let targ_list = [expand('%:p'), getline(line('.'))]
+    if org#redir('sign place') =~ 'name=marked'
+        silent call DoRefile( targ_list, [line('.')] )
+        redraw!
+        echo "Gathered marked headings to subheads of current heading."
+    else
+        echo 'No headings marked, nothing gathered.'
+    endif
+endfunction
 function! OrgRefile(headline)
     let targ_list = GetTarget()
     if targ_list[1] !=# ''
@@ -7558,12 +7584,13 @@ function! DoRefile(targ_list,heading_list)
     let targ_list = a:targ_list
     let heading_list = a:heading_list
     let file_lines_dict = {}
+    let held_lines = []
     call org#SaveLocation()
 
 
     if bufname('%') == '__Agenda__'
-        if len(b:v.heading_marks) >= 1
-            let heading_list = b:v.heading_marks
+        if len(b:v.heading_marks_dict) >= 1
+            let heading_list = keys(b:v.heading_marks_dict)
         endif
         " go through and assemble dict of files and lists of lines for each
         for item in heading_list
@@ -7581,7 +7608,10 @@ function! DoRefile(targ_list,heading_list)
             endif
         endfor
     else
-        let file_lines_dict = { expand('%:p'):heading_list}
+        let file_lines_dict = s:AssembleFileHeadingsDict()
+        if empty(file_lines_dict) 
+            let file_lines_dict = { expand('%:p'):heading_list}
+        endif
     endif
 
     " now that we have dict of file(s) and linelists in file_lines_dict
@@ -7614,19 +7644,28 @@ function! DoRefile(targ_list,heading_list)
                 else
                     let x = split( @x, "\n")
                 endif
-                if g:org_reverse_note_order
-                    let insert_line = s:OrgNextHead() - 1
-                    if insert_line == -1
-                        let insert_line = line('$')
-                    endif
-                    exec insert_line
-                else
-                    exec s:OrgSubtreeLastLine()
-                endif
-                silent call append(line('.') , x)
+                " lines below were when each subtree was appended individually
+                " that's not case anymore, may need to rework and associate
+                " them with append of 'held_lines' to get ordering option. . .
+                "if g:org_reverse_note_order
+                "    let insert_line = s:OrgNextHead() - 1
+                "    if insert_line == -1
+                "        let insert_line = line('$')
+                "    endif
+                "    exec insert_line
+                "else
+                "    exec s:OrgSubtreeLastLine()
+                "endif
+                let held_lines += x
                 echo "Refiled " . x[0] . ' to: ' . join(targ_list,'/')
             endfor  " for lines in this file
+            "now go back and clear out its heading marks
+            call org#LocateFile(afile)
+            let b:v.heading_marks_dict = {}
         endfor " for files in file_lines_dict
+
+        "now put all the lines in . . .
+        silent call append(line('.') , held_lines)
     endif
     if !archiving
         let s:last_refile_point = targ_list
@@ -7634,16 +7673,39 @@ function! DoRefile(targ_list,heading_list)
 
     call org#RestoreLocation()
     if bufname('%') == '__Agenda__'
-        if !empty(b:v.heading_marks)
-            for line in sort(b:v.heading_marks,'s:ReverseSort')
+        if !empty(b:v.heading_marks_dict)
+            "need reverse list of str2nr(keys)
+            for line in sort(map(keys(b:v.heading_marks_dict), 'str2nr(v:val)'),'s:ReverseSort')
                 exec line . 'delete'
             endfor
-            call s:DeleteHeadingMarks()
         else   "just delete this line
             delete
         endif
     endif    
+    call s:DeleteHeadingMarks()
 
+endfunction
+function! s:AssembleFileHeadingsDict()
+    call org#SaveLocation()
+    let file_lines_dict = {}
+    let signlist = split(org#redir('sign place'),"\n")
+    for line in signlist
+        let ftest = matchstr(line, '^Signs for \zs.*\ze:$')
+        if (ftest > '')        "&& (getbufvar(ftest,'&filetype') == 'org')
+            let file = ftest
+            continue
+        endif
+        let markmatch = matchlist(line,'\s*line=\(\d\+\).*name=\(.*$\)')
+        if !empty(markmatch) && (markmatch[2] == 'marked')
+            if get(file_lines_dict, file, []) == [] 
+                let file_lines_dict[file] = [ str2nr(markmatch[1]) ]
+            else
+                call add(file_lines_dict[file] , str2nr(markmatch[1]))
+            endif
+        endif
+    endfor
+    call org#RestoreLocation()
+    return file_lines_dict
 endfunction
 func! s:ReverseSort(i1, i2)
    return a:i1 == a:i2 ? 0 : a:i1 > a:i2 ? -1 : 1
