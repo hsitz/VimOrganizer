@@ -7533,16 +7533,45 @@ function! OrgRefileToLastPoint(headline)
         echo 'Refile aborted, no last point yet.'
     endif
 endfunction
-
+function! SortMySubheads()
+    let start = line('.')
+    if getline(start) !~ b:v.headMatch
+        echo "You must be on a heading to gather."
+        return
+    endif
+   
+    " FIRST DELETE ALL SIGNS
+    sign unplace *
+    let b:v.heading_marks_dict = {}
+    let end = s:OrgSubtreeLastLine()
+    execute start . ',' . end . 'g/^\*\{' . s:Ind(line('.')) . '} /call s:PlaceSignsForSort(line("."))'
+    "sign place " . line('.') . " line=" . line('.') . " name=marked buffer=".bufnr("%")
+    exec start
+    call s:GatherMarks('forward')
+    
+endfunction
+function! s:PlaceSignsForSort(line)
+    exec 'sign place ' . a:line . " line=" . a:line . " name=marked buffer=".bufnr("%")
+endfunction
 command! -buffer OrgGatherMarks :call <SID>GatherMarks()
-function! s:GatherMarks()
+command! -buffer OrgGatherAgendaMarks :call <SID>GatherMarks('agenda')
+function! s:GatherMarks(...)
     if getline(line('.')) !~ b:v.headMatch
         echo "You must be on a heading to gather."
         return
     endif
     let targ_list = [expand('%:p'), getline(line('.'))]
+    if (a:0 == 1) && (a:1 ==# 'agenda')
+        call org#LocateFile('__Agenda__')
+    endif
     if org#redir('sign place') =~ 'name=marked'
-        silent call DoRefile( targ_list, [line('.')] )
+        if (a:0 == 1) && (a:1 !=# 'agenda')
+            silent call DoRefile( targ_list, [line('.')], a:1 )
+        else
+            silent call DoRefile( targ_list, [line('.')])
+        endif
+        call OrgGotoHeading(targ_list[0], targ_list[1])
+        call OrgShowSubs(s:Ind(line('.')), 0)
         redraw!
         echo "Gathered marked headings to subheads of current heading."
     else
@@ -7579,12 +7608,15 @@ function! ChangeLevel( text_lines, change_val )
     endwhile
     return mylines
 endfunction
-function! DoRefile(targ_list,heading_list)
+function! DoRefile(targ_list,heading_list,...)
 
+    if a:0 == 1 
+        let sort_type = a:1
+    endif
     let targ_list = a:targ_list
     let heading_list = a:heading_list
     let file_lines_dict = {}
-    let held_lines = []
+    let held_lines = {}
     call org#SaveLocation()
 
 
@@ -7644,28 +7676,33 @@ function! DoRefile(targ_list,heading_list)
                 else
                     let x = split( @x, "\n")
                 endif
-                " lines below were when each subtree was appended individually
-                " that's not case anymore, may need to rework and associate
-                " them with append of 'held_lines' to get ordering option. . .
-                "if g:org_reverse_note_order
-                "    let insert_line = s:OrgNextHead() - 1
-                "    if insert_line == -1
-                "        let insert_line = line('$')
-                "    endif
-                "    exec insert_line
-                "else
-                "    exec s:OrgSubtreeLastLine()
-                "endif
-                let held_lines += x
+                "let held_lines += x
+                let held_lines[x[0]] = x
                 echo "Refiled " . x[0] . ' to: ' . join(targ_list,'/')
             endfor  " for lines in this file
             "now go back and clear out its heading marks
             call org#LocateFile(afile)
             let b:v.heading_marks_dict = {}
         endfor " for files in file_lines_dict
-
+        
         "now put all the lines in . . .
-        silent call append(line('.') , held_lines)
+        " lines below were when each subtree was appended individually
+        " that's not case anymore, may need to rework and associate
+        " them with append of 'held_lines' to get ordering option. . .
+        for heading_line in (exists('sort_type') ? sort(keys(held_lines)) : keys(held_lines))
+        "for heading_line in keys(held_lines)
+            call OrgGotoHeading(targ_list[0],targ_list[1])
+            if g:org_reverse_note_order
+                let insert_line = s:OrgNextHead() - 1
+                if insert_line == -1
+                    let insert_line = line('$')
+                endif
+                exec insert_line
+            else
+                exec s:OrgSubtreeLastLine()
+            endif
+            silent call append(line('.') , held_lines[heading_line])
+        endfor
     endif
     if !archiving
         let s:last_refile_point = targ_list
