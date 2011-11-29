@@ -170,15 +170,47 @@ nnoremap <silent> <buffer> <localleader>lx    :set conceallevel=0<cr>
 "nnoremap <silent> <buffer>  <localleader>,c  :call OrgSingleHeadingText("collapse")<CR>
 nnoremap <silent> <buffer>   zc              :call OrgDoSingleFold(line("."))<CR>
 
+function! OrgIndent()
+	if getline(line('.')) =~ b:v.headMatch
+	    call OrgMoveLevel(line("."),'right')
+	else
+	    normal! >>
+	endif
+endfunction
+function! OrgReverseIndent()
+	if getline(line('.')) =~ b:v.headMatch
+	    call OrgMoveLevel(line("."),'left')
+	else
+	    normal! <<
+	endif
+endfunction
+function! OrgNaviMap(keys)
+    let keys = a:keys
+    let dir_dict = {'gj':'down', 'gk':'up', 'gh':'left','gl':'right'}
+    if getline(line('.')) =~ b:v.headMatch
+	call OrgNavigateLevels(dir_dict[keys])
+    else
+	exe 'normal! ' . keys
+    endif
+    
+endfunction
 " below are alternate mappings for terminals, which
 " don't support some of the above key combinations
 nnoremap <silent> <buffer> ,<tab>            :call OrgGlobalCycle()<cr>
+nnoremap <silent> <buffer> gk    :call OrgNaviMap("gk")<CR>
+nnoremap <silent> <buffer> gj    :call OrgNaviMap("gj")<CR>
+nnoremap <silent> <buffer> gh    :call OrgNaviMap("gh")<CR>
+nnoremap <silent> <buffer> gl    :call OrgNaviMap("gl")<CR>
 nnoremap <silent> <buffer> <localleader>zu    :call OrgNavigateLevels("up")<CR>
 nnoremap <silent> <buffer> <localleader>zd    :call OrgNavigateLevels("down")<CR>
 nnoremap <silent> <buffer> <localleader>zl    :call OrgNavigateLevels("left")<CR>
 nnoremap <silent> <buffer> <localleader>zr    :call OrgNavigateLevels("right")<CR>
+nnoremap <silent> <buffer> >>    :call OrgIndent()<CR>
+nnoremap <silent> <buffer> <<    :call OrgReverseIndent()<CR>
 nnoremap <silent> <buffer> <localleader>zL    :call OrgMoveLevel(line("."),'left')<CR>
 nnoremap <silent> <buffer> <localleader>zR    :call OrgMoveLevel(line("."),'right')<CR>
+nnoremap <silent> <buffer> <,    :<c-u>call OrgMoveLevel(line("."),'up',v:count1)<CR>
+nnoremap <silent> <buffer> >.    :<c-u>call OrgMoveLevel(line("."),'down',v:count1)<CR>
 nnoremap <silent> <buffer> <localleader>k    :<c-u>call OrgMoveLevel(line("."),'up',v:count1)<CR>
 nnoremap <silent> <buffer> <localleader>j    :<c-u>call OrgMoveLevel(line("."),'down',v:count1)<CR>
 nnoremap <silent> <buffer>  <localleader>np  :call OrgNewHead('levelup')<CR>
