@@ -172,4 +172,12 @@ function! Org_after_todo_state_change_hook(line,state1, state2)
         "call append(line("."), repeat(' ',len(matchstr(getline(line(".")),'^\s*'))) . str)
 endfunction
 
-
+function! VimFoldLevel(line)
+	if getline(a:line) =~ '^function'
+		return '1'
+	elseif getline(a:line + 1) =~ '^function'
+		return '<0'
+	else
+		return '1'
+	endif
+endfunction

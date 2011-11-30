@@ -73,6 +73,7 @@ let w:sparse_on = 0
 
 let b:v.last_dict_time = 0
 let b:v.last_idict_time = 0
+let b:v.last_idict_type = 0
 let b:v.clock_to_logbook = 1
 let b:v.messages = []
 let b:v.global_cycle_levels_to_show=4
@@ -2348,9 +2349,13 @@ endfunction
 function! OrgMakeDictInherited(...)
     let get_tags = ((a:0==1) && (a:1 =='get_tags_too')) ? 1 : 0
     if (b:v.last_idict_time >= getftime(expand('%:p')) && (&modified==0))
-        return
+        " now check and return if last run had tags or this run doesn't need them
+        if (b:v.last_idict_with_tags == 1) || (get_tags == 0)
+            return
+        endif
     endif
     let b:v.last_idict_time = localtime()
+    let b:v.last_idict_with_tags = get_tags
     write!
     let b:v.org_dict = {}
     call OrgProcessConfigLines()
@@ -5978,12 +5983,13 @@ function! s:OrgAgendaToBufTest()
 endfunction
 function! s:OrgAgendaToBuf()
     let win = bufwinnr('Calendar')
+    
     if win >= 0 
         execute win . 'wincmd w'
         wincmd c
         execute bufwinnr('Agenda').'wincmd w'
     endif   
-
+    
     if getline(line(".")) =~ '^\d\+'
         let thisline = getline(line('.'))
         let g:tofile = s:filedict[str2nr(matchstr(thisline, '^\d\d\d'))]
@@ -5994,55 +6000,40 @@ function! s:OrgAgendaToBuf()
     let cur_buf = bufnr("%")  " should be Agenda
     close!
     call org#LocateFile(g:tofile )
-    "call org#LocateFile(g:tofile . '.org')
+    
+    AAgenda
+    
+    call org#LocateFile(g:tofile )
     if &fdm != 'expr'
         set fdm=expr
     endif
-
-    "split
-    "execute "b"cur_buf
-    AAgenda
-    call org#LocateFile(g:tofile )
-    "wincmd x
-
     set foldlevel=1
     let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . g:showndx)
     let newhead = s:OrgGetHead_l(newhead)
     execute newhead
-    "execute g:showndx
+    
     normal! zv
     if getline(line('.')) =~ b:v.headMatch
         "restrict to headings only
         call s:OrgExpandSubtree(g:showndx,0)
     endif
-    "normal! z.
-    "normal V
-    "redraw
-    "sleep 100m
-    "normal V
+
     let b:v.chosen_agenda_heading = s:OrgGetHead()
     call clearmatches()
     let headlevel = s:Ind(b:v.chosen_agenda_heading)
     let headlevel = (headlevel > 6) ? '' : headlevel-1
     call matchadd('Org_Chosen_Agenda_Heading' . headlevel,'\%' . b:v.chosen_agenda_heading .'l')
-    "wincmd j
+    
     execute bufwinnr('Agenda').'wincmd w'
-    "wincmd c
-    "split
-    "wincmd j
-    "execute "b" . bufnr('Agenda')
+
     execute ag_line
     resize
     execute "resize " . ag_height 
-    "set foldlevel=9999
-    "execute g:showndx
-    "normal! z.
+
     if win >= 0
         Calendar
         execute 1
         call org#LocateFile('__Agenda__')
-        "wincmd l
-        "wincmd j
     endif
 endfunction
 
@@ -6132,9 +6123,6 @@ endfunction
 
 function! OrgFoldLevel(line)
     " called as foldexpr to determine the fold level of a line.
-    "if exists('g:flist')
-    "    call add(g:flist,a:line)
-    "endif
     if g:org_folds == 0
         return 0
     endif
@@ -6153,10 +6141,9 @@ function! OrgFoldLevel(line)
         endif
     endif
 
-    "let l:text = getline(a:line)
-    "let l:nexttext = getline(a:line + 1)
+    
     let [l:text, l:nexttext] = getline(a:line,a:line+1)
-    "if l:text =~ b:v.headMatch
+    
     if l:text =~ '^\*\+\s'
         let b:v.myAbsLevel = s:Ind(a:line)
     elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
@@ -6165,8 +6152,6 @@ function! OrgFoldLevel(line)
     endif
     let l:nextAbsLevel = s:Ind(a:line + 1)
 
-
-    "if l:text[0] ==? '*'
     if l:text =~ '^\*\+\s'
         " we're on a heading line
         let b:v.lasttext_lev = ''
@@ -6376,6 +6361,17 @@ function! s:AgendaBufferOpen(new_win)
                     exe "vsplit +buffer __Agenda__"
                 else
                     exe "split +buffer __Agenda__"
+                    "call add(g:myc, g:fcount)
+                    "call add(g:myc, 'fdm ' . &fdm)
+                    "call add(g:myc, 'buf ' . bufname('%'))
+                    "split
+                    "call add(g:myc, g:fcount)
+                    "call add(g:myc, 'fdm ' . &fdm)
+                    "call add(g:myc, 'buf ' . bufname('%'))
+                    "buffer __Agenda__
+                    "call add(g:myc, g:fcount)
+                    "call add(g:myc, 'fdm ' . &fdm)
+                    "call add(g:myc, 'buf ' . bufname('%'))
                 endif
 
             else
@@ -8061,4 +8057,4 @@ let b:v.current_syntax = "org"
 setlocal foldtext=OrgFoldText()
 
 
-" vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum)=~'^func'?1\:2:
+" vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum+1)=~'^func'?'<0'\:'1':
