@@ -2420,7 +2420,7 @@ function! s:GetBasicMeta(line)
    let todo =  matchstr(this_line,b:v.todoMatch)
    "let b:v.org_dict[a:line].TODO = matchstr(getline(a:line),b:v.todoMatch)
    if s:IsTagLine(a:line + 1)
-       let tags = matchstr(this_line,'^\s*\zs.*')
+       let tags = matchstr(getline(a:line+1),'^\s*\zs.*')
     else
         let tags = ''
    endif
