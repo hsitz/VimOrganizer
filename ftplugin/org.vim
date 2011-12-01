@@ -2651,7 +2651,7 @@ function! s:OrgIfExpr()
             " Propmatch has '=' sign and something before and after
             if item =~ 'TEXT=\S.*'
                 let mtch = matchlist(item[1:],'\(\S.*\)=\(\S.*\)')
-                let b:v.my_if_list[i] = "(s:Range_Search('" . mtch[2] . "','nbW'," 
+                let b:v.my_if_list[i] = "(s:Range_Search('" . mtch[2][1:-2] . "','nbW'," 
                 let b:v.my_if_list[i] .= 'tbegin,tend)> 0)'
                 let i += 1
                 " loop to next item
@@ -2799,7 +2799,7 @@ function! s:OrgIfExprResults(ifexpr,...)
             for if_item in a:ifexpr
                 " next line is to fix for text area search
                 " now that we can reference tbegin and tend
-                let myifexpr = substitute(if_item,'TBEGIN,TEND',get(lineprops,'TBEGIN') .','. get(lineprops,'TEND'),"")
+                let myifexpr = substitute(if_item,'\cTBEGIN,TEND',get(lineprops,'LINE') .','. get(lineprops,'TEND'),"")
                 "
                 "********  eval() is what does it all ***************
                 if eval(myifexpr)
