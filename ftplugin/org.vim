@@ -1079,10 +1079,12 @@ function! OrgTodoDashboard(...)
     elseif key =~? 'b\|p'
         call Replace_func('todo-bkwd')
     elseif key ==? 't'
-        call Replace_func(b:v.todoitems[0])
+        "call Replace_func(b:v.todoitems[0])
+        call Replace_func('first-todo')
     elseif key ==? 'd'
-        let done_state = (type(b:v.fulltodos[-1])==type([])) ? b:v.fulltodos[-1][0] : b:v.fulltodos[-1]
-        call Replace_func(done_state)
+        "let done_state = (type(b:v.fulltodos[-1])==type([])) ? b:v.fulltodos[-1][0] : b:v.fulltodos[-1]
+        "call Replace_func(done_state)
+        call Replace_func('first-done')
     elseif key =~ '[1-9]'
         call Replace_func(b:v.todoitems[key-1])
     else
@@ -1101,24 +1103,38 @@ function! s:AgendaReplaceTodo(...)
         echo "Not in agenda, can't use AgendaReplaceTodo"
         return
     endif
+    if empty(b:v.heading_marks_dict)
+        " just mark and do current item
+        let b:v.heading_marks_dict[line('.')] = 1
+    endif
 
-    let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
-    let b:v.fulltodos = getbufvar(file,'v').fulltodos
-    let b:v.todoitems = getbufvar(file,'v').todoitems
-    let todoword = matchstr(getline(line('.')), '.* \*\+ \zs\S\+')
-    if a:0 == 0
-        let newtodo = 'todo-fwd'
-    else
-        let newtodo = a:1
-    endif
-    if newtodo == 'todo-fwd'
-        let newtodo = s:NextTodo(todoword)
-    elseif newtodo == 'todo-bkwd'
-        let newtodo = s:PreviousTodo(todoword)
-    else
-        let newtodo = a:1
-    endif
-    call OrgAgendaGetText(1,newtodo)
+    for item in sort(keys(b:v.heading_marks_dict), 's:ReverseSort')
+        " go to the line first, then process
+        exec item   
+        let file = s:filedict[str2nr(matchstr(getline(line('.')), '^\d\d\d'))]
+        let b:v.fulltodos = getbufvar(file,'v').fulltodos
+        let b:v.todoitems = getbufvar(file,'v').todoitems
+        let todoword = matchstr(getline(line('.')), '.* \*\+ \zs\S\+')
+        if a:0 == 0
+            let newtodo = 'todo-fwd'
+        else
+            let newtodo = a:1
+        endif
+        if newtodo == 'todo-fwd'
+            let newtodo = s:NextTodo(todoword)
+        elseif newtodo == 'todo-bkwd'
+            let newtodo = s:PreviousTodo(todoword)
+        elseif newtodo == 'first-todo'
+            let newtodo = b:v.todoitems[0]
+        elseif newtodo == 'first-done'
+            let newtodo = (type(b:v.fulltodos[-1])==type([])) ? b:v.fulltodos[-1][0] : b:v.fulltodos[-1]
+        else
+            let newtodo = a:1
+        endif
+        call OrgAgendaGetText(1,newtodo)
+        execute 'sign unplace ' . item . ' buffer=' . bufnr('%')
+    endfor
+    let b:v.heading_marks_dict = {}
 
 endfunction
 function! s:ReplaceTodo(...)
@@ -1147,6 +1163,10 @@ function! s:ReplaceTodo(...)
         let newtodo = s:NextTodo(todoword)
     elseif newtodo == 'todo-bkwd'
         let newtodo = s:PreviousTodo(todoword)
+    elseif newtodo == 'first-todo'
+        let newtodo = b:v.todoitems[0]
+    elseif newtodo == 'first-done'
+        let newtodo = (type(b:v.fulltodos[-1])==type([])) ? b:v.fulltodos[-1][0] : b:v.fulltodos[-1]
     else
         let newtodo = a:1
     endif
@@ -2992,35 +3012,21 @@ function! OrgRunSearch(search_spec,...)
     endtry
 endfunction
 function! s:ResultsToAgenda( search_type )
-    " make agenda buf have its own todoitems, need
-    " to get rid of g:... so each agenda_file can have
-    " its own todoitems defined. . . "
-    "let todos = b:v.todoitems
-    "let todoNotDoneMatch = b:v.todoNotDoneMatch
-    "let todoDoneMatch = b:v.todoDoneMatch
-    "let todoMatch = b:v.todoMatch
-    "let fulltodos = b:v.fulltodos
-    "if bufnr('__Agenda__') >= 0
-    "    "bwipeout __Agenda__
-    "endif
     ":AAgenda
     :EditAgenda
     let b:v={}
-    "let b:v.todoitems = todos
-    "let b:v.todoNotDoneMatch = todoNotDoneMatch
-    "let b:v.todoDoneMatch = todoDoneMatch
-    "let b:v.todoMatch = todoMatch
-    "let b:v.fulltodos = fulltodos
-    "%d
     set nowrap
-    map <buffer> <silent> <tab> :call OrgAgendaGetText()<CR>
-    map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
+    
+    "map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
+    map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
     nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
     "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo','spec': matchstr(getline(1),'spec: \zs.*$')})<CR>
-    nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-    nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    "nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
+    "nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
+    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
     nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
     nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
     " c-s-cr already taken
@@ -3028,6 +3034,7 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
     nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
     nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+    nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
     "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
     "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
     "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
@@ -3060,6 +3067,27 @@ function! s:ResultsToAgenda( search_type )
         let i += 1
     endfor
     call append(s:agenda_insert_point,lines)
+endfunction
+function! s:OrgAgendaTab()
+    if getline(line(".")) !~ '^\d\+'
+        return
+    endif
+    let thisline = getline(line('.'))
+    let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
+    if bufwinnr(file) == -1
+        call s:OrgAgendaToBuf()
+    else
+        call s:MoveToHeadingFromAgenda(line('.'))
+        if b:v.chosen_agenda_heading != line('.')
+            "back to agenda and do agendatobuf from there
+            call org#LocateFile('__Agenda__')
+            call s:OrgAgendaToBuf()
+        else
+            " we're in file buffer, ready to cycle
+            call s:OrgCycle(line('.'))
+            call org#LocateFile('__Agenda__')
+        endif
+    endif
 endfunction
 function! s:ToggleHeadingMark(line)
     let line = a:line
@@ -3353,11 +3381,15 @@ function! s:SetupDateAgendaWin()
     nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
     nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
-    nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
+    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
+    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
+    "nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
+    nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
     nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
     nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
     nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    "nmap <silent> <buffer> >>       :call OrgDateInc(-1)<CR>
     nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
     nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
     nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
@@ -4118,7 +4150,7 @@ endfunction
 
 function! s:MoveToHeadingFromAgenda(agenda_line)
     "given line from agenda, go to the associated file and heading
-    let thisline = a:agenda_line
+    let thisline = getline(a:agenda_line)
     let file = s:agenda_files_copy[str2nr(matchstr(thisline, '^\d\d\d'))]
     let lineno = str2nr(matchstr(thisline,'^\d\d\d\zs\d*'))
     call org#LocateFile(file)
@@ -4588,8 +4620,25 @@ function! OrgDateDashboard(...)
     exe save_window . 'wincmd w'
     call setpos('.',save_cursor)
 endfunction
-
-function! OrgDateEdit(type)
+function! OrgAgendaDateInc(datecue)
+    let agline = getline(line('.'))
+    if agline =~ 'Deadline:\|In.*\dd\.:'
+        call OrgDateEdit('DEADLINE',a:datecue)
+    elseif agline =~ 'Scheduled:\|Sched:'
+        call OrgDateEdit('SCHEDULED',a:datecue)
+        let type = 'SCHEDULED'
+    elseif agline =~ 'Closed:'
+        call OrgDateEdit('CLOSED',a:datecue)
+    else
+        call OrgDateEdit('TIMESTAMP',a:datecue)
+    endif
+    
+endfunction
+function! OrgDateEdit(type,...)
+    if a:0 == 1
+        "use this to bypass calendar ui
+        let datecue = a:1
+    endif
     " type can equal DEADLINE/CLOSED/SCHEDULED/TIMESTAMP/ATCURSOR 
     let save_cursor = getpos('.')
     let old_cal_navi = g:calendar_navi
@@ -4625,9 +4674,14 @@ function! OrgDateEdit(type)
                 let rpt_or_warning = matchstr( my_date, '-\d\d-\d\d \S\S\S\zs .*\ze.$')
             endif
 
-            let cal_result = CalEdit(orig_date, orig_time)
-            if cal_result ==# ''
-                return
+            if !exists('datecue')
+                let cal_result = CalEdit(orig_date, orig_time)
+                if cal_result ==# ''
+                    return
+                endif
+            else
+                let cal_result = s:GetNewDate(datecue, orig_date, orig_time)
+                let cal_result = bracket . cal_result . (bracket=='<'?'>':']')
             endif
             if bracket == '['
                 let cal_result = '[' . cal_result[1:-2] . rpt_or_warning .  ']'
