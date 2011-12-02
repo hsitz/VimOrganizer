@@ -6489,6 +6489,7 @@ function! EditAgendaFiles()
     endfor
 endfunction
 function! s:SaveAgendaFiles()
+    " saves edited file list into g:agenda_files
     " yank files into @a
    normal gg/^--jV/^--?^\S"ay 
    let @a = substitute(@a,' ','\\ ','g')
@@ -6500,7 +6501,21 @@ function! s:SaveAgendaFiles()
     :bw
     delcommand W
 endfunction
-
+function! s:CycleAgendaFiles()
+    let i = 0
+    while i < len(g:agenda_files)
+        if g:agenda_files[i] =~ bufname('%') . '$'
+            let i += 1
+            break
+        endif 
+        let i += 1
+    endwhile
+    if i >= len(g:agenda_files) - 1
+        let i = 0
+    endif
+    
+    call org#LocateFile(g:agenda_files[i])
+endfunction
 function! s:ScratchBufSetup()
     setlocal buftype=nofile
     setlocal bufhidden=hide

@@ -53,12 +53,6 @@ nnoremap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
 nnoremap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
 nnoremap <silent> <buffer> <2-LeftMouse> :call OrgMouseDate()<CR>
 nnoremap <localleader>pl :call s:MyPopup()<cr>
-inoremap <expr> <Esc>      pumvisible() ? "\<C-e>" : "\<Esc>"
-inoremap <expr> <CR>       pumvisible() ? "\<C-y>" : "\<CR>"
-inoremap <expr> <Down>     pumvisible() ? "\<C-n>" : "\<Down>"
-inoremap <expr> <Up>       pumvisible() ? "\<C-p>" : "\<Up>"
-inoremap <expr> <PageDown> pumvisible() ? "\<PageDown>\<C-p>\<C-n>" : "\<PageDown>"
-inoremap <expr> <PageUp>   pumvisible() ? "\<PageUp>\<C-p>\<C-n>" : "\<PageUp>"
 "map <silent> <localleader>b  :call ShowBottomCal()<cr> 
 
 nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
