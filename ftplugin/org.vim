@@ -6198,9 +6198,10 @@ function! OrgFoldLevel(line)
     
     let [l:text, l:nexttext] = getline(a:line,a:line+1)
     
-    if l:text =~ '^\*\+\s'
-        let b:v.myAbsLevel = s:Ind(a:line)
-    elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
+    "if l:text =~ '^\*\+\s'
+    "    let b:v.myAbsLevel = s:Ind(a:line)
+    "elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
+    if (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
         let b:v.lastline = a:line
         return b:v.lasttext_lev
     endif
@@ -6209,6 +6210,7 @@ function! OrgFoldLevel(line)
     if l:text =~ '^\*\+\s'
         " we're on a heading line
         let b:v.lasttext_lev = ''
+        let b:v.myAbsLevel = s:Ind(a:line)
         
         if l:nexttext =~ b:v.drawerMatch
             let b:v.lev = '>' . string(b:v.myAbsLevel + 4)
