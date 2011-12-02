@@ -56,8 +56,10 @@ function! org#redir(command)
     silent! exe a:command
     redir END
   finally
-    " Always restore everything
+    "let res = split(@a,"\n")
     let res = @a
+
+    " restore register
     let @a = save_a
     return res
   endtry

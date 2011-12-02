@@ -5417,14 +5417,55 @@ function! s:SetProp(key, val,...)
     endif
     call setpos(".",save_cursor)
 endfunction
+function! OrgGotoChosenFile()
+    let fdict = {}
+    let buffers = split(org#redir('buffers'), "\n")
+    for item in buffers
+        let m = matchlist(item,'\s*\(\d\+\).*"\(.*\)"')
+        "put buffer as key and fname as value
+        let fdict[m[1]] = m[2]
+    endfor
+    " get rid of non org buffers
+    for bufnum in keys(fdict)
+        if getbufvar(str2nr(bufnum), "&filetype") !=# 'org'
+           unlet fdict[bufnum]
+       endif
+    endfor
+    let orgbuflist = copy(values(fdict))
+    let orgfilelist = copy(orgbuflist)
+    for i in range(0,len(orgbuflist)-1)
+        let orgbuflist[i] = i . '  ' . orgbuflist[i]
+    endfor
+    let x = inputlist(orgbuflist)
+    if x >= 0
+        call org#LocateFile(orgfilelist[x])
+    endif
+
+endfunction
 function! OrgCycleAgendaFiles(direction)
     if !empty('g:agenda_files')
-        let cur_file = expand("%:p")
-        let ndx = index(g:agenda_files,cur_file) 
+        let cur_file = fnamemodify(expand("%:p"), ":~")[1:]
+        let cur_file = substitute(cur_file,'\','\\\\','g')
+        let cur_file = substitute(cur_file,'\\ ','\ ','g')
+
+        let file_count = len(g:agenda_files) 
+        "let ndx = index(g:agenda_files,cur_file) 
+        let ndx = -1
+        for i in range(0, file_count - 1 )
+            if g:agenda_files[i] =~ '\c' . cur_file
+                let ndx = i
+                break
+            endif
+        endfor
         if ndx > -1
+            "let ndx = (ndx == len(g:agenda_files)) ? 0 : ndx 
             let ndx += (a:direction ==? 'backward') ? -1 : 1
-            let ndx = (ndx == len(g:agenda_files)) ? 0 : ndx 
-            let ndx = (ndx == -1) ? (len(g:agenda_files) - 1) : ndx 
+            if a:direction == 'backward'
+                let ndx = (ndx == -1) ? (len(g:agenda_files) - 1) : ndx 
+            elseif a:direction == 'forward'
+                let ndx = (ndx == len(g:agenda_files)  ? 0 : ndx) 
+            endif
+
             let filename = g:agenda_files[ndx]
         else
             let filename = g:agenda_files[0]
@@ -6500,6 +6541,11 @@ function! s:SaveAgendaFiles()
     endif
     :bw
     delcommand W
+endfunction
+function! s:GotoAgendaFile()
+    let flist = []
+    for item in g:agenda_files
+        call add(flist,
 endfunction
 function! s:CycleAgendaFiles()
     let i = 0
