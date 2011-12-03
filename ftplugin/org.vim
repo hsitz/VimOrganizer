@@ -5417,28 +5417,62 @@ function! s:SetProp(key, val,...)
     endif
     call setpos(".",save_cursor)
 endfunction
-function! OrgGotoChosenFile()
+function! OrgGotoChosenFile(...)
+    if a:0 == 1
+        " type is 'agenda' or 'all'
+        let type = a:1
+    else
+        let type = 'all'
+    endif
     let fdict = {}
-    let buffers = split(org#redir('buffers'), "\n")
-    for item in buffers
-        let m = matchlist(item,'\s*\(\d\+\).*"\(.*\)"')
-        "put buffer as key and fname as value
-        let fdict[m[1]] = m[2]
+    let bufnums= []
+    let bufnums_nonagenda = []
+    if exists('g:agenda_files')
+        for i in range(0, len(g:agenda_files) - 1)
+            let buf = bufnr(g:agenda_files[i])
+            let fdict[buf] = g:agenda_files[i]
+            call add(bufnums,buf)
+        endfor
+    endif
+    if type == 'all'
+        let buffers = split(org#redir('buffers'), "\n")
+        for item in buffers
+            let m = matchlist(item,'\s*\(\d\+\).*"\(.*\)"')
+            if get(fdict, m[1], -1 ) == -1
+                "put buffer as key and fname as value
+                let fdict[m[1]] = m[2]
+                call add(bufnums_nonagenda,str2nr(m[1]))
+            endif
+        endfor
+        " get rid of non org buffers
+        for bufnum in keys(fdict)
+            if getbufvar(str2nr(bufnum), "&filetype") !=# 'org'
+               unlet fdict[bufnum]
+               call remove(bufnums_nonagenda,index(bufnums_nonagenda,str2nr(bufnum)))
+           endif
+        endfor
+    endif
+
+    echo "Agenda files:"
+    echo "============================="
+    let nums = range(char2nr('0'), char2nr('9')) + range(char2nr('a'),char2nr('z'))
+
+    for i in range(0,len(bufnums)-1)
+        echo '   ' . nr2char(nums[i]) . '  ' . g:agenda_files[i]
     endfor
-    " get rid of non org buffers
-    for bufnum in keys(fdict)
-        if getbufvar(str2nr(bufnum), "&filetype") !=# 'org'
-           unlet fdict[bufnum]
-       endif
+    echo "Non-agenda org files:"
+    echo "============================="
+    for i in range(0,len(bufnums_nonagenda)-1)
+        echo '   ' . nr2char(nums[i + len(bufnums)]) . '  ' . fdict[bufnums_nonagenda[i]]
     endfor
-    let orgbuflist = copy(values(fdict))
-    let orgfilelist = copy(orgbuflist)
-    for i in range(0,len(orgbuflist)-1)
-        let orgbuflist[i] = i . '  ' . orgbuflist[i]
-    endfor
-    let x = inputlist(orgbuflist)
-    if x >= 0
-        call org#LocateFile(orgfilelist[x])
+    let bufnums = bufnums + bufnums_nonagenda
+    echo ""
+    echo "Press a key to go to chosen file: "
+    silent let x = nr2char(getchar())
+    redraw
+    
+    if x =~ '[0-9a-z]'
+        silent call org#LocateFile(fdict[bufnums[index(nums,char2nr(x))]])
     endif
 
 endfunction
