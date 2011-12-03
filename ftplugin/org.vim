@@ -5427,7 +5427,7 @@ function! OrgGotoChosenFile(...)
     let fdict = {}
     let bufnums= []
     let bufnums_nonagenda = []
-    if exists('g:agenda_files')
+    if exists('g:agenda_files') && !empty(g:agenda_files)
         for i in range(0, len(g:agenda_files) - 1)
             let buf = bufnr(g:agenda_files[i])
             let fdict[buf] = g:agenda_files[i]
@@ -6568,7 +6568,7 @@ function! s:SaveAgendaFiles()
     " yank files into @a
    normal gg/^--jV/^--?^\S"ay 
    let @a = substitute(@a,' ','\\ ','g')
-   if g:agenda_files[0][1] != '-'
+   if @a[0] != '-'
         let g:agenda_files = split(@a,"\n")
     else
         let g:agenda_files=[]
