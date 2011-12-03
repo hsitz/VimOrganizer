@@ -143,6 +143,9 @@ endif
 if !exists('g:org_confirm_babel_evaluate')
     let g:org_confirm_babel_evaluate = 0
 endif
+if !exists('g:org_agenda_window_position')
+    let g:org_agenda_window_position = 'bottom'
+endif
 if has('win32') || has('win64')
     let s:cmd_line_quote_fix = '^'
 else
@@ -5417,7 +5420,7 @@ function! s:SetProp(key, val,...)
     endif
     call setpos(".",save_cursor)
 endfunction
-function! OrgGotoChosenFile(...)
+function! s:OrgGotoChosenFile(...)
     if a:0 == 1
         " type is 'agenda' or 'all'
         let type = a:1
@@ -5476,7 +5479,7 @@ function! OrgGotoChosenFile(...)
     endif
 
 endfunction
-function! OrgCycleAgendaFiles(direction)
+function! s:CycleAgendaFiles(direction)
     if !empty('g:agenda_files')
         let cur_file = fnamemodify(expand("%:p"), ":~")[1:]
         let cur_file = substitute(cur_file,'\','\\\\','g')
@@ -6453,8 +6456,23 @@ endfunction
 " AgendaBufferOpen
 " Open the scratch buffer
 function! s:AgendaBufferOpen(new_win)
+    let save_sb = &splitbelow
+    let save_sr = &splitright
     let split_win = a:new_win
-
+    let t = g:org_agenda_window_position
+    if t == 'top'
+        let g:vsplit=0
+        set nosplitbelow
+    elseif t == 'bottom'
+        let g:vsplit = 0
+        set splitbelow
+    elseif t == 'left'
+        let g:vsplit = 1
+        set nosplitright
+    elseif t == 'right'
+        let g:vsplit = 1
+        set splitright
+    endif
     " If the current buffer is modified then open the scratch buffer in a new
     " window
     "if !split_win && &modified
@@ -6492,17 +6510,6 @@ function! s:AgendaBufferOpen(new_win)
                     exe "vsplit +buffer __Agenda__"
                 else
                     exe "split +buffer __Agenda__"
-                    "call add(g:myc, g:fcount)
-                    "call add(g:myc, 'fdm ' . &fdm)
-                    "call add(g:myc, 'buf ' . bufname('%'))
-                    "split
-                    "call add(g:myc, g:fcount)
-                    "call add(g:myc, 'fdm ' . &fdm)
-                    "call add(g:myc, 'buf ' . bufname('%'))
-                    "buffer __Agenda__
-                    "call add(g:myc, g:fcount)
-                    "call add(g:myc, 'fdm ' . &fdm)
-                    "call add(g:myc, 'buf ' . bufname('%'))
                 endif
 
             else
@@ -6510,6 +6517,8 @@ function! s:AgendaBufferOpen(new_win)
             endif
         endif
     endif
+    let &splitbelow = save_sb
+    let &splitright = save_sr
 endfunction
 
 function! s:CaptureBuffer()
@@ -6537,8 +6546,11 @@ function! s:ProcessCapture()
     execute "bd"
 endfunction
 
-command! EditAgendaFiles :call EditAgendaFiles()
-function! EditAgendaFiles()
+command! EditAgendaFiles :call <SID>EditAgendaFiles()
+command! OrgCycleAgendaForward :call <SID>CycleAgendaFiles('forward')
+command! OrgCycleAgendaBackward :call <SID>CycleAgendaFiles('backward')
+command! OrgChooseOrgBuffer :call <SID>OrgGotoChosenFile()
+function! s:EditAgendaFiles()
     if !exists("g:agenda_files") || (g:agenda_files == [])
         call s:CurfileAgenda()
     endif
@@ -6576,26 +6588,21 @@ function! s:SaveAgendaFiles()
     :bw
     delcommand W
 endfunction
-function! s:GotoAgendaFile()
-    let flist = []
-    for item in g:agenda_files
-        call add(flist,
-endfunction
-function! s:CycleAgendaFiles()
-    let i = 0
-    while i < len(g:agenda_files)
-        if g:agenda_files[i] =~ bufname('%') . '$'
-            let i += 1
-            break
-        endif 
-        let i += 1
-    endwhile
-    if i >= len(g:agenda_files) - 1
-        let i = 0
-    endif
-    
-    call org#LocateFile(g:agenda_files[i])
-endfunction
+"function! s:CycleAgendaFiles()
+"    let i = 0
+"    while i < len(g:agenda_files)
+"        if g:agenda_files[i] =~ bufname('%') . '$'
+"            let i += 1
+"            break
+"        endif 
+"        let i += 1
+"    endwhile
+"    if i >= len(g:agenda_files) - 1
+"        let i = 0
+"    endif
+"    
+"    call org#LocateFile(g:agenda_files[i])
+"endfunction
 function! s:ScratchBufSetup()
     setlocal buftype=nofile
     setlocal bufhidden=hide
@@ -8119,7 +8126,7 @@ amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
 amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
 amenu <silent> &Org.&Do\ Emacs\ Eval<tab>,v :call OrgEval()<cr>
-amenu &Org.File\ &List\ for\ Agenda :call EditAgendaFiles()<cr>
+amenu &Org.File\ &List\ for\ Agenda :EditAgendaFiles<cr>
 amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
 amenu &Org.-Sep5- :
 amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
