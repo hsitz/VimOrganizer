@@ -4383,6 +4383,7 @@ endfunction
 
 function! CalEdit( sdate, stime )
         " bring up calendar to edit and return a date value
+        call org#SaveLocation()
         let basedate = a:sdate ==# '' ? s:Today() : a:sdate 
         let basetime = a:stime
         let newdate = '<' . basedate[0:9] . ' ' . calutil#dayname(basedate[0:9]) . (basetime ># '' ? ' ' . b:v.basetime : '') . '>'
@@ -4469,6 +4470,7 @@ function! CalEdit( sdate, stime )
         endwhile
         hi Cursor guibg=gray
         bdelete __Calendar
+        call org#RestoreLocation()
         return newdate 
 endfunction
 
@@ -5364,9 +5366,11 @@ function! s:SetProp(key, val,...)
             let foundline = s:Range_Search('^\s*\(:\)\{}'.key.'\s*:','n',block_end,line("."))
         endif
         if foundline > 0
-            exec foundline
-            "exec 's/:\s*<\d\d\d\d.*$/' . (key ==# '' ? ':' : ': ') . a:val
-            exec 's/:\s*<\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)*/' . (key ==# '' ? ':' : ': ') . a:val[:-2]
+            "exec foundline
+            "exec 's/:\s*<\d\d\d\d-\d\d-\d\d \S\S\S\( \d\d:\d\d\)*/' . (key ==# '' ? ':' : ': ') . a:val[:-2]
+            call setline(foundline,substitute(getline(foundline),
+                            \ ':\s*<\d\d\d\d-\d\d-\d\d \S\S\S.*$', (key ==# '' ? ':' : ': ') . a:val,''))
+                            "\ ':\s*<\d\d\d\d-\d\d-\d\d \S\S\S.*$', (key ==# '' ? ':' : ': ') . a:val[:-2],''))
         else
             let line_ind = len(matchstr(getline(line(".")),'^\**'))+1 + g:org_indent_from_head
             if s:IsTagLine(line('.')+1)
@@ -6276,10 +6280,10 @@ function! OrgFoldLevel(line)
     
     let [l:text, l:nexttext] = getline(a:line,a:line+1)
     
-    "if l:text =~ '^\*\+\s'
-    "    let b:v.myAbsLevel = s:Ind(a:line)
-    "elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
-    if (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
+    if l:text =~ '^\*\+\s'
+        let b:v.myAbsLevel = s:Ind(a:line)
+    elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
+    "if (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
         let b:v.lastline = a:line
         return b:v.lasttext_lev
     endif
@@ -6288,7 +6292,7 @@ function! OrgFoldLevel(line)
     if l:text =~ '^\*\+\s'
         " we're on a heading line
         let b:v.lasttext_lev = ''
-        let b:v.myAbsLevel = s:Ind(a:line)
+        "let b:v.myAbsLevel = s:Ind(a:line)
         
         if l:nexttext =~ b:v.drawerMatch
             let b:v.lev = '>' . string(b:v.myAbsLevel + 4)
