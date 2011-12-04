@@ -5437,6 +5437,7 @@ function! s:OrgGotoChosenFile(...)
     if exists('g:agenda_files') && !empty(g:agenda_files)
         for i in range(0, len(g:agenda_files) - 1)
             let buf = bufnr(g:agenda_files[i])
+            let buf = (buf == -1 ? 10000 + i : buf)
             let fdict[buf] = g:agenda_files[i]
             call add(bufnums,buf)
         endfor
@@ -5453,7 +5454,7 @@ function! s:OrgGotoChosenFile(...)
         endfor
         " get rid of non org buffers
         for bufnum in keys(fdict)
-            if getbufvar(str2nr(bufnum), "&filetype") !=# 'org'
+            if (getbufvar(str2nr(bufnum), "&filetype") !=# 'org') && (bufnum < 10000)
                unlet fdict[bufnum]
                call remove(bufnums_nonagenda,index(bufnums_nonagenda,str2nr(bufnum)))
            endif
@@ -6283,6 +6284,7 @@ function! OrgFoldLevel(line)
     if l:text =~ '^\*\+\s'
         let b:v.myAbsLevel = s:Ind(a:line)
     elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
+    "elseif (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s\|^\s*:SYNOPSIS:') && (b:v.lastline == a:line - 1)
     "if (b:v.lasttext_lev ># '') && (l:text !~ s:remstring) && (l:nexttext !~ '^\*\+\s') && (b:v.lastline == a:line - 1)
         let b:v.lastline = a:line
         return b:v.lasttext_lev
@@ -6332,9 +6334,12 @@ function! OrgFoldLevel(line)
 
         if l:text =~ b:v.drawerMatch
             let b:v.lev = '>' . string(b:v.prevlev + 4)
-        elseif l:text =~ s:remstring
+        elseif (l:text =~ s:remstring) "&& (l:text !~ '^\s*:SYNOPSIS:')
             if (getline(a:line - 1) =~ b:v.headMatch) && (l:nexttext =~ s:remstring)
                 let b:v.lev =  string(b:v.prevlev + 5)
+            elseif (l:text =~ '^\s*:SYNOPSIS:')
+                let b:v.lev = b:v.prevlev + 2
+                let b:v.lasttext_lev = ''
             elseif (l:nexttext !~ s:remstring) || 
                         \ (l:nexttext =~ b:v.drawerMatch) 
                 let b:v.lev = '<' . string(b:v.prevlev + 4)
@@ -6342,8 +6347,13 @@ function! OrgFoldLevel(line)
                 let b:v.lev = b:v.prevlev + 4
             endif
         elseif l:text[0] != '#'
-            let b:v.lev = (b:v.prevlev + 2)
-            let b:v.lasttext_lev = b:v.lev
+            if (getline(a:line-1) =~ '^\s*:SYNOPSIS:')
+                let b:v.lev = '>' . string(b:v.myAbsLevel + 1)
+                let b:v.lasttext_lev = b:v.lev[1:]
+            else
+                let b:v.lev = (b:v.prevlev + 2)
+                let b:v.lasttext_lev = b:v.lev
+            endif
         elseif b:v.src_fold  
             if l:text =~ '^#+begin_src'
                 let b:v.lev = '>' . (b:v.prevlev + 2)
