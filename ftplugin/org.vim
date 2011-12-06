@@ -5424,6 +5424,54 @@ function! s:SetProp(key, val,...)
     endif
     call setpos(".",save_cursor)
 endfunction
+function! s:CurrentRemoveFromAgendaFiles()
+        let cur_file1 = fnamemodify(expand("%:p"), ":~")[1:]
+        let cur_file = substitute(cur_file1,'\','\\\\','g')
+        let cur_file = substitute(cur_file,'\\ ','\ ','g')
+
+        let file_count = len(g:agenda_files) 
+        
+        let ndx = -1
+        for i in range(0, file_count - 1 )
+            if g:agenda_files[i] =~ '\c' . cur_file
+                let ndx = i
+                break
+            endif
+        endfor
+        if ndx > -1
+            call remove(g:agenda_files,ndx)
+            echo cur_file1 . ' was removed from agenda files list.'
+        else
+            echo cur_file1 . ' was not in agenda files list.'
+        endif
+endfunction
+
+function! s:CurrentToAgendaFiles(top_or_bottom)
+        " argument should be either 'top' or 'bottom'
+        let cur_file1 = fnamemodify(expand("%:p"), ":~")
+        let cur_file = substitute(cur_file1[1:],'\','\\\\','g')
+        let cur_file = substitute(cur_file,'\\ ','\ ','g')
+
+        let file_count = len(g:agenda_files) 
+        
+        let ndx = -1
+        for i in range(0, file_count - 1 )
+            if g:agenda_files[i] =~ '\c' . cur_file
+                let ndx = i
+                break
+            endif
+        endfor
+        if ndx > -1
+            call remove(g:agenda_files,ndx)
+        endif
+        if a:top_or_bottom == 'top'
+            let g:agenda_files = [cur_file1] + g:agenda_files
+        else
+            let g:agenda_files = g:agenda_files . [cur_file1]
+        endif
+        echo cur_file1 . ' is at ' . a:top_or_bottom . ' of agenda files list.'
+endfunction
+
 function! s:OrgGotoChosenFile(...)
     if a:0 == 1
         " type is 'agenda' or 'all'
@@ -6324,6 +6372,7 @@ function! OrgFoldLevel(line)
                     " shortcircuit here, it's blank line prior to any head
                     return -1
                 endif
+                let b:v.prevlev = s:Ind(prevhead)
                 let i = prevhead
                 "for item in range(prevhead,a:line-1)
                 "    call OrgFoldLevel(item)
@@ -6334,12 +6383,9 @@ function! OrgFoldLevel(line)
 
         if l:text =~ b:v.drawerMatch
             let b:v.lev = '>' . string(b:v.prevlev + 4)
-        elseif (l:text =~ s:remstring) "&& (l:text !~ '^\s*:SYNOPSIS:')
+        elseif (l:text =~ s:remstring) 
             if (getline(a:line - 1) =~ b:v.headMatch) && (l:nexttext =~ s:remstring)
                 let b:v.lev =  string(b:v.prevlev + 5)
-            elseif (l:text =~ '^\s*:SYNOPSIS:')
-                let b:v.lev = b:v.prevlev + 2
-                let b:v.lasttext_lev = ''
             elseif (l:nexttext !~ s:remstring) || 
                         \ (l:nexttext =~ b:v.drawerMatch) 
                 let b:v.lev = '<' . string(b:v.prevlev + 4)
@@ -6347,13 +6393,8 @@ function! OrgFoldLevel(line)
                 let b:v.lev = b:v.prevlev + 4
             endif
         elseif l:text[0] != '#'
-            if (getline(a:line-1) =~ '^\s*:SYNOPSIS:')
-                let b:v.lev = '>' . string(b:v.myAbsLevel + 1)
-                let b:v.lasttext_lev = b:v.lev[1:]
-            else
                 let b:v.lev = (b:v.prevlev + 2)
                 let b:v.lasttext_lev = b:v.lev
-            endif
         elseif b:v.src_fold  
             if l:text =~ '^#+begin_src'
                 let b:v.lev = '>' . (b:v.prevlev + 2)
@@ -6536,28 +6577,54 @@ function! s:AgendaBufferOpen(new_win)
 endfunction
 
 function! s:CaptureBuffer()
+    if !exists('g:org_capture_file') || empty(g:org_capture_file)
+        echo 'Capture is not set up.  Please read docs at :h vimorg-capture.'
+        return
+    endif
     let w:prevbuf=bufnr("%")
-    sp _Capture_
+    sp _Org_Capture_
+    set ft=org
     normal ggVGd
-    normal i** 
-    silent exec "normal o<".org#Timestamp().">"
+    normal i* 
+    silent exec "normal o:<".org#Timestamp().">"
     call s:ScratchBufSetup()
     command! -buffer W :call s:ProcessCapture()
-    normal gg$a
+    normal gg
+    startinsert!
     
 endfunction
 function! s:ProcessCapture()
-    normal ggVG"xy
-    execute "tab drop ".g:org_capture_file
-    normal gg
-    call search('^\* Agenda')
-    execute s:OrgSubtreeLastLine()
-    normal p
-    normal gg
-    silent write
-    redo
-    call org#LocateFile('_Capture_')
-    execute "bd"
+    "normal ggVG"xy
+    let curbufnr = bufnr(g:org_capture_file)
+    if curbufnr == -1
+        exe '1,$write >> ' . g:org_capture_file
+        bw! _Org_Capture_
+    else
+        normal ggVG"xy
+        bw! _Org_Capture_
+        call org#SaveLocation()
+        call org#LocateFile(g:org_capture_file)
+        normal G"xp
+        silent write
+        call org#RestoreLocation()
+    endif
+    "bw! _Org_Capture_
+    "call org#SaveLocation()
+
+    "call org#LocateFile(g:org_capture_file)
+    "normal gg
+    "let found = search('^\* CaptureItems','c')
+    "if found == 0
+    "    normal i* CaptureItems
+    "else
+    "    exec found
+    "endif
+    "execute s:OrgSubtreeLastLine()
+    "normal p
+    "silent wq   "writes and quits g:org_capture_file
+    "
+    "call org#RestoreLocation()
+   
 endfunction
 
 command! EditAgendaFiles :call <SID>EditAgendaFiles()
@@ -7540,8 +7607,8 @@ function! OrgRefileDashboard()
     echo " ================================"
     echo " Press key for a refile command:"
     echo " --------------------------------"
-    echo " r / l / p  refile subtree to new point/last point/persisted pointi"
-    echo " j / s / t  jump to new point/last point/persistent point"
+    echo " r / l / p  refile subtree to new point/last point/persisted point"
+    echo " j / z / t  jump to new point/last point/persistent point"
     echo " s          set persistent refile point "
     echo " a          archive to _archive file"
     echo ""
@@ -7556,7 +7623,7 @@ function! OrgRefileDashboard()
         call s:OrgRefileToPermPoint(line('.'))
     elseif key ==? 'j'
         call s:OrgJumpToRefilePoint()
-    elseif key ==? 's'
+    elseif key ==? 'z'
         call s:OrgJumpToLastRefilePoint()
     elseif key ==? 't'
         call s:OrgJumpToRefilePointPersistent()
@@ -7609,17 +7676,17 @@ function! s:GetMyItems(arghead)
     call org#RestoreLocation()
     return result
 endfunction
-function! s:FileList(arghead,sd,gf)
+function! OrgFileList(arghead,sd,gf)
     let arghead = substitute(a:arghead,'\~','\\\~','g')
     "if bufname('%') ==# '__Agenda__'
-    "let s:myheads  = ['[current file]'] + copy(g:agenda_files)
-    let s:myheads  =  copy(g:agenda_files)
+    let s:myheads  = ['[current file]'] + copy(g:agenda_files)
+    "let s:myheads  =  copy(g:agenda_files)
     let matches = filter( copy( s:myheads ),'v:val =~ arghead')
     redraw!
     return join( matches, "\n" )
 endfunction
 
-function! s:HeadingList(arghead,sd,gf)
+function! OrgHeadingList(arghead,sd,gf)
     let arghead = a:arghead
     let s:myheads = s:GetMyItems(arghead)
     let matches = filter( copy( s:myheads ),'v:val =~ a:arghead')
@@ -7636,14 +7703,15 @@ function! s:GetTarget()
         while 1
             let s:refile_file = ''
             "let s:refile_file = input("Target file: ","[current file]",'custom,s:FileList')
-            let file_default = (bufname('%')==#'__Agenda__') ? g:agenda_files[0] : '[current file]'
-            let s:refile_file = input("Target file: ",file_default,'custom, s:FileList')
+            let file_default = (bufname('%')==#'__Agenda__') ? g:agenda_files[0] : ""    
+            "[current file]"
+            let s:refile_file = input("Target file: ",file_default,'custom,OrgFileList')
             if s:refile_file ==# '[current file]'
                 let s:refile_file = expand("%") 
             elseif index(g:agenda_files,s:refile_file) == -1
                 break
             endif
-            let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom, s:HeadingList')
+            let heading = input('Outline heading: ', fnamemodify(s:refile_file,':t:') . "\t",'custom,OrgHeadingList')
             let head = matchstr(heading,'.\{-}/\zs.*')
             if head ==# ''
                 continue
@@ -7665,7 +7733,7 @@ function! s:OrgJumpToRefilePointPersistent()
     endif
 endfunction
 function! s:OrgJumpToLastRefilePoint()
-    if exists('s:last_refile_point') && (len(s:archive_refile_point)==2)
+    if exists('s:last_refile_point') && (len(s:last_refile_point)==2)
         let p = s:last_refile_point
         call s:OrgGotoHeading( p[0], p[1])
         normal zv
