@@ -2379,7 +2379,7 @@ function! OrgMakeDictInherited(...)
     endif
     let b:v.last_idict_time = localtime()
     let b:v.last_idict_with_tags = get_tags
-    write!
+    if s:OrgVal('g:org_save_when_searched') > 0 | write! | endif
     let b:v.org_dict = {}
     call OrgProcessConfigLines()
     let b:v.org_dict =  {'0':{'c':[],'CATEGORY':b:v.org_inherited_defaults['CATEGORY'] }}
@@ -2437,7 +2437,7 @@ function! OrgMakeDict()
     let b:v.last_dict_time = localtime()
     "let b:v.org_dict = {}
     "save buffer changes since last_dict
-    write!
+    if s:OrgVal('g:org_save_when_searched') > 0 | write! | endif
     " and recreate the dict
     call OrgMakeDictInherited()
     function! b:v.org_dict.SumTime(ndx,property) dict
@@ -8067,6 +8067,15 @@ function! s:OrgGotoHeading(target_file, target_head, ...)
     endwhile
 endfunction 
     
+function! s:OrgVal(variable_str)
+    " takes variable as an argument and tests whether it's defined
+    " if not returns -1, otherwise return variable value
+    if exists(variable_str) 
+        execute 'let val=' . variable_str
+    else
+        let val = -1
+    endif
+    return val
 
 command! PreLoadTags :silent  call <SID>GlobalConvertTags()
 command! PreWriteTags :silent call <SID>GlobalUnconvertTags(changenr())
