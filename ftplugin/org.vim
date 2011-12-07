@@ -210,7 +210,7 @@ let g:org_deadline_warning_days = 3
 let s:org_weekdays = ['mon','tue','wed','thu','fri','sat','sun']
 let s:org_weekdaystring = '\cmon\|tue\|wed\|thu\|fri\|sat\|sun'
 let s:org_months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec']
-let s:org_monthstring = '\cjan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec'
+let s:org_monthstring = '\c\(jan\|feb\|mar\|apr\|may\|jun\|jul\|aug\|sep\|oct\|nov\|dec\)\S*'
 let s:include_inherited_props=0
 let s:AgendaBufferName = "__Agenda__"
 let s:sparse_lines = {}
@@ -4775,17 +4775,24 @@ endfunction
 
 function! s:GetNewDate(cue,basedate,basetime)
     " called from caledit()
-    if match(a:cue,':') >= 0
-        let cue = matchstr(a:cue,'^\S\+\ze \S\+:')
-        let timecue = matchstr(a:cue,'\S\+:\S\+')
+    if match(a:cue,'\S:') >= 0
+        let mlist = matchlist(a:cue, '^\(.*\) \(\S\+:.*\)')
+        let cue = mlist[1]
+        let timecue = mlist[2]
     else
         let cue = a:cue
         let timecue = ''
     endif
     let basedate = a:basedate
     let newdate = DateCueResult( cue , basedate )
-    if timecue =~ '\d\d:\d\d'
-        let mytime = ' '.timecue
+    let tmatch = matchlist( timecue , '\(\d\{1,2}\):\(\d\d\)\(am\|pm\)*')
+    if !empty(tmatch)
+        let hours = tmatch[1]
+        if (tmatch[3]=='pm') && (hours < 10) 
+            let hours = hours + 12
+        endif 
+        let hours = s:Pre0(hours)
+        let mytime = ' ' . hours . ':' . tmatch[2]
     else
         let mytime = a:basetime ># '' ? ' ' . a:basetime : ''
     endif
@@ -4840,24 +4847,27 @@ function! DateCueResult( cue, basedate)
             let day = matchstr(cue,'-\zs\d\+\ze$')
             let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
 
-            "       elseif cue =~ s:org_monthstring
-            "           let mycount = matchstr(cue,'^\d\+')
-            "           let mymonth = 
-            "           let newday = index(s:org_weekdays,cue)
-            "           let oldday = calutil#dow(basedate)
-            "           if newday > oldday
-            "               let amt=newday-oldday
-            "           elseif newday < oldday
-            "               let amt =7-oldday+newday
-            "           else
-            "               let amt = 7
-            "           endif
-            "           let newdate=calutil#cal(calutil#jul(basedate)+amt)
+        elseif cue =~ s:org_monthstring . ' \d\+$'
+            let month_str = matchstr(cue,'^' . s:org_monthstring)
+            let month = 1 + index(s:org_months, tolower(month_str[:2]))
+            let day = matchstr(cue,' \zs\d\+$')
+            let year = basedate[0:3]
+            if basedate[0:4] . s:Pre0(month) . '-' . s:Pre0(day) < basedate
+                let year = year + 1
+            endif
+            let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
+        elseif cue =~ s:org_monthstring . ' \d\+ \d\+$'
+            let month_str = matchstr(cue,'^' . s:org_monthstring)
+            let month = 1 + index(s:org_months, tolower(month_str[:2]))
+            let day = matchstr(cue,' \zs\d\+\ze ')
+            let year = str2nr(matchstr(cue,' \d\+ \zs\d\+$'))
+            let year = (year < 1800) ? 2000 + year : year
+            let newdate = calutil#cal(calutil#Cal2Jul(year,month,day))
         elseif cue =~ s:org_weekdaystring
             " wed, 3tue, 5fri, i.e., dow string
             let mycount = matchstr(cue,'^\d\+')
             let myday = matchstr(cue,s:org_weekdaystring) 
-            let newday = index(s:org_weekdays,myday)
+            let newday = index(s:org_weekdays,tolower(myday))
             let oldday = calutil#dow(matchstr(basedate,'\d\d\d\d-\d\d-\d\d'))
             if newday > oldday
                 let amt=newday-oldday
