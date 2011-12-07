@@ -7614,6 +7614,7 @@ function! OrgRefileDashboard()
     echo " j / z / t  jump to new point/last point/persistent point"
     echo " s          set persistent refile point "
     echo " a          archive to _archive file"
+    echo " v          jump to _archive file"
     echo ""
     echohl Question
     let key = nr2char(getchar())
@@ -7632,6 +7633,8 @@ function! OrgRefileDashboard()
         call s:OrgJumpToRefilePointPersistent()
     elseif key ==? 's'
         call s:OrgSetRefilePoint()
+    elseif key ==? 'v'
+        call org#LocateFile(expand('%:p') . '_archive')
     elseif key ==? 'a'
         if confirm('Confirm that you want to archive subtree(s)',"&Yes\n&Cancel")
             call s:DoRefile(['_archive'],[line('.')])
@@ -8073,8 +8076,8 @@ endfunction
 function! s:OrgVal(variable_str)
     " takes variable as an argument and tests whether it's defined
     " if not returns -1, otherwise return variable value
-    if exists(variable_str) 
-        execute 'let val=' . variable_str
+    if exists(a:variable_str) 
+        execute 'let val=' . a:variable_str
     else
         let val = -1
     endif
@@ -8300,7 +8303,8 @@ if !has('gui_running')
     nmap <silent> <buffer> <localleader>nt   :call <SID>ReplaceTodo()<CR>
 endif
 execute "source " . expand("<sfile>:p:h") . '/vimorg-main-mappings.vim'
-
+" next line call is to get signs defined
+call s:DeleteSigns()
 " below is autocmd to change tw for lines that have comments on them
 " I think this should go in vimrc so i runs for each buffer load
 "  :autocmd CursorMoved,CursorMovedI * :if match(getline(line(".")), '^*\*\s') == 0 | :setlocal textwidth=99 | :else | :setlocal textwidth=79 | :endif 
