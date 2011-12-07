@@ -134,6 +134,9 @@ endif
 if !exists('g:org_tags_persistent_alist')
     let g:org_tags_persistent_alist = ''
 endif
+if !exists('g:org_save_when_searched')
+    let g:org_save_when_searched = 0
+endif
 if !exists('g:org_tags_alist')
     let g:org_tags_alist = ''
 endif
@@ -7061,7 +7064,7 @@ endfunction
 function! s:OrgTableOptionList(A,L,P)
     return keys(s:OrgTableEvalOptions())
 endfunction
-command! -buffer -nargs=? -complete=customlist,s:OrgTableOptionList OrgTblEval :call OrgEvalTable(<f-args>)
+command! -buffer -nargs=? -complete=customlist,s:OrgTableOptions OrgTblEval :call OrgEvalTable(<f-args>)
 function! s:OrgTableEvalOptions()
     return  { 'col_right':'org-table-move-column-right',
                             \ 'col_left': 'org-table-move-column-left',
@@ -8076,6 +8079,7 @@ function! s:OrgVal(variable_str)
         let val = -1
     endif
     return val
+endfunction
 
 command! PreLoadTags :silent  call <SID>GlobalConvertTags()
 command! PreWriteTags :silent call <SID>GlobalUnconvertTags(changenr())
