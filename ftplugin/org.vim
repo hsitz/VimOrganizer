@@ -318,11 +318,12 @@ function! s:RunCustom(search)
             call OrgRunSearch( mydict.spec )
         elseif mydict.type ==? 'tags-todo'
             " add todos to spec
-            call OrgRunSearch( mydict.spec )
+            call OrgRunSearch( mydict.spec,'agenda_todo' )
         endif
         let i += 1
     endfor
     set foldlevel=999
+    execute s:agenda_insert_point
     nohl   
 endfunction
 "Section Tag and Todo Funcs
@@ -2938,20 +2939,11 @@ function! s:MakeAgenda(date,count,...)
     let g:in_agenda_search=1
     for file in g:agenda_files
         call org#LocateFile(file)
-        "let bnum = bufnr(file)
-        "if bnum == -1 
-        "    execute 'tabedit ' . file
-        "else
-        "   execute 'b' . bnum 
-        "endif
-        " just do CATEGORIES for dict if no search spec
-        "if g:org_search_spec ==# ''
-            " do inherited even if search spec, todos and tags are handled by
-            " GetDateHeads()
-            call OrgMakeDictInherited()
-        "else
-        "    call OrgMakeDict()
-        "endif
+        " for now g:org_search_spec is limited to tags and
+        " todo prop which are part of OrgMakeDictInherited
+        " If ever want to expand to general props can 
+        " add OrgMakeDict()
+        call OrgMakeDictInherited()
         let s:filenum = index(g:agenda_files,file)
         let t:agenda_date=a:date
         if as_today ># ''
@@ -3018,12 +3010,12 @@ function! OrgRunSearch(search_spec,...)
     endtry
 endfunction
 function! s:ResultsToAgenda( search_type )
+    " FOR OrgRunSearch()  
     ":AAgenda
     :EditAgenda
     let b:v={}
     set nowrap
     
-    "map <buffer> <silent> <s-CR> :call OrgAgendaGetText(1)<CR>
     map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
     map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
     map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
@@ -3041,11 +3033,8 @@ function! s:ResultsToAgenda( search_type )
     nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
     nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
     nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
-    "call matchadd( 'OL1', '\s\+\*\{1}.*$' )
-    "call matchadd( 'OL2', '\s\+\*\{2}.*$') 
-    "call matchadd( 'OL3', '\s\+\*\{3}.*$' )
-    "call matchadd( 'OL4', '\s\+\*\{4}.*$' )
-    call s:AgendaBufHighlight()
+
+    "call s:AgendaBufHighlight()
     "wincmd J
     let i = 0
     call s:ADictPlaceSigns()
@@ -3061,9 +3050,11 @@ function! s:ResultsToAgenda( search_type )
         for item in tlist
             let num = index(tlist,item)
             let numstr .= '('.num.')'.item.'  '
-            execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
+            execute "nmap <buffer> ".num."  :call OrgRunCustom({'redo_num':line('.'), 'type':'tags-todo', 'spec':'". tlist[num] . "'})<CR>"
+            "execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
         endfor
-        call add(lines,split(msg.numstr,'\%72c\S*\zs '))
+        call add(lines,join(split(msg.numstr,'\%72c\S*\zs '),"\n"))
+        call add(lines,'')
     endif
     for key in sort(keys(g:adict))
         call add(lines , key . ' ' . 
@@ -3074,6 +3065,54 @@ function! s:ResultsToAgenda( search_type )
     endfor
     call append(s:agenda_insert_point,lines)
 endfunction
+function! s:DoAgendaMaps()
+    map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
+    map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
+    map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
+    nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo','spec': matchstr(getline(1),'spec: \zs.*$')})<CR>
+    "nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
+    "nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
+    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
+    nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
+    nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
+    " c-s-cr already taken
+    nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
+    nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
+    nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
+    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+    nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
+
+    if a:search_type ==? 'agenda_todo'
+        nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
+    endif
+    " lines below are from date searches
+    nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
+    nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
+    nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
+    nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
+    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
+    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
+    "nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
+    nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
+    nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
+    nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
+    nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
+    nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    "nmap <silent> <buffer> >>       :call OrgDateInc(-1)<CR>
+    nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
+    nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
+    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+    command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
+
+endfunction
+
 function! s:OrgAgendaTab()
     if getline(line(".")) !~ '^\d\+'
         return
@@ -6827,7 +6866,7 @@ function! OrgAgendaDashboard()
             endif
             if key ==? 't'
                 "silent execute "call OrgRunSearch('+ANY_TODO','agenda_todo')"
-                silent call s:RunCustom({'type':'tags','spec':'+ANY_TODO'})
+                silent call s:RunCustom({'type':'tags-todo','spec':'+ANY_TODO'})
             elseif key ==? 'a'
                 "if (g:org_search_spec ==# '') 
                     "let g:org_search_spec = g:agenda_default_search_spec
