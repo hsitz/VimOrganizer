@@ -182,7 +182,7 @@ let g:org_gray_agenda = 0
 let g:org_sparse_lines_after = 10
 let g:org_capture_file=''
 let g:org_log_todos=0
-let g:org_timegrid=[8,17,1]
+let g:org_timegrid=[8,20,2]
 let w:v.org_colview_list = []
 let s:firsttext = ''
 let g:org_supported_link_types = '\(http\|file\|mailto\)'
@@ -3455,6 +3455,7 @@ function! s:Resize()
 endfunction
 
 function! s:GetDateHeads(date1,count,...)
+    " a:1 is date for warnings
     let save_cursor=getpos(".")
     if g:org_search_spec ># ''
         let b:v.agenda_ifexpr = s:OrgIfExpr()
@@ -3567,8 +3568,9 @@ function! s:ProcessDateMatch(datematch,date1,date2,...)
             call add(g:agenda_date_dict[datematch].l,  locator . filename . type  . s:headtext)
         endif
     endif
-    " Now test for late and upcoming warnings if 'today' is in range
-    if (today >= date1) && (today < date2)
+    " Now test for late and upcoming warnings if 'today' is in range and not
+    " a done-type todo
+    if (today >= date1) && (today < date2) && (getline(g:myline) !~ b:v.todoDoneMatch)
         if (datematch < today) && (match(line,'\(DEADLINE\|SCHEDULED\)')>-1)
                     \ && ((g:org_search_spec ==# '') || (s:CheckIfExpr(line("."),b:v.agenda_ifexpr)))
             let mlist = matchlist(line,'\(DEADLINE\|SCHEDULED\)')
@@ -6961,7 +6963,13 @@ function! s:AgendaHighlight()
         hi link AOL5 NONE
         hi Deadline guifg=lightred
         hi Scheduled guifg=lightyellow
-        
+        "need to add hi groups and do patterns for each
+        "exec 'hi org_agenda_warning guifg="firebrick2")
+        "exec hi org_agenda_todo    "firebrick2")
+        "exec hi org_agenda_date    "firebrick2")
+        "exec hi org_agenda_time_grid    "firebrick2")
+        "exec hi org_agenda_done "forestgreen")
+        "exec hi org_agenda_scheduled_today "limegreen")
     else
         hi link AOL1 OL1
         hi link AOL2 OL2
