@@ -2099,7 +2099,7 @@ function! s:DeleteSigns()
     sign define piet text=>>
     sign define fbegin text=>
     sign define fend text=<
-    sign define marked text=>
+    sign define marked text=> linehl=Org_Marked
 endfunction
 
 function! s:GetPlacedSignsString(buffer)
@@ -4389,7 +4389,7 @@ function! CalEdit( sdate, stime )
         call org#SaveLocation()
         let basedate = a:sdate ==# '' ? s:Today() : a:sdate 
         let basetime = a:stime
-        let newdate = '<' . basedate[0:9] . ' ' . calutil#dayname(basedate[0:9]) . (basetime ># '' ? ' ' . b:v.basetime : '') . '>'
+        let newdate = '<' . basedate[0:9] . ' ' . calutil#dayname(basedate[0:9]) . (basetime ># '' ? ' ' . basetime : '') . '>'
         let newtime = basetime
 
         hi Cursor guibg=black
@@ -4788,8 +4788,10 @@ function! s:GetNewDate(cue,basedate,basetime)
     let tmatch = matchlist( timecue , '\(\d\{1,2}\):\(\d\d\)\(am\|pm\)*')
     if !empty(tmatch)
         let hours = tmatch[1]
-        if (tmatch[3]=='pm') && (hours < 10) 
+        if (tmatch[3]=='pm') && (hours < 12) 
             let hours = hours + 12
+        elseif (tmatch[3]=='am') && (hours == 12) 
+            let hours = 0
         endif 
         let hours = s:Pre0(hours)
         let mytime = ' ' . hours . ':' . tmatch[2]
@@ -6213,7 +6215,8 @@ function! s:OrgAgendaToBuf()
     normal! zv
     if getline(line('.')) =~ b:v.headMatch
         "restrict to headings only
-        call s:OrgExpandSubtree(g:showndx,0)
+        call s:OrgExpandSubtree(line('.'),0)
+        "call s:OrgExpandSubtree(g:showndx,0)
     endif
 
     let b:v.chosen_agenda_heading = s:OrgGetHead()
@@ -6855,6 +6858,10 @@ function! OrgAgendaDashboard()
                 silent call s:SparseTreeRun(g:org_sparse_spec)
             endif
         finally
+            if bufname('%') == '__Agenda__'
+                let b:v.agenda_files = copy(g:agenda_files)
+                let @/=''
+            endif
             if len(saved_afiles) > 0
                 let g:agenda_files = copy(saved_afiles)
             endif
@@ -7551,6 +7558,7 @@ function! OrgSetColors()
     hi! Org_Itals gui=italic guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Bold gui=bold guifg=#aaaaaa ctermfg=lightgray
     hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
+    hi! Org_Marked gui=bold guibg=#bbaacc ctermbg=lightgray
     hi! Org_Lnumber guifg=#999999 ctermfg=gray
 
     if has("conceal")
