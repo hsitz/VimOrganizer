@@ -5943,7 +5943,8 @@ endfunction
 
 function! <SID>CalendarChoice(day, month, year, week, dir)
     let g:agenda_startdate = a:year.'-' . s:Pre0(a:month).'-'.s:Pre0(a:day) 
-    call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
+    "call OrgRunAgenda(g:agenda_startdate, g:org_agenda_days,g:org_search_spec)
+    silent call s:RunCustom({'type':'agenda','agenda_date':g:agenda_startdate, 'agenda_duration':'d', 'spec':g:org_search_spec})
 endfunction
 function! <SID>CalendarInsertDate(day, month, year, week, dir)
     if (a:year > 0) && (a:month>0) && (a:day>0)
