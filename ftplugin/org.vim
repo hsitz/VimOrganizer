@@ -3016,21 +3016,6 @@ function! s:ResultsToAgenda( search_type )
     set nowrap
     
     call s:DoAgendaMaps()
-    "map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
-    "map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    "map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
-    "nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
-    "nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
-    "nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
-    "
-    "nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
-    "nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
-    "nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
-    "nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
-    "nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
-
     
     let i = 0
     call s:ADictPlaceSigns()
@@ -3048,7 +3033,8 @@ function! s:ResultsToAgenda( search_type )
             let numstr .= '('.num.')'.item.'  '
             execute "nmap <buffer> ".num."  :silent call OrgRunCustom({'redo_num':line('.'), 'type':'tags-todo', 'spec':'". tlist[num] . "'})<CR>"
         endfor
-        call add(lines,join(split(msg.numstr,'\%72c\S*\zs '),"\n"))
+        "call add(lines,split(msg.numstr,'\%72c\S*\zs '))
+        let lines = lines + split(msg.numstr,'\%72c\S*\zs ')
         call add(lines,'')
     endif
     for key in sort(keys(g:adict))
@@ -3394,29 +3380,9 @@ function! s:SetupDateAgendaWin()
     call s:AgendaBufSyntax()
     set nowrap
     call s:DoAgendaMaps()
-    "nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    "nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    "nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
-    "nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
-    "nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
-    "nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
-    ""nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
-    "nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
-    ""nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
-    "nmap <buffer> <silent> <s-CR>       :call <SID>AgendaReplaceTodo()<CR>
-    "nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
-    "nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-    "nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-    ""nmap <silent> <buffer> >>       :call OrgDateInc(-1)<CR>
-    "nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
-    "nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
-    "nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+
     command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
+
 endfunction
 
 function! OrgRefreshCalendarAgenda()
