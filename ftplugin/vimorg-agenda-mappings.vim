@@ -14,7 +14,7 @@
 " http://vimdoc.sourceforge.net/htmldoc/uganda.html#license
 " No warranty, express or implied.
 " *** *** Use At-Your-Own-Risk *** ***
-
+    let mysid='<SNR>' . g:org_sid . '_'
     nnoremap <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
     nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
     nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn()<cr>
@@ -22,23 +22,25 @@
     nnoremap <silent> <buffer> <localleader>d  :call OrgDateDashboard()<cr>
     nnoremap <silent> <buffer> <localleader>t  :call OrgTodoDashboard()<cr>
     nnoremap <silent> <buffer> <localleader>a  :call DoRefile(['_archive'],[line('.')])<cr>
+    "nnoremap <silent> <buffer> <localleader><tab>  :call {mysid}ToFromAgenda()<cr>
+    nnoremap <silent> <buffer> <localleader><tab>  :call {mysid}ToFromAgenda()<cr>
     "nnoremap <silent> <buffer> q  :sign unplace * | quit<cr>
     nnoremap <silent> <buffer> q  :call OrgQuitAgenda()<cr>
 
-    nmap <buffer> <silent> <s-CR>       :call <SID>AgendaReplaceTodo()<CR>
+    nmap <buffer> <silent> <s-CR>       :call {mysid}AgendaReplaceTodo()<CR>
     nmap <silent> <buffer> <c-CR>       :MyAgendaToBuf<CR>
     nmap <silent> <buffer> <CR>         :AgendaMoveToBuf<CR>
     nmap <silent> <buffer> ,r           :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> >>           :call OrgAgendaDateInc('++1d')<CR>
     nmap <silent> <buffer> <<           :call OrgAgendaDateInc('--1d')<CR>
     nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
-    nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
+    nmap <silent> <buffer> <s-right>    :silent call {mysid}AgendaReplaceTodo()<CR>
     
-    nmap <silent> <buffer> <s-left>     :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
-    nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
-    nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
+    nmap <silent> <buffer> <s-left>     :silent call {mysid}AgendaReplaceTodo('todo-bkwd')<CR>
+    nmap <silent> <buffer> <space>      :call {mysid}ToggleHeadingMark(line('.'))<CR>
+    nmap <silent> <buffer> <c-space>    :call {mysid}DeleteHeadingMarks()<CR>
     nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
-    nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
+    nmap <silent> <buffer> <tab>        :call {mysid}OrgAgendaTab()<CR>
 
     "if a:search_type ==? 'agenda_todo'
     "    nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
@@ -53,7 +55,7 @@
     nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
     nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
     
-    nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
+    nmap <buffer> <silent> <tab> :call {mysid}OrgAgendaTab()<CR>
     "nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
 

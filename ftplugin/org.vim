@@ -120,6 +120,13 @@ let b:v.suppress_list_indent=0
 " everything in between is executed only the first time an
 " org file is opened
 if !exists('g:org_loaded')
+function! s:SID()
+    return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
+endfun
+let g:org_sid = s:SID()
+function! OrgSID(func)
+    execute 'call <SNR>'.s:SID().'_'.a:func
+endfunction
 
 if !exists('g:org_custom_column_options')
     let g:org_custom_column_options = ['%ITEM %15DEADLINE %35TAGS', '%ITEM %35TAGS'] 
@@ -3046,6 +3053,13 @@ function! s:ResultsToAgenda( search_type )
     endfor
     call append(s:agenda_insert_point,lines)
 endfunction
+function! s:ToFromAgenda()
+    if bufname('%') == '__Agenda__'
+        windo if bufname('%') !~ '__Agenda__\|__Calendar' | return | endif
+    elseif bufwinnr('__Agenda__') > 0
+        exec bufwinnr('__Agenda__') . 'wincmd w'
+    endif
+endfunction
 function! s:DoAgendaMaps()
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
 
@@ -3311,6 +3325,7 @@ function! OrgRunAgenda(date,count,...)
     else
         call s:MakeAgenda(a:date,a:count)
     endif
+    AAgenda
     call s:SetupDateAgendaWin()
     "we are no in newly created agenda buf/window
     
@@ -3679,10 +3694,11 @@ function! s:Timeline(...)
     if exists('g:agenda_files')
         let prev_files = g:agenda_files
     endif
-    exec "let g:agenda_files=['".substitute(expand("%"),' ','\\ ','g')."']"
+    exec "let g:agenda_files=['".substitute(expand("%:p"),' ','\\ ','g')."']"
     call s:BufMinMaxDate()
     let num_days = 1 + calutil#jul(b:v.MinMaxDate[1]) - calutil#jul(b:v.MinMaxDate[0])
     try
+        "AAgenda
         call OrgRunAgenda(b:v.MinMaxDate[0], num_days,spec)
     finally
         if exists('prev_spec')
@@ -5867,13 +5883,6 @@ function! <SID>CalendarInsertDate(day, month, year, week, dir)
     endif
     
     "call confirm('got here')
-endfunction
-function! s:SID()
-    return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
-endfun
-let g:org_sid = s:SID()
-function! OrgSID(func)
-    execute 'call <SNR>'.s:SID().'_'.a:func
 endfunction
 function! OrgFunc(func,...)
     "not working, itnended to be general way to 

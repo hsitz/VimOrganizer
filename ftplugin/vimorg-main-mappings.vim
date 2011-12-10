@@ -19,6 +19,7 @@
 " below block of 10 or 15 maps are ones collected
 " from body of doc that weren't getting assigned for docs
 " oepened after initial org filetype doc
+let mysid = '<SNR>' . g:org_sid . '_'
 nnoremap <silent> <buffer> <tab> :call OrgCycle()<cr>
 nnoremap <silent> <buffer> <s-tab> :call OrgGlobalCycle()<cr>
 nnoremap <silent> <buffer> <localleader>ci :call OrgClockIn(line("."))<cr>
@@ -163,6 +164,7 @@ nnoremap <silent> <buffer> <localleader>lx    :set conceallevel=0<cr>
 "nnoremap <silent> <buffer>  <localleader>,C  :call OrgBodyTextOperation(1,line("$"),"collapse")<CR>
 "nnoremap <silent> <buffer>  <localleader>,c  :call OrgSingleHeadingText("collapse")<CR>
 nnoremap <silent> <buffer>   zc              :call OrgDoSingleFold(line("."))<CR>
+nnoremap <silent> <buffer> <localleader><tab>    :call {mysid}ToFromAgenda()<cr>
 
 function! OrgIndent()
 	if getline(line('.')) =~ b:v.headMatch
@@ -190,7 +192,7 @@ function! OrgNaviMap(keys)
 endfunction
 " below are alternate mappings for terminals, which
 " don't support some of the above key combinations
-nnoremap <silent> <buffer> ,<tab>            :call OrgGlobalCycle()<cr>
+"nnoremap <silent> <buffer> ,<tab>            :call OrgGlobalCycle()<cr>
 nnoremap <silent> <buffer> gk    :call OrgNaviMap("gk")<CR>
 nnoremap <silent> <buffer> gj    :call OrgNaviMap("gj")<CR>
 nnoremap <silent> <buffer> gh    :call OrgNaviMap("gh")<CR>
