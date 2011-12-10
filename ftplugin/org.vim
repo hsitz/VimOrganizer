@@ -3048,37 +3048,6 @@ function! s:ResultsToAgenda( search_type )
 endfunction
 function! s:DoAgendaMaps()
     execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
-    nmap <buffer> <silent> <s-CR>       :call <SID>AgendaReplaceTodo()<CR>
-    nmap <silent> <buffer> <c-CR>       :MyAgendaToBuf<CR>
-    nmap <silent> <buffer> <CR>         :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> ,r           :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> >>           :call OrgAgendaDateInc('++1d')<CR>
-    nmap <silent> <buffer> <<           :call OrgAgendaDateInc('--1d')<CR>
-    nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
-    nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
-    
-    nmap <silent> <buffer> <s-left>     :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
-    nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
-    nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
-    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
-    nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
-
-    "if a:search_type ==? 'agenda_todo'
-    "    nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
-    "endif
-
-    " lines below are from date searches
-    nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
-    nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
-    
-    nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
-    "nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
-    nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
 
     command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
 
