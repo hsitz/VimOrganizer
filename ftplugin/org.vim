@@ -492,19 +492,15 @@ function! OrgTodoSetup(todolist_str)
     let b:v.todoNotDoneMatch = '^\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
     let b:v.fulltodos = todolist
 
-    call matchadd('DONETODO',b:v.todoDoneMatch)
-    call matchadd('NOTDONETODO',b:v.todoNotDoneMatch)
+    exec 'syntax match DONETODO /' . b:v.todoDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+    exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
 
     for item in keys( b:v.tododict )
         let item_char = tolower( b:v.tododict[item].todochar)
         if item_char ==# ''
             let item_char = tolower(item[0])
         endif
-        "execute 'map <silent> <buffer> <localleader>t' . item_char . 
-        "        \  ' :call OrgSequenceTodo(line(''.''),''' . item_char . ''')<cr>'
     endfor
-"    map <silent> <buffer> <localleader>tx :call OrgSequenceTodo(line('.'),'x')<cr>
-"    map <silent> <buffer> <localleader><space> :call OrgSequenceTodo(line('.'))<cr>
 
 endfunction
 function! s:CurfileAgenda()
@@ -3014,28 +3010,26 @@ function! s:ResultsToAgenda( search_type )
     ":AAgenda
     :EditAgenda
     let b:v={}
+    call s:AgendaBufHighlight()
     set nowrap
     
-    map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
-    map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo','spec': matchstr(getline(1),'spec: \zs.*$')})<CR>
-    "nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-    "nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
-    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
-    nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
-    nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
-    " c-s-cr already taken
-    nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
-    nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
-    nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
-    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
-    nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
+    call s:DoAgendaMaps()
+    "map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
+    "map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
+    "map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
+    "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
+    "nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
+    "nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
+    "nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
+    "
+    "nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
+    "nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
+    "nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
+    "nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+    "nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
 
-    "call s:AgendaBufHighlight()
-    "wincmd J
+    
     let i = 0
     call s:ADictPlaceSigns()
     let b:v.heading_marks_dict = {}
@@ -3050,8 +3044,7 @@ function! s:ResultsToAgenda( search_type )
         for item in tlist
             let num = index(tlist,item)
             let numstr .= '('.num.')'.item.'  '
-            execute "nmap <buffer> ".num."  :call OrgRunCustom({'redo_num':line('.'), 'type':'tags-todo', 'spec':'". tlist[num] . "'})<CR>"
-            "execute "nmap <buffer> ".num."  :call OrgRunSearch('+".tlist[num]."','agenda_todo')<CR>"
+            execute "nmap <buffer> ".num."  :silent call OrgRunCustom({'redo_num':line('.'), 'type':'tags-todo', 'spec':'". tlist[num] . "'})<CR>"
         endfor
         call add(lines,join(split(msg.numstr,'\%72c\S*\zs '),"\n"))
         call add(lines,'')
@@ -3066,30 +3059,27 @@ function! s:ResultsToAgenda( search_type )
     call append(s:agenda_insert_point,lines)
 endfunction
 function! s:DoAgendaMaps()
-    map <buffer> <silent> <s-CR> :call <SID>AgendaReplaceTodo()<CR>
-    map <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    map <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
-    "nmap <silent> <buffer> ,r :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo','spec': matchstr(getline(1),'spec: \zs.*$')})<CR>
-    "nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-    "nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
-    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
+    execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
+    nmap <buffer> <silent> <s-CR>       :call <SID>AgendaReplaceTodo()<CR>
+    nmap <silent> <buffer> <c-CR>       :MyAgendaToBuf<CR>
+    nmap <silent> <buffer> <CR>         :AgendaMoveToBuf<CR>
+    nmap <silent> <buffer> ,r           :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
+    nmap <silent> <buffer> >>           :call OrgAgendaDateInc('++1d')<CR>
+    nmap <silent> <buffer> <<           :call OrgAgendaDateInc('--1d')<CR>
     nmap <silent> <buffer> <localleader>t    :call OrgTodoDashboard()<CR>
     nmap <silent> <buffer> <s-right>    :silent call <SID>AgendaReplaceTodo()<CR>
-    " c-s-cr already taken
-    nmap <silent> <buffer> <s-left>    :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
+    
+    nmap <silent> <buffer> <s-left>     :silent call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
     nmap <silent> <buffer> <space>      :call <SID>ToggleHeadingMark(line('.'))<CR>
     nmap <silent> <buffer> <c-space>    :call <SID>DeleteHeadingMarks()<CR>
     nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
     nmap <silent> <buffer> <tab>        :call <SID>OrgAgendaTab()<CR>
 
-    if a:search_type ==? 'agenda_todo'
-        nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
-    endif
+    "if a:search_type ==? 'agenda_todo'
+    "    nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
+    "endif
+
     " lines below are from date searches
-    nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
     nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
@@ -3097,20 +3087,18 @@ function! s:DoAgendaMaps()
     nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
     nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
     nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
-    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
-    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
-    "nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
+    
     nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
-    nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
+    "nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
     nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
-    nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-    nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-    "nmap <silent> <buffer> >>       :call OrgDateInc(-1)<CR>
-    nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
-    nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
-    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+
     command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
 
+    " user can have a function in their vimrc to have their own 
+    " agenda mappings
+    if exists('*OrgCustomAgendaMaps')
+        call OrgCustomAgendaMaps()
+    endif
 endfunction
 
 function! s:OrgAgendaTab()
@@ -3399,45 +3387,33 @@ function! OrgRunCustom(arg)
     call s:RunCustom(a:arg)
 endfunction
 function! s:SetupDateAgendaWin()
-    "let todos = b:v.todoitems
-    "let todoNotDoneMatch = b:v.todoNotDoneMatch
-    "let todoDoneMatch = b:v.todoDoneMatch
-    "let todoMatch = b:v.todoMatch
-    "let fulltodos = b:v.fulltodos
-    "if bufnr('__Agenda__') >= 0
-    "    "bwipeout __Agenda__
-    "endif
-    ":AAgenda
     EditAgenda
     let b:v={}
-    "let b:v.todoitems = todos
-    "let b:v.todoNotDoneMatch = todoNotDoneMatch
-    "let b:v.todoDoneMatch = todoDoneMatch
-    "let b:v.todoMatch = todoMatch
-    "let b:v.fulltodos = fulltodos
-    "silent exe '%d'
+    call s:AgendaBufHighlight()
     set nowrap
-    nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
-    nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
-    nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
-    nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
-    nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
-    nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
-    nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
-    "nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
-    nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
-    nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
-    nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
-    nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
-    nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
-    "nmap <silent> <buffer> >>       :call OrgDateInc(-1)<CR>
-    nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
-    nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
-    nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
+    call s:DoAgendaMaps()
+    "nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
+    "nmap <silent> <buffer> <CR> :AgendaMoveToBuf<CR>
+    "nmap <silent> <buffer> v. :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': strftime("%Y-%m-%d"), 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> vd :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'d', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> vw :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'w', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> vm :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'m', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> vy :call OrgRunCustom({'redo_num': line('.'), 'type':'agenda', 'agenda_date': g:agenda_startdate, 'agenda_duration':'y', 'spec': g:org_search_spec})<CR>
+    "nmap <silent> <buffer> f :<C-U>call OrgAgendaMove('forward',v:count1)<cr>
+    "nmap <silent> <buffer> b :<C-U>call OrgAgendaMove('backward',v:count1)<cr>
+    "nmap <silent> <buffer> >>       :call OrgAgendaDateInc('++1d')<CR>
+    "nmap <silent> <buffer> <<       :call OrgAgendaDateInc('--1d')<CR>
+    ""nmap <silent> <buffer> <tab> :call OrgAgendaGetText()<CR>
+    "nmap <buffer> <silent> <tab> :call <SID>OrgAgendaTab()<CR>
+    ""nmap <silent> <buffer> <s-CR> :call OrgAgendaGetText(1)<CR>
+    "nmap <buffer> <silent> <s-CR>       :call <SID>AgendaReplaceTodo()<CR>
+    "nmap <silent> <buffer> r :call OrgRefreshCalendarAgenda()<CR>
+    "nmap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
+    "nmap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
+    ""nmap <silent> <buffer> >>       :call OrgDateInc(-1)<CR>
+    "nmap <silent> <buffer> <space>     :call <SID>ToggleHeadingMark(line('.'))<CR>
+    "nmap <silent> <buffer> <c-space>   :call <SID>DeleteHeadingMarks()<CR>
+    "nmap <silent> <buffer> ,R           :call OrgRefileDashboard()<CR>
     command! -buffer -nargs=* Agenda :call OrgAgendaCommand(<f-args>)
 endfunction
 
@@ -4130,9 +4106,9 @@ function! OrgAgendaGetText(...)
             if cycle_todo
                 " do todo operation
                 if a:0 >= 2
-                    call s:ReplaceTodo(newtodo)
+                    silent call s:ReplaceTodo(newtodo)
                 else
-                    call s:ReplaceTodo()
+                    silent call s:ReplaceTodo()
                 endif
                 "normal V
                 "redraw
@@ -4187,9 +4163,9 @@ function! OrgAgendaGetText(...)
     if cycle_todo
         " we did cycle in main buffer, now do in agenda
         if a:0 >= 2
-            call s:ReplaceTodo(s:last_newtodo)
+            silent call s:ReplaceTodo(s:last_newtodo)
         else
-            call s:ReplaceTodo(s:last_newtodo)
+            silent call s:ReplaceTodo(s:last_newtodo)
         endif
         echo "Todo cycled."
     endif
@@ -6912,47 +6888,42 @@ function! OrgAgendaDashboard()
 endfunction
 
 function! s:AgendaBufHighlight()
-    hi Overdue guifg=red
-    hi Upcoming guifg=yellow
-    hi DateType guifg=#dd66bb
-    hi Locator guifg=#333333
-
-    hi Dayline guifg=#44aa44 gui=underline
-    hi Weekendline guifg=#55ee55 gui=underline
-  
-   call s:AgendaHighlight()
-    let daytextpat = '^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
-    let wkendtextpat = '^S\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*'
-    syntax match AOL1 ' \*\{1} .*$'
-    syntax match AOL2 ' \*\{2} .*$'
-    syntax match AOL3 ' \*\{3} .*$'
-    syntax match AOL4 ' \*\{4} .*$'
-    syntax match AOL5 ' \*\{5} .*$'
-    
-    call matchadd( 'Overdue', '^\S*\s*\S*\s*\(In\s*\zs-\S* d.\ze:\|Sched.\zs.*X\ze:\)')
-    call matchadd( 'Upcoming', '^\S*\s*\S*\s*In\s*\zs[^-]* d.\ze:')
-    call matchadd( 'Dayline', daytextpat )
-    call matchadd( 'Weekendline', wkendtextpat)
-    call matchadd( 'DateType','DEADLINE\|SCHEDULED\|CLOSED')
-    call matchadd( 'StatusLine',' [DSCT] => [DSCT].*>$')
-    "
-    let donepat = ' \*\+ \zs\(' . join(keys(g:org_todos_done_dict),'\|') . '\) '
-    exec "syntax match DONETODO /" . donepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
-    let notdonepat = ' \*\+ \zs\(' . join(keys(g:org_todos_notdone_dict),'\|') . '\) '
-    exec "syntax match NOTDONETODO /" . notdonepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
-
-    call s:OrgCustomTodoHighlights()
-    
-    execute "source " . s:sfile . '/vimorg-agenda-mappings.vim'
-    nmap <silent> <buffer> <s-right>    :call <SID>AgendaReplaceTodo()<CR>
-    " c-s-cr already taken
-    nmap <silent> <buffer> <s-left>    :call <SID>AgendaReplaceTodo('todo-bkwd')<CR>
+    call s:AgendaHighlight()
+    syntax clear
     if has("conceal")
-        syntax match Locator '^\d\+' conceal
-        syntax match TimeGridSpace '^ \{8}\ze *\d\d:\d\d' conceal
+        syntax match Locator '^\d\+' conceal containedin=AOL1,AOL2,AOL3,AOL4,AOL5,agenda_todo,agenda_done,agenda_scheduled,agenda_scheduled_previous
+        syntax match TimeGridSpace '^ \{8}\ze *\d\d:\d\d' conceal containedin=agenda_timegrid
         "for agenda clocktable
         syn region Org_Full_Link concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
     endif	
+    syntax match agenda_timegrid '^\s*\d\d:\d\d.\{14}--.*' 
+    syntax match AOL1 '^\d\+\s\+\S\+\s\{-1,16}\*\{1} .*$'hs=s+23
+    syntax match AOL2 '^\d\+\s\+\S\+\s\{-1,16}\*\{2} .*$'hs=s+23
+    syntax match AOL3 '^\d\+\s\+\S\+\s\{-1,16}\*\{3} .*$'hs=s+23
+    syntax match AOL4 '^\d\+\s\+\S\+\s\{-1,16}\*\{4} .*$'hs=s+23
+    syntax match AOL5 '^\d\+\s\+\S\+\s\{-1,16}\*\{5} .*$'hs=s+23
+    
+    let donepat_fragment = '\(' . join(keys(g:org_todos_done_dict),'\|') . '\)'
+    let donepat = ' \*\+ \zs' . donepat_fragment . ' '
+    exec "syntax match DONETODO /" . donepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
+    let notdonepat_fragment = '\(' . join(keys(g:org_todos_notdone_dict),'\|') . '\)'
+    let notdonepat = ' \*\+ \zs' . notdonepat_fragment . ' '
+    exec "syntax match NOTDONETODO /" . notdonepat . '/ containedin=AOL1,AOL2,AOL3,AOL4,AOL5'
+    
+    syntax match agenda_scheduled_previous  '^\d\+\s\+\S\+\s\+Sched.\{-}:.*$'
+    syntax match agenda_scheduled  '^\d\+\s\+\S\+\s\+Scheduled:.*$'
+    
+    exec 'syntax match agenda_todo  /^\d\+\s\+\S\+\s\+\(In\|Deadline\|(\d\).\{-}:.\{-}\* ' . notdonepat_fragment . ' .*$/ contains=Locator'
+    exec 'syntax match agenda_done  /^\d\+\s\+\S\+\s\+\(In\|Deadline\|(\d\).\{-}:.\{-}\* ' . donepat_fragment . ' .*$/'
+    let daytextpat = '/^[^S]\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*/'
+    let wkendtextpat = '/^S\S\+\s\+\d\{1,2}\s\S\+\s\d\d\d\d.*/'
+    exec 'syntax match agenda_date ' . daytextpat  
+    
+    exec 'syntax match agenda_weekenddate ' . wkendtextpat  
+    syntax match agenda_omitted_days ' \[\. \..\{-}empty days omitted \]'
+
+    call s:OrgCustomTodoHighlights()
+    
 endfunction
 function! s:AgendaHighlight()
     if g:org_gray_agenda
@@ -6963,13 +6934,6 @@ function! s:AgendaHighlight()
         hi link AOL5 NONE
         hi Deadline guifg=lightred
         hi Scheduled guifg=lightyellow
-        "need to add hi groups and do patterns for each
-        "exec 'hi org_agenda_warning guifg="firebrick2")
-        "exec hi org_agenda_todo    "firebrick2")
-        "exec hi org_agenda_date    "firebrick2")
-        "exec hi org_agenda_time_grid    "firebrick2")
-        "exec hi org_agenda_done "forestgreen")
-        "exec hi org_agenda_scheduled_today "limegreen")
     else
         hi link AOL1 OL1
         hi link AOL2 OL2
@@ -7022,7 +6986,7 @@ function! s:Timer()
 endfunction
 
 autocmd BufNewFile __Agenda__ call s:ScratchBufSetup()
-autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
+"autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
 " Command to edit the scratch buffer in the current window
 "command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
 " Command to open the scratch buffer in a new split window
@@ -7532,12 +7496,23 @@ function! s:OrgCustomTodoHighlights()
         " xxxx todo put back in containedins, do synclears? check order?
         if bufname('%')=='__Agenda__'
             exec 'syntax match ' . item . ' ' .  '+ \*\+ \zs' . item . ' + containedin=AOL1,AOL2,AOL3,AOL4,AOL5,AOL6' 
-            " containedin=AOL1'
         else
-            "exec 'syntax match ' . item . ' ' .  '+\* \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
-            call matchadd(item, '^\*\+\s' . item . ' ')
+            " delete current match if it already exists
+            let mymatches = getmatches()
+            let tempdict = {}
+            for i in range(0, len(mymatches)-1)
+                let tempdict[i] = mymatches[i]
+            endfor
+            for i in keys(tempdict)
+                if tempdict[i].group == item
+                    exec 'syntax clear ' . tempdict[i].group
+                    break
+                endif
+            endfor
+            "now put new match in
+            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' + containedin=DONETODO,NOTDONETODO,OL1,OL2,OL3,OL4,OL5,OL6' 
         endif
-        "call matchadd(item, '^.*\* \zs' . item . ' ')
+        
     endfor
 endfunction
 
@@ -7609,6 +7584,24 @@ function! OrgSetColors()
     hi! Org_Marked gui=bold guibg=#bbaacc ctermbg=lightgray
     hi! Org_Lnumber guifg=#999999 ctermfg=gray
 
+    " agenda highlight groups below 
+    hi Overdue guifg=red
+    hi Upcoming guifg=yellow
+    hi DateType guifg=#dd66bb
+    hi Locator guifg=#333333
+
+    "hi agenda_dayline guifg=#44aa44 gui=underline
+    "hi agenda_weekendline guifg=#55ee55 gui=underline
+    hi agenda_omitted_days guifg=#555555
+    hi agenda_todo guifg=lightred gui=bold
+    hi agenda_done guifg=lightgreen
+    hi agenda_date guifg=lightblue 
+    hi agenda_weekenddate guifg=lightblue gui=bold 
+    hi agenda_scheduled guifg=lightyellow
+    hi agenda_scheduled_previous guifg=lightmagenta
+    hi agenda_timegrid guifg=#666666
+    " end agenda highlights
+  
     if has("conceal")
         hi! default linkends guifg=blue ctermfg=blue
     endif

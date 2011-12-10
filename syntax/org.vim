@@ -94,12 +94,12 @@ endif
 " syntax highlighting for code blocks, VimOrganizer will
 " eventually use context-sensitive language indent-rules. . . 
 " ************************************************"
-let b:current_syntax=''
-unlet b:current_syntax
-syntax include @Lispcode $VIMRUNTIME/syntax/lisp.vim
-syntax region orgLisp start='^#+begin_src/semacs-lisp' end='^#+end_src$' contains=@Lispcode
-let b:current_syntax = 'combined'
-hi orgLisp gui=bold
+"let b:current_syntax=''
+"unlet b:current_syntax
+"syntax include @Lispcode $VIMRUNTIME/syntax/lisp.vim
+"syntax region orgLisp start='^#+begin_src/semacs-lisp' end='^#+end_src$' contains=@Lispcode
+"let b:current_syntax = 'combined'
+"hi orgLisp gui=bold
 
 
 " vim600: set foldmethod=marker foldlevel=0:
