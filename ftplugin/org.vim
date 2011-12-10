@@ -271,9 +271,11 @@ function! s:RunCustom(search)
             "redo_num is block in agenda to redo
             let redo_num = s:AgendaBlockNum(this_time_list[0].redo_num)
             normal gg
-            for i in range(1,redo_num - 1)
-                call search('^==============','','')
-            endfor
+            if redo_num > 1
+                for i in range(1,redo_num - 1)
+                    call search('^==============','','')
+                endfor
+            endif
             let start_line = (line('.') == 1) ? 1 : line('.') + 1
             let test_end = search('^=========','W','')
             let end_line = test_end > 0 ? test_end - 1 : line('$')
@@ -3010,7 +3012,7 @@ function! s:ResultsToAgenda( search_type )
     ":AAgenda
     :EditAgenda
     let b:v={}
-    call s:AgendaBufHighlight()
+    call s:AgendaBufSyntax()
     set nowrap
     
     call s:DoAgendaMaps()
@@ -3389,7 +3391,7 @@ endfunction
 function! s:SetupDateAgendaWin()
     EditAgenda
     let b:v={}
-    call s:AgendaBufHighlight()
+    call s:AgendaBufSyntax()
     set nowrap
     call s:DoAgendaMaps()
     "nmap <silent> <buffer> <c-CR> :MyAgendaToBuf<CR>
@@ -6887,7 +6889,9 @@ function! OrgAgendaDashboard()
     endif
 endfunction
 
-function! s:AgendaBufHighlight()
+function! s:AgendaBufSyntax()
+    "called once whenever new agenda buffer is opened from regular or date agenda
+    "searches
     call s:AgendaHighlight()
     syntax clear
     if has("conceal")
@@ -6922,6 +6926,7 @@ function! s:AgendaBufHighlight()
     exec 'syntax match agenda_weekenddate ' . wkendtextpat  
     syntax match agenda_omitted_days ' \[\. \..\{-}empty days omitted \]'
 
+    " call to set up syntax and highlights for custom todos in agenda
     call s:OrgCustomTodoHighlights()
     
 endfunction
@@ -6986,7 +6991,7 @@ function! s:Timer()
 endfunction
 
 autocmd BufNewFile __Agenda__ call s:ScratchBufSetup()
-"autocmd BufWinEnter __Agenda__ call s:AgendaBufHighlight()
+"autocmd BufWinEnter __Agenda__ call s:AgendaBufSyntax()
 " Command to edit the scratch buffer in the current window
 "command! -nargs=0 Agenda call s:AgendaBufferOpen(0)
 " Command to open the scratch buffer in a new split window
