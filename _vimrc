@@ -11,6 +11,7 @@ filetype plugin indent on
 " and then put these lines in vimrc somewhere after the line above
 au! BufRead,BufWrite,BufWritePost,BufNewFile *.org 
 au BufEnter *.org            call org#SetOrgFileType()
+command! OrgCapture :call org#CaptureBuffer()
 
 "==============================================================
 " THE UNNECESSARY STUFF"

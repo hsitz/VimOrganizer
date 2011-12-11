@@ -151,5 +151,47 @@ function! org#RestoreLocation()
 endfunction
     
     
+function! org#CaptureBuffer()
+    if !exists('g:org_capture_file') || empty(g:org_capture_file)
+        echo 'Capture is not set up.  Please read docs at :h vimorg-capture.'
+        return
+    endif
+    sp _Org_Capture_
+    set ft=org
+    setlocal buftype=nofile
+    setlocal noswapfile
+    command! -buffer W :call <SID>ProcessCapture()
+    " below is the basic template
+    " a first level head with date timestamp
+    normal ggVGd
+    normal i* 
+    silent exec "normal o:<".org#Timestamp().">"
+    normal gg
+    startinsert!
+    
+endfunction
+function! s:ProcessCapture()
+    "normal ggVG"xy
+    let curbufnr = bufnr(g:org_capture_file)
+    if curbufnr == -1
+        exe '1,$write >> ' . g:org_capture_file
+        bw! _Org_Capture_
+    else
+        normal ggVG"xy
+        bw! _Org_Capture_
+        call org#SaveLocation()
+        call org#LocateFile(g:org_capture_file)
+        normal G"xp
+        silent write
+        call org#RestoreLocation()
+    endif
+    exe 'bwipeout! ' . g:org_capture_file
+   
+endfunction
+
+command! EditAgendaFiles :call <SID>EditAgendaFiles()
+command! OrgCycleAgendaForward :call <SID>CycleAgendaFiles('forward')
+command! OrgCycleAgendaBackward :call <SID>CycleAgendaFiles('backward')
+command! OrgChooseOrgBuffer :call <SID>OrgGotoChosenFile()
 
 

@@ -89,6 +89,7 @@ hi MatchGroup guibg=yellow guifg=black
 setlocal ignorecase         " searches ignore case
 setlocal smartcase          " searches use smart case
 setlocal autoindent 
+setlocal fileformat=unix
 setlocal backspace=2
 setlocal nowrap
 setlocal tw=78
@@ -145,6 +146,9 @@ endif
 if !exists('g:org_save_when_searched')
     let g:org_save_when_searched = 0
 endif
+if !exists('g:org_capture_file')
+   let g:org_capture_file = ''
+endif
 if !exists('g:org_tags_alist')
     let g:org_tags_alist = ''
 endif
@@ -188,7 +192,6 @@ let s:headline = ''
 let g:org_ColumnHead = 'Lines'
 let g:org_gray_agenda = 0
 let g:org_sparse_lines_after = 10
-let g:org_capture_file=''
 let g:org_log_todos=0
 let g:org_timegrid=[8,20,2]
 let w:v.org_colview_list = []
@@ -5399,10 +5402,10 @@ function! s:SetProp(key, val,...)
         endif
     endif
 
-    "if exists("*Org_property_changed_functions") && (bufnr("%") != bufnr('Agenda'))
-    "    let Hook = function("Org_property_changed_functions")
-    "    silent execute "call Hook(line('.'),a:key, a:val)"
-    "endif
+    if exists("*Org_property_changed_functions") && (bufnr("%") != bufnr('Agenda'))
+        let Hook = function("Org_property_changed_functions")
+        silent execute "call Hook(line('.'),a:key, a:val)"
+    endif
     if a:0 >=2
         "back to tab/window where setprop call was made
         execute "tabnext ".curtab
@@ -5498,7 +5501,6 @@ function! s:OrgGotoChosenFile(...)
     redraw
     echo "Agenda files:"
     echo "============================="
-    "let nums = range(char2nr('0'), char2nr('9')) + range(char2nr('a'),char2nr('z'))
     let nums = range(char2nr('a'),char2nr('z')) + range(char2nr('0'), char2nr('9')) 
 
     for i in range(0,len(bufnums)-1)
@@ -6557,57 +6559,6 @@ function! s:AgendaBufferOpen(new_win)
     endif
     let &splitbelow = save_sb
     let &splitright = save_sr
-endfunction
-
-function! s:CaptureBuffer()
-    if !exists('g:org_capture_file') || empty(g:org_capture_file)
-        echo 'Capture is not set up.  Please read docs at :h vimorg-capture.'
-        return
-    endif
-    let w:prevbuf=bufnr("%")
-    sp _Org_Capture_
-    set ft=org
-    normal ggVGd
-    normal i* 
-    silent exec "normal o:<".org#Timestamp().">"
-    call s:ScratchBufSetup()
-    command! -buffer W :call s:ProcessCapture()
-    normal gg
-    startinsert!
-    
-endfunction
-function! s:ProcessCapture()
-    "normal ggVG"xy
-    let curbufnr = bufnr(g:org_capture_file)
-    if curbufnr == -1
-        exe '1,$write >> ' . g:org_capture_file
-        bw! _Org_Capture_
-    else
-        normal ggVG"xy
-        bw! _Org_Capture_
-        call org#SaveLocation()
-        call org#LocateFile(g:org_capture_file)
-        normal G"xp
-        silent write
-        call org#RestoreLocation()
-    endif
-    "bw! _Org_Capture_
-    "call org#SaveLocation()
-
-    "call org#LocateFile(g:org_capture_file)
-    "normal gg
-    "let found = search('^\* CaptureItems','c')
-    "if found == 0
-    "    normal i* CaptureItems
-    "else
-    "    exec found
-    "endif
-    "execute s:OrgSubtreeLastLine()
-    "normal p
-    "silent wq   "writes and quits g:org_capture_file
-    "
-    "call org#RestoreLocation()
-   
 endfunction
 
 command! EditAgendaFiles :call <SID>EditAgendaFiles()
@@ -8288,8 +8239,10 @@ amenu &Org.-Sep5- :
 amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
-amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
+amenu &Org.Open\ Capture\ Buffer :call {sid}CaptureBuffer()<cr>
 amenu &Org.-Sep7- :
+amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
+amenu &Org.-Sep8- :
 amenu <silent> &Org.R&e-read\ Config\ Lines :call OrgProcessConfigLines()<cr>
 
 "*********************************************************************
