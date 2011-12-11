@@ -6613,11 +6613,13 @@ command! OrgCycleAgendaForward :call <SID>CycleAgendaFiles('forward')
 command! OrgCycleAgendaBackward :call <SID>CycleAgendaFiles('backward')
 command! OrgChooseOrgBuffer :call <SID>OrgGotoChosenFile()
 function! s:EditAgendaFiles()
+    call org#SaveLocation()
     if !exists("g:agenda_files") || (g:agenda_files == [])
         call s:CurfileAgenda()
     endif
     tabnew
     call s:ScratchBufSetup()
+    autocmd BufLeave <buffer> :call org#RestoreLocation()
     command! W :call s:SaveAgendaFiles()
     let msg = "These are your current agenda files:"
     let msg2 = "Org files in your 'g:org_agenda_select_dirs' are below."
