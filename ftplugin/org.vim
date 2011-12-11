@@ -5453,7 +5453,7 @@ function! s:CurrentToAgendaFiles(top_or_bottom)
         if a:top_or_bottom == 'top'
             let g:agenda_files = [cur_file1] + g:agenda_files
         else
-            let g:agenda_files = g:agenda_files . [cur_file1]
+            let g:agenda_files = g:agenda_files + [cur_file1]
         endif
         echo cur_file1 . ' is at ' . a:top_or_bottom . ' of agenda files list.'
 endfunction
@@ -5495,9 +5495,11 @@ function! s:OrgGotoChosenFile(...)
         endfor
     endif
 
+    redraw
     echo "Agenda files:"
     echo "============================="
-    let nums = range(char2nr('0'), char2nr('9')) + range(char2nr('a'),char2nr('z'))
+    "let nums = range(char2nr('0'), char2nr('9')) + range(char2nr('a'),char2nr('z'))
+    let nums = range(char2nr('a'),char2nr('z')) + range(char2nr('0'), char2nr('9')) 
 
     for i in range(0,len(bufnums)-1)
         echo '   ' . nr2char(nums[i]) . '  ' . g:agenda_files[i]
@@ -6727,6 +6729,44 @@ function! s:AgendaBlockNum(line)
     return block_num
 endfunction
 
+function! OrgAgendaFilesDashboard()
+        echohl MoreMsg
+        echo ""
+        echo " ======================================"
+        echo " Press key for an agenda files command:"
+        echo " --------------------------------------"
+        echo " e       Edit agenda files"
+        if (bufname('%') != '__Agenda__') 
+        echo " t       Current file to top of agenda file list"
+        echo " b       Current file to bottom of agenda file list"
+        echo " r       Remove Current file from agenda file list"
+        endif
+        echo " n or f  Cycle to next file in agenda files"
+        echo " p or b  Cycle to previous file in agenda files"
+        echo " c or g  Choose agenda file to goto"
+        echo ""
+        echohl None
+        let key = nr2char(getchar())
+        redraw
+        if key =~? 'e'
+            EditAgendaFiles
+        elseif key =~? 't'
+            call <SID>CurrentToAgendaFiles('top')
+        elseif key =~? 'b'
+            call <SID>CurrentToAgendaFiles('bottom')
+        elseif key =~? 'r'
+            call <SID>CurrentRemoveFromAgendaFiles()
+        elseif key =~? 'n\|f'
+            call <SID>CycleAgendaFiles('forward')
+        elseif key =~? 'p\|b'
+            call <SID>CycleAgendaFiles('backward')
+        elseif key =~? 'c\|g'
+            call <SID>OrgGotoChosenFile()
+        else
+            echo "No option chosen."
+        endif
+    "endif
+endfunction
 function! OrgAgendaDashboard()
     if (bufnr('__Agenda__') >= 0) && (bufwinnr('__Agenda__') == -1)
         " move agenda to cur tab if it exists and is on a different tab
@@ -8237,7 +8277,7 @@ amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
 amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
 amenu &Org.Agenda\ &files.&Edit\ Agenda\ Files :EditAgendaFiles<cr>
 amenu &Org.Agenda\ &files.Current\ file\ to\ &top :call {sid}CurrentToAgendaFiles('top')<cr>
-amenu &Org.Agenda\ &files.Current\ file\ to\ &bottom :call {sid}CurrentToAgenda('bottom')<cr>
+amenu &Org.Agenda\ &files.Current\ file\ to\ &bottom :call {sid}CurrentToAgendaFiles('bottom')<cr>
 amenu &Org.Agenda\ &files.Current\ file\ &remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
 amenu &Org.Agenda\ &files.Cycle\ to\ &next :call {sid}CycleAgendaFiles('forward')<cr>
 amenu &Org.Agenda\ &files.Cycle\ to\ &previous :call {sid}CycleAgendaFiles('backward')<cr>

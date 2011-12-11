@@ -48,6 +48,7 @@ noremap <silent> <buffer> <localleader>aa :call OrgRunAgenda(strftime("%Y-%m-%d"
 noremap <silent> <buffer> <localleader>at :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+UNFINISHED_TODOS')<cr>
 noremap <silent> <buffer> <localleader>ad :call OrgRunAgenda(strftime("%Y-%m-%d"),'w,'+FINISHED_TODOS')<cr>
 noremap <silent> <buffer> <localleader>ag :call OrgAgendaDashboard()<cr>
+noremap <silent> <buffer> <localleader>af :call OrgAgendaFilesDashboard()<cr>
 noremap <silent> <buffer> <localleader>ac :call OrgCustomSearchMenu()<cr>
 "command! -nargs=0 Agenda :call OrgAgendaDashboard()
 nnoremap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
