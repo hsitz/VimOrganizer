@@ -8234,17 +8234,16 @@ amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
 amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
 amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
+amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
 amenu &Org.Agenda\ &files.&Edit\ Agenda\ Files :EditAgendaFiles<cr>
-amenu &Org.Agenda\ &files.&Current\ file\ to\ top :call {sid}CurrentToAgendaFiles('top')<cr>
-amenu &Org.Agenda\ &files.&Current\ file\ to\ bottom :call {sid}CurrentToAgenda('bottom')<cr>
-amenu &Org.Agenda\ &files.&Current\ file\ remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
-amenu &Org.Agenda\ &files.&Cycle\ to\ next :call {sid}CycleAgendaFiles('forward')<cr>
-amenu &Org.Agenda\ &files.&Cycle\ to\ previous :call {sid}CycleAgendaFiles('backward')<cr>
+amenu &Org.Agenda\ &files.Current\ file\ to\ &top :call {sid}CurrentToAgendaFiles('top')<cr>
+amenu &Org.Agenda\ &files.Current\ file\ to\ &bottom :call {sid}CurrentToAgenda('bottom')<cr>
+amenu &Org.Agenda\ &files.Current\ file\ &remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
+amenu &Org.Agenda\ &files.Cycle\ to\ &next :call {sid}CycleAgendaFiles('forward')<cr>
+amenu &Org.Agenda\ &files.Cycle\ to\ &previous :call {sid}CycleAgendaFiles('backward')<cr>
 amenu &Org.Agenda\ &files.&Choose\ file\ to\ goto :call {sid}OrgGotoChosenFile()<cr>
 amenu &Org.-Sep45- :
 amenu <silent> &Org.&Do\ Emacs\ Eval<tab>,v :call OrgEval()<cr>
-amenu &Org.File\ &List\ for\ Agenda :EditAgendaFiles<cr>
-amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
 amenu &Org.-Sep5- :
 amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
