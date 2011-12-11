@@ -158,6 +158,7 @@ function! org#CaptureBuffer()
     endif
     sp _Org_Capture_
     autocmd BufWriteCmd <buffer> :call <SID>ProcessCapture() 
+    autocmd BufLeave <buffer> :bwipeout
     set ft=org
     setlocal buftype=acwrite
     setlocal noswapfile
@@ -168,12 +169,14 @@ function! org#CaptureBuffer()
     normal i* 
     silent exec "normal o:<".org#Timestamp().">"
     normal gg
+    set nomodified
     startinsert!
     
 endfunction
 function! s:ProcessCapture()
     "normal ggVG"xy
     let curbufnr = bufnr(g:org_capture_file)
+    " check if capture file is already open or not
     if curbufnr == -1
         exe '1,$write >> ' . g:org_capture_file
         bw! _Org_Capture_

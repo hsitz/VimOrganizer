@@ -6573,8 +6573,8 @@ function! s:EditAgendaFiles()
     tabnew Edit_Agenda_Files
     call s:ScratchBufSetup()
     set buftype=acwrite
-    autocmd BufLeave <buffer> :call org#RestoreLocation()
-    autocmd BufWriteCmd <buffer> :call <SID>SaveAgendaFiles()
+    autocmd BufLeave <buffer> :call <SID>SaveAgendaFiles(0)
+    autocmd BufWriteCmd <buffer> :call <SID>SaveAgendaFiles(1)
     command! W :call s:SaveAgendaFiles()
     let msg = "These are your current agenda files:"
     let msg2 = "Org files in your 'g:org_agenda_select_dirs' are below."
@@ -6594,16 +6594,18 @@ function! s:EditAgendaFiles()
         call append("$",dir_files)
     endfor
 endfunction
-function! s:SaveAgendaFiles()
+function! s:SaveAgendaFiles(save)
     " saves edited file list into g:agenda_files
     " yank files into @a
    set nomodified
-   normal gg/^--jV/^--?^\S"ay 
-   let @a = substitute(@a,' ','\\ ','g')
-   if @a[0] != '-'
-        let g:agenda_files = split(@a,"\n")
-    else
-        let g:agenda_files=[]
+   if a:save == 1
+       normal gg/^--jV/^--?^\S"ay 
+       let @a = substitute(@a,' ','\\ ','g')
+       if @a[0] != '-'
+            let g:agenda_files = split(@a,"\n")
+        else
+            let g:agenda_files=[]
+        endif
     endif
     :bw
     delcommand W
