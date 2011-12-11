@@ -157,8 +157,9 @@ function! org#CaptureBuffer()
         return
     endif
     sp _Org_Capture_
+    autocmd BufWriteCmd <buffer> :call <SID>ProcessCapture() 
     set ft=org
-    setlocal buftype=nofile
+    setlocal buftype=acwrite
     setlocal noswapfile
     command! -buffer W :call <SID>ProcessCapture()
     " below is the basic template
@@ -188,10 +189,4 @@ function! s:ProcessCapture()
     exe 'bwipeout! ' . g:org_capture_file
    
 endfunction
-
-command! EditAgendaFiles :call <SID>EditAgendaFiles()
-command! OrgCycleAgendaForward :call <SID>CycleAgendaFiles('forward')
-command! OrgCycleAgendaBackward :call <SID>CycleAgendaFiles('backward')
-command! OrgChooseOrgBuffer :call <SID>OrgGotoChosenFile()
-
 

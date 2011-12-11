@@ -6570,9 +6570,11 @@ function! s:EditAgendaFiles()
     if !exists("g:agenda_files") || (g:agenda_files == [])
         call s:CurfileAgenda()
     endif
-    tabnew
+    tabnew Edit_Agenda_Files
     call s:ScratchBufSetup()
+    set buftype=acwrite
     autocmd BufLeave <buffer> :call org#RestoreLocation()
+    autocmd BufWriteCmd <buffer> :call <SID>SaveAgendaFiles()
     command! W :call s:SaveAgendaFiles()
     let msg = "These are your current agenda files:"
     let msg2 = "Org files in your 'g:org_agenda_select_dirs' are below."
@@ -6595,6 +6597,7 @@ endfunction
 function! s:SaveAgendaFiles()
     " saves edited file list into g:agenda_files
     " yank files into @a
+   set nomodified
    normal gg/^--jV/^--?^\S"ay 
    let @a = substitute(@a,' ','\\ ','g')
    if @a[0] != '-'
@@ -6621,6 +6624,7 @@ endfunction
 "    call org#LocateFile(g:agenda_files[i])
 "endfunction
 function! s:ScratchBufSetup()
+    "setlocal buftype=nofile
     setlocal buftype=nofile
     setlocal bufhidden=hide
     setlocal noswapfile
