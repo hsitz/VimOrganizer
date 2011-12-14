@@ -53,6 +53,7 @@ let w:v.org_colview_list = []
 let w:v.org_current_columns = ''
 let w:v.org_column_item_head = ''
 let b:v.chosen_agenda_heading = 0
+let b:v.prop_all_dict = {}
 
 let b:v.buf_tags_static_spec = ''
 let b:v.buffer_category = ''
@@ -148,6 +149,9 @@ if !exists('g:org_save_when_searched')
 endif
 if !exists('g:org_capture_file')
    let g:org_capture_file = ''
+endif
+if !exists('g:org_sort_with_todo_words')
+    let g:org_sort_with_todo_words=1
 endif
 if !exists('g:org_tags_alist')
     let g:org_tags_alist = ''
@@ -378,6 +382,11 @@ function! OrgProcessConfigLines()
             endif
         elseif line =~ '\(#+TODO:\|#+SEQ_TODO:\)'
             call OrgTodoSetup(matchstr(line,'\(#+TODO:\|#+SEQ_TODO:\)\s*\zs.*'))
+        elseif line =~ '#+PROPERTY:'
+            let m = matchlist(line,'.\{-}:\s*\(.\{-}\)_ALL \(.*\)')
+            if m[2] ># ''
+               let b:v.prop_all_dict[m[1]] = m[2]
+            endif
         endif
     endfor
     if empty(b:v.todoitems)
@@ -393,7 +402,12 @@ function! OrgProcessConfigLines()
 
     normal gg
 endfunction
-
+function! PropCompleteFunc(arghead, sd, gf)
+    let prop = matchstr(a:sd,'^.\{-}\ze:')
+    let valuelist = map(split(b:v.prop_all_dict[prop]),'prop . ": " . v:val')
+    let matches = filter(valuelist, 'v:val =~ a:arghead')
+    return join(matches, "\n")
+endfunction
 function! OrgTodoConvert(orgtodo)
     let todolist = []
     let sublist = []
@@ -3035,14 +3049,14 @@ function! s:ResultsToAgenda( search_type )
     let lines = []
     let lines = lines +  ["Headlines matching search spec: ".g:org_search_spec,'']
     if a:search_type ==? 'agenda_todo'
-        let msg = "Press num to redo search: "
+        let msg = "Press <num>r to re-search: "
         let numstr= ''
         nmap <buffer> r :call OrgRunSearch(g:org_search_spec,'agenda_todo')<cr>
         let tlist = ['ANY_TODO','UNFINISHED_TODOS', 'FINISHED_TODOS'] + s:Union(g:org_todoitems,[])
         for item in tlist
             let num = index(tlist,item)
             let numstr .= '('.num.')'.item.'  '
-            execute "nmap <buffer> ".num."  :silent call OrgRunCustom({'redo_num':line('.'), 'type':'tags-todo', 'spec':'". tlist[num] . "'})<CR>"
+            execute "nmap <buffer> ".num."r  :silent call OrgRunCustom({'redo_num':line('.'), 'type':'tags-todo', 'spec':'". tlist[num] . "'})<CR>"
         endfor
         "call add(lines,split(msg.numstr,'\%72c\S*\zs '))
         let lines = lines + split(msg.numstr,'\%72c\S*\zs ')
@@ -3103,14 +3117,11 @@ function! s:ToggleHeadingMark(line)
             \ || ((&filetype == 'org') && getline(line) !~ b:v.headMatch)
         return
     endif
-    "let list_item = index(b:v.heading_marks,line)
     let list_item = get(b:v.heading_marks_dict, line)
     if list_item == 0
-        "call add(b:v.heading_marks,line)
         let b:v.heading_marks_dict[line] = 1
         execute "sign place " . line('.') . " line=" . line('.') . " name=marked buffer=".bufnr("%")
     else
-        "call remove(b:v.heading_marks,list_item)
         unlet b:v.heading_marks_dict[line] 
         execute "sign unplace " . line('.') . " buffer=".bufnr("%")
     endif
@@ -5369,14 +5380,17 @@ function! s:SetProp(key, val,...)
                         \ .':'.key.(key ==# '' ? '' : ': ').a:val)
         endif
     elseif key ==? 'tags'
+        let indent_count = len(matchstr(getline(line(".")),'^\*\+ '))
+        let curindent = repeat(' ',indent_count)
+        let newval = curindent . a:val
         if s:IsTagLine(line('.') + 1)
-            call setline(line('.') + 1, a:val)
+            call setline(line('.') + 1, newval)
         else
-            call append(line('.'), a:val)
+            call append(line('.'), newval)
         endif
-        execute line('.') + 1
-        normal =$
-        execute line('.') - 1
+        "execute line('.') + 1
+        "normal =$
+        "execute line('.') - 1
     elseif key ==? 'CLOCKIN'
         call OrgClockIn()
     elseif key ==? 'CLOCKOUT'
@@ -7652,6 +7666,32 @@ function! OrgRefileDashboard()
     endif
     echohl None
 endfunction
+function! s:OrgGatherDashboard()
+    echohl MoreMsg
+    echo " ================================"
+    echo " Press key for a mark/gather/sort command:"
+    echo " --------------------------------"
+    echo " <space>    toggle mark on/off for current heading"
+    echo " d          delete all marks"
+    echo " h          gather marked headings to current heading"
+    echo " s          sort subheads of current heading"
+    echo ""
+    echohl Question
+    let key = nr2char(getchar())
+    redraw
+    if key ==? ' '
+        call s:ToggleHeadingMark(line('.'))
+    elseif key ==? 'd'
+        call s:DeleteHeadingMarks()
+    elseif key ==? 'h'
+        call s:GatherMarks()
+    elseif key ==? 's'
+        call s:OrgSortSubheads()
+    else
+        echo "No gather/mark option selected."
+    endif
+    echohl None
+endfunction
 
 let g:org_heading_temp=['','','','','','','','']
 function! s:OutlineHeads()
@@ -7692,9 +7732,7 @@ function! s:GetMyItems(arghead)
 endfunction
 function! OrgFileList(arghead,sd,gf)
     let arghead = substitute(a:arghead,'\~','\\\~','g')
-    "if bufname('%') ==# '__Agenda__'
     let s:myheads  = ['[current file]'] + copy(g:agenda_files)
-    "let s:myheads  =  copy(g:agenda_files)
     let matches = filter( copy( s:myheads ),'v:val =~ arghead')
     redraw!
     return join( matches, "\n" )
@@ -7802,7 +7840,7 @@ endfunction
 function! s:OrgSortSubheads()
     let start = line('.')
     if getline(start) !~ b:v.headMatch
-        echo "You must be on a heading to gather."
+        echo "You must be on a heading to sort subheads."
         return
     endif
    
@@ -7811,7 +7849,6 @@ function! s:OrgSortSubheads()
     let b:v.heading_marks_dict = {}
     let end = s:OrgSubtreeLastLine()
     execute start . ',' . end . 'g/^\*\{' . s:Ind(line('.')) . '} /call s:PlaceSignsForSort(line("."))'
-    "sign place " . line('.') . " line=" . line('.') . " name=marked buffer=".bufnr("%")
     exec start
     call s:GatherMarks('forward')
     
@@ -7882,6 +7919,7 @@ function! s:DoRefile(targ_list,heading_list,...)
     let targ_list = a:targ_list
     let heading_list = a:heading_list
     let file_lines_dict = {}
+    let first_lines = {}
     let held_lines = {}
     call org#SaveLocation()
 
@@ -7924,7 +7962,7 @@ function! s:DoRefile(targ_list,heading_list,...)
             let linelist = file_lines_dict[afile]
             call map( linelist, 's:OrgGetHead_l(v:val)')
             let linelist = s:UniqueList(linelist)
-            "for aline in sort(file_lines_dict[afile],'<SID>ReverseSort')
+            " now linelist has list of heading line numbers, go through
             for aline in sort(linelist,'<SID>ReverseSort')
                 call org#LocateFile(afile)
                 exec aline
@@ -7932,6 +7970,7 @@ function! s:DoRefile(targ_list,heading_list,...)
                 " delete subhead, but first guarantee it's not in a fold
                 normal! zv
                 
+                let aline_text = getline(aline)
                 silent execute aline . ',' . s:OrgSubtreeLastLine_l(aline) .  'delete x'
 
                 " now go to refile point and put back in
@@ -7942,8 +7981,15 @@ function! s:DoRefile(targ_list,heading_list,...)
                 else
                     let x = split( @x, "\n")
                 endif
-                "let held_lines += x
-                let held_lines[x[0]] = x
+                
+                let line_buf = string(aline) . bufname('%')
+                if g:org_sort_with_todo_words 
+                    let first_lines[aline_text . bufname('%')] = line_buf
+                else
+                    let first_lines[matchstr(aline_text,b:v.todoMatch . '\{0,1}\s\{0,1}\zs.*') . bufname('%')] = line_buf
+                endif
+                let held_lines[line_buf] = x
+                "let held_lines[x[0]] = x
                 echo "Refiled " . x[0] . ' to: ' . join(targ_list,'/')
             endfor  " for lines in this file
             "now go back and clear out its heading marks
@@ -7951,11 +7997,11 @@ function! s:DoRefile(targ_list,heading_list,...)
             let b:v.heading_marks_dict = {}
         endfor " for files in file_lines_dict
         
-        "now put all the lines in . . .
+        " now put all the lines in . . .
         " lines below were when each subtree was appended individually
         " that's not case anymore, may need to rework and associate
         " them with append of 'held_lines' to get ordering option. . .
-        for heading_line in (exists('sort_type') ? sort(keys(held_lines)) : keys(held_lines))
+        for heading_line in (exists('sort_type') ? sort(keys(first_lines)) : keys(first_lines))
         "for heading_line in keys(held_lines)
             call s:OrgGotoHeading(targ_list[0],targ_list[1])
             if g:org_reverse_note_order
@@ -7967,7 +8013,7 @@ function! s:DoRefile(targ_list,heading_list,...)
             else
                 exec s:OrgSubtreeLastLine()
             endif
-            silent call append(line('.') , held_lines[heading_line])
+            silent call append(line('.') , held_lines[first_lines[heading_line]])
         endfor
     endif
     if !archiving
@@ -8132,6 +8178,7 @@ function! NarrowCodeBlock(line)
     let &winwidth = winwidth(0) / 3
     if (start <= a:line) && (end >= a:line)
         execute start ',' . end . 'call nrrwrgn#NrrwRgn()'
+        set nomodified
         if filereadable($VIMRUNTIME . '/ftplugin/' . language . '.vim')
             execute 'set ft=' . language
         endif
@@ -8147,6 +8194,7 @@ function! NarrowCodeBlock(line)
             execute start . ',' . end . 'call nrrwrgn#NrrwRgn()'
             " then set ftype in new buffer
             set ft=org
+            set nomodified
             let b:v = main_buf_vars
             let &winwidth=start_width*2/3
         else
@@ -8206,6 +8254,10 @@ amenu &Org.&Refile.&Jump\ to\ Persistent\ Point<tab>,rx :call OrgJumpToRefilePoi
 amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
 amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
 amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
+amenu &Org.&Mark/Gather/Sort.&Mark/Unmark\ Heading<tab>,<space> :call <SID>ToggleHeadingMark(line('.'))<cr>
+amenu &Org.&Mark/Gather/Sort.&Unmark\ all<tab>,<c-space> :call <SID>DeleteHeadingMarks()<cr>
+amenu &Org.&Mark/Gather/Sort.&Gather\ to\ current\ heading<tab>,gh :call <SID>GatherMarks()<cr>
+amenu &Org.&Mark/Gather/Sort.&Sort\ subheads<tab>,gs :call <SID>OrgSortSubheads()<cr>
 amenu &Org.-Sep2- :
 amenu &Org.&Columns\ Menu :call OrgColumnsDashboard()<cr>
 amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
@@ -8232,17 +8284,17 @@ amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
 amenu &Org.-Sep4- :
 amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
 amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
-amenu &Org.Agenda\ &files.&Edit\ Agenda\ Files :EditAgendaFiles<cr>
-amenu &Org.Agenda\ &files.Current\ file\ to\ &top :call {sid}CurrentToAgendaFiles('top')<cr>
-amenu &Org.Agenda\ &files.Current\ file\ to\ &bottom :call {sid}CurrentToAgendaFiles('bottom')<cr>
-amenu &Org.Agenda\ &files.Current\ file\ &remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
-amenu &Org.Agenda\ &files.Cycle\ to\ &next :call {sid}CycleAgendaFiles('forward')<cr>
-amenu &Org.Agenda\ &files.Cycle\ to\ &previous :call {sid}CycleAgendaFiles('backward')<cr>
-amenu &Org.Agenda\ &files.&Choose\ file\ to\ goto :call {sid}OrgGotoChosenFile()<cr>
+amenu &Org.Agenda\ &files<tab>,af.&Edit\ Agenda\ Files :EditAgendaFiles<cr>
+amenu &Org.Agenda\ &files<tab>,af.Current\ file\ to\ &top :call {sid}CurrentToAgendaFiles('top')<cr>
+amenu &Org.Agenda\ &files<tab>,af.Current\ file\ to\ &bottom :call {sid}CurrentToAgendaFiles('bottom')<cr>
+amenu &Org.Agenda\ &files<tab>,af.Current\ file\ &remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
+amenu &Org.Agenda\ &files<tab>,af.Cycle\ to\ &next :call {sid}CycleAgendaFiles('forward')<cr>
+amenu &Org.Agenda\ &files<tab>,af.Cycle\ to\ &previous :call {sid}CycleAgendaFiles('backward')<cr>
+amenu &Org.Agenda\ &files<tab>,af.&Choose\ file\ to\ goto :call {sid}OrgGotoChosenFile()<cr>
 amenu &Org.-Sep45- :
 amenu <silent> &Org.&Do\ Emacs\ Eval<tab>,v :call OrgEval()<cr>
 amenu &Org.-Sep5- :
-amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowOutline(line('.'))<cr>
+amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
 amenu &Org.Open\ Capture\ Buffer :call {sid}CaptureBuffer()<cr>

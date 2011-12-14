@@ -63,6 +63,7 @@ nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
 nnoremap <silent> <buffer> <localleader>cs :let @/=''<cr>
 
 noremap <buffer> <localleader>r :call OrgRefileDashboard()<cr>
+noremap <buffer> <localleader>g :call {mysid}OrgGatherDashboard()<cr>
 "noremap <silent> <buffer> <localleader>rh :call OrgRefile(line('.'))<cr>
 "noremap <silent> <buffer> <localleader>rj :call OrgJumpToRefilePoint()<cr>
 "noremap <silent> <buffer> <localleader>rx :call OrgJumpToRefilePointPersistent()<cr>
