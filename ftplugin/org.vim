@@ -402,11 +402,25 @@ function! OrgProcessConfigLines()
 
     normal gg
 endfunction
-function! PropCompleteFunc(arghead, sd, gf)
-    let prop = matchstr(a:sd,'^.\{-}\ze:')
-    let valuelist = map(split(b:v.prop_all_dict[prop]),'prop . ": " . v:val')
-    let matches = filter(valuelist, 'v:val =~ a:arghead')
-    return join(matches, "\n")
+"function! PropCompleteFunc(arghead, sd, gf)
+"    let prop = matchstr(a:sd,'^.\{-}\ze:')
+"    let valuelist = map(split(b:v.prop_all_dict[prop]),'prop . ": " . v:val')
+"    let matches = filter(valuelist, 'v:val =~ a:arghead')
+"    return join(matches, "\n")
+"endfunction
+function! EditProp(property)
+    let s:edit_prop = a:property
+    let propval = get(s:GetProperties(line('.'),0), s:edit_prop,'')
+    function! PropCompleteFunc(arghead, sd, gf)
+        let prop = matchstr(a:sd,'^.\{-}\ze:')
+        let valuelist = split(b:v.prop_all_dict[ s:edit_prop])
+        let matches = filter(valuelist, 'v:val =~ a:arghead')
+        return join(matches, "\n")
+    endfunction
+    let newval = input("Enter value for " . s:edit_prop . ": ", propval, 'custom,PropCompleteFunc')
+    if newval != propval
+        call s:SetProp(s:edit_prop, newval)
+    endif
 endfunction
 function! OrgTodoConvert(orgtodo)
     let todolist = []
@@ -5577,19 +5591,18 @@ function! OrgConfirmDrawer(type,...)
         let line = a:1
     endif
     execute line
+    let indent = repeat(' ', len(matchstr(getline(line('.')),'^\*\+ ')))
     let bottom = s:OrgNextHead() > 0 ? s:OrgNextHead() - 1 : line("$")
     let found = s:Range_Search(':\s*'. a:type . '\s*:','n',bottom,line)
     if !found
         while getline(line(".") + 1) =~ s:remstring
             execute line('.')+1
         endwhile
-        "if line == line(".")-1
-        "    "back to headline in this case
-        "    execute line
-        "endif
-        execute 'normal o:'. a:type . ':'
-        execute 'normal o:END:'
-        normal k
+        "execute 'normal o:'. a:type . ':'
+        "execute 'normal o:END:'
+        "normal k
+        call append(line('.'),[ indent . ':' . a:type . ':' , indent . ':END:'] ) 
+        execute line('.') + 1
     else
         execute found
     endif
