@@ -385,7 +385,7 @@ function! OrgProcessConfigLines()
         elseif line =~ '#+PROPERTY:'
             let m = matchlist(line,'.\{-}:\s*\(.\{-}\)_ALL \(.*\)')
             if m[2] ># ''
-               let b:v.prop_all_dict[m[1]] = m[2]
+               let b:v.prop_all_dict[toupper(m[1])] = m[2]
             endif
         endif
     endfor
@@ -402,24 +402,22 @@ function! OrgProcessConfigLines()
 
     normal gg
 endfunction
-"function! PropCompleteFunc(arghead, sd, gf)
-"    let prop = matchstr(a:sd,'^.\{-}\ze:')
-"    let valuelist = map(split(b:v.prop_all_dict[prop]),'prop . ": " . v:val')
-"    let matches = filter(valuelist, 'v:val =~ a:arghead')
-"    return join(matches, "\n")
-"endfunction
-function! EditProp(property)
-    let s:edit_prop = a:property
+function! s:EditProp(property)
+    let s:edit_prop = toupper(a:property)
     let propval = get(s:GetProperties(line('.'),0), s:edit_prop,'')
-    function! PropCompleteFunc(arghead, sd, gf)
+    function! s:PropCompleteFunc(arghead, sd, gf)
         let prop = matchstr(a:sd,'^.\{-}\ze:')
-        let valuelist = split(b:v.prop_all_dict[ s:edit_prop])
+        let valuelist = split(get(b:v.prop_all_dict, s:edit_prop, ''))
         let matches = filter(valuelist, 'v:val =~ a:arghead')
         return join(matches, "\n")
     endfunction
-    let newval = input("Enter value for " . s:edit_prop . ": ", propval, 'custom,PropCompleteFunc')
+    let myfunc = '<SNR>' . s:SID() . '_PropCompleteFunc'
+    let newval = input("Enter value for " . s:edit_prop . ": ", propval, 'custom,' . myfunc)
     if newval != propval
         call s:SetProp(s:edit_prop, newval)
+        echo s:edit_prop . " changed to: " newval
+    else
+        echo s:edit_prop . " not changed."
     endif
 endfunction
 function! OrgTodoConvert(orgtodo)
@@ -533,7 +531,9 @@ function! OrgTodoSetup(todolist_str)
     let b:v.todoNotDoneMatch = '^\*\+\s*\zs\('.b:v.todoNotDoneMatch[:-2] . ')'
     let b:v.fulltodos = todolist
 
+    syntax clear DONETODO
     exec 'syntax match DONETODO /' . b:v.todoDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+    syntax clear NOTDONETODO
     exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
 
     for item in keys( b:v.tododict )
@@ -7601,23 +7601,27 @@ function! OrgSetColors()
 
     call s:OrgCustomTodoHighlights()
 
-    " below is for block and line after set highlights for headings in main
-    " buffer when they're selected in Agenda.  Used in OrgFoldText().
+    " below is for setting highlight groups for when agenda is used to
+    " select a headline in main doc, or when items are marked.
+    " Use g:org_selector_ctermbg and/or g:org_selector_guibg 
+    " to customize.
     for i in range(1,5)
         let hlstring = org#GetGroupHighlight('OL' . i)
+        let ctermbg = 'ctermbg=' . (exists('g:org_selector_ctermbg') ? g:org_selector_ctermbg : 'gray')
+        let guibg = 'guibg=' . (exists('g:org_selector_guibg') ? g:org_selector_guibg : '#333333')
         if hlstring =~ 'ctermbg'
-            let hlstring = substitute(hlstring,'ctermbg=\S+','ctermbg=gray','')
+            let hlstring = substitute(hlstring,'ctermbg=\S+',ctermbg,'')
         else
-            let hlstring = hlstring . ' ctermbg=gray'
+            let hlstring = hlstring . ' ' . ctermbg
         endif
         if hlstring =~ 'guibg'
-            let hlstring = substitute(hlstring,'guibg=\S+','guibg=#444444','')
+            let hlstring = substitute(hlstring,'guibg=\S+',guibg,'')
         else
-            let hlstring = hlstring . ' guibg=#444444'
+            let hlstring = hlstring . ' ' . guibg
         endif
         exec 'hi! Org_Chosen_Agenda_Heading' . i . ' ' . hlstring
     endfor
-    hi! Org_Chosen_Agenda_Heading guibg=#444444 ctermbg=gray
+    exec 'hi! Org_Chosen_Agenda_Heading ' . guibg . ' ' . ctermbg
 endfunction
 autocmd ColorScheme  * :silent! call OrgSetColors()
 call OrgSetColors()
