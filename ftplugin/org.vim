@@ -7024,14 +7024,17 @@ function! OrgEvalBlock()
     let savecursor = getpos('.')
     let save_showcmd = &showcmd | set noshowcmd
     
-    let block_name = matchstr(getline(line('.')),'\c^#+BEGIN:\s*\zs\S\+')
-
-    if block_name ==# ''
-        echo "You aren't on BEGIN line of dynamic block."
+    let start = search('^#+begin:','bnW','') 
+    let prev_end = search('^#+end','bnW','') 
+    let end = search('^#+end','nW','') 
+    if (start == 0) || (end == 0) || ( ( prev_end > start ) && (prev_end < line('.') ) )
+        unsilent echo "You aren't in a dynamic block."
         return
     endif
-    let end = search('\c^#+END','n','') 
-    let start=line('.')
+
+    exec start
+    let block_name = matchstr(getline(line('.')),'\c^#+BEGIN:\s*\zs\S\+')
+
     if start < end - 1
         exec (start+1) . ',' . (end-1) . 'delete'
     endif
@@ -7217,26 +7220,41 @@ function! OrgEval()
                   \ . "\nPlease see :h vimorg-emacs-setup.") 
        return
     endif
+    " check if we're in source block
     let line = getline(line('.'))
-    if line =~ '\c^#+BEGIN:'
-        call OrgEvalBlock()
-    elseif line =~ '^\s*|.*|\s*$'
-        call OrgEvalTable()
-    elseif line =~ '\c^#+BEGIN_'
+    let start = search('\c^#+begin_src','cbnW','')
+    let prev_end = search('\c^#+end_src','bnW','') 
+    let end = search('\c^#+end_src','cnW','') 
+    if (start > 0) && (end > start) && ( prev_end < start )
         call OrgEvalSource()
-    else    
-        unsilent echo "No evaluation done.  You must be in a table, or on an initial "
-             \ . "\nblock line that begins in col 0 with #+BEGIN . . ."
+        return
     endif
+    " check if we're in dynamic block
+    let start = search('^#+begin:','bnW','')
+    let prev_end = search('^#+end','bnW','') 
+    let end = search('^#+end','nW','') 
+    if (start > 0) && (end > start) && ( prev_end < start )
+        call OrgEvalBlock()
+        return
+    endif
+    "check if we're in a table
+    if line =~ '^\s*|.*|\s*$'
+        call OrgEvalTable()
+        return
+    endif
+
+   unsilent echo "No evaluation done.  You must be in a table, or on an initial "
+            \ . "\nblock line that begins in col 0 with #+BEGIN . . ."
+    
 endfunction
 
 function! OrgEvalSource()
     let savecursor = getpos('.')
-    let start = search('^#+begin_src','bn','') - 1
-    let prev_end = search('^#+end_src','bn','') 
-    let end = search('^#+end_src','n','') 
+    let start = search('^#+begin_src','cbnW','') - 1
+    let prev_end = search('^#+end_src','bnW','') 
+    let end = search('^#+end_src','cnW','') 
     if (start == -1) || (end == 0) || ( ( prev_end > start ) && (prev_end < line('.') ) )
-        echo "You aren't in a code block."
+        unsilent echo "You aren't in a code block."
         return
     endif
     exec end
