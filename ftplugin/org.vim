@@ -6636,6 +6636,7 @@ function! s:SaveAgendaFiles(save)
     endif
     :bw
     delcommand W
+    call org#RestoreLocation()
 endfunction
 "function! s:CycleAgendaFiles()
 "    let i = 0
@@ -8332,7 +8333,7 @@ amenu &Org.-Sep5- :
 amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
 amenu &Org.-Sep6- :
-amenu &Org.Open\ Capture\ Buffer :call {sid}CaptureBuffer()<cr>
+amenu &Org.Open\ Capture\ Buffer :call org#CaptureBuffer()<cr>
 amenu &Org.-Sep7- :
 amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
 amenu &Org.-Sep8- :
