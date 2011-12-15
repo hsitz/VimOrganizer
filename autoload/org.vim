@@ -136,6 +136,10 @@ function! org#LocateFile(filename)
             endif
         endif
     endif
+    if (&fdm != 'expr') && !exists('g:in_agenda_search')
+        set fdm=expr
+	set foldlevel=1
+    endif
 
 endfunction
 

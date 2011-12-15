@@ -2898,6 +2898,7 @@ function! s:MakeResults(search_spec,...)
         for file in g:agenda_files
             "execute 'tab drop ' . file
             call org#LocateFile(file)
+            call org#SaveLocation()
            " let bnum = bufnr(file)
            " if bnum == -1 
            "     execute 'tabedit ' . file
@@ -2914,6 +2915,7 @@ function! s:MakeResults(search_spec,...)
             let ifexpr = s:OrgIfExpr()
             let g:org_todoitems = extend(g:org_todoitems,b:v.todoitems)
             call s:OrgIfExprResults(ifexpr,sparse_search)
+            call org#RestoreLocation()
         endfor
         unlet g:in_agenda_search
         "call org#LocateFile(curfile)
@@ -2976,6 +2978,7 @@ function! s:MakeAgenda(date,count,...)
     let g:in_agenda_search=1
     for file in g:agenda_files
         call org#LocateFile(file)
+        call org#SaveLocation()
         " for now g:org_search_spec is limited to tags and
         " todo prop which are part of OrgMakeDictInherited
         " If ever want to expand to general props can 
@@ -2988,6 +2991,7 @@ function! s:MakeAgenda(date,count,...)
         else 
             call s:GetDateHeads(g:agenda_startdate,g:org_agenda_days)
         endif
+        call org#RestoreLocation()
     endfor
     unlet g:in_agenda_search
 
@@ -6200,10 +6204,10 @@ function! s:OrgAgendaToBuf()
     AAgenda
     
     call org#LocateFile(g:tofile )
-    if &fdm != 'expr'
-        set fdm=expr
-    endif
-    set foldlevel=1
+    "if &fdm != 'expr'
+    "    set fdm=expr
+    "endif
+    "set foldlevel=1
     let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . g:showndx)
     let newhead = s:OrgGetHead_l(newhead)
     execute newhead
