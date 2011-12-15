@@ -6207,7 +6207,7 @@ function! s:OrgAgendaToBuf()
     "if &fdm != 'expr'
     "    set fdm=expr
     "endif
-    "set foldlevel=1
+    set foldlevel=1
     let newhead = matchstr(s:GetPlacedSignsString(bufnr("%")),'line=\zs\d\+\ze\s\+id=' . g:showndx)
     let newhead = s:OrgGetHead_l(newhead)
     execute newhead
