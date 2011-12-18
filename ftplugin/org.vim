@@ -3091,7 +3091,13 @@ function! s:ResultsToAgenda( search_type )
 endfunction
 function! s:ToFromAgenda()
     if bufname('%') == '__Agenda__'
-        windo if bufname('%') !~ '__Agenda__\|__Calendar' | return | endif
+        for i in range(1, winnr('$'))
+            exe i . 'wincmd w'
+            if bufname('%') !~ '__Agenda__\|__Calendar' 
+                break
+            endif
+        endfor
+        "windo if bufname('%') !~ '__Agenda__\|__Calendar' | let return | endif
     elseif bufwinnr('__Agenda__') > 0
         exec bufwinnr('__Agenda__') . 'wincmd w'
     endif
