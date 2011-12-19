@@ -7538,23 +7538,7 @@ function! OrgSetColors()
         execute 'hi ' . pair[0] . ' gui=NONE'
         execute 'hi ' . pair[0] . 'Folded gui=bold'
     endfor
-    " set up highlights to use for headlines
-    " involves create new set of highlights to 
-    " correspond to OL1-OL5, but this time with bold flag
-    " folded headlines use different highlights:
-    " folded OL1 uses Folded
-    " folded OL2 uses WarningMsg
-    " folded OL3 uses WildMenu
-    " folded OL4 uses DiffAdd
-    " folded OL5 uses DiffChange
-    "for pair in [ ['Folded','Statement'], ['WarningMsg','Identifier'], ['WildMenu','Constant'],
-    "        \     ['DiffAdd','Comment'],   ['DiffChange','Special'] ]
-    "    execute 'hi clear ' . pair[0]
-    "    execute 'hi ' . pair[0] . ' ' . org#GetGroupHighlight( pair[1] )
-    "    execute 'hi ' . pair[0] . ' gui=bold'
-    "endfor
-
-    "blank out foldcolumn
+    
     if has('gui_running')
         hi! FoldColumn guifg=bg guibg=bg 
     else
@@ -7564,10 +7548,10 @@ function! OrgSetColors()
             hi! FoldColumn ctermfg=0 ctermbg=0
         endtry
     endif
-    "ctermfg=bg ctermbg=bg
+   
     "show text on SignColumn
     hi! SignColumn guibg=fg guibg=bg 
-    "ctermfg=fg ctermbg=bg
+  
 
     " various text item "highlightings" are below
     " change to suit your taste and put in OrgCustomColors() (see below)
@@ -7614,13 +7598,8 @@ function! OrgSetColors()
     hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
     highlight OrgColumnHeadings guibg=#444444 guifg=#aaaaaa gui=underline
 
-    "hi! GENERICTODO guifg=pink ctermfg=lightred
     hi! DONETODO guifg=green ctermfg=green
     hi! NOTDONETODO guifg=red ctermfg=lightred
-
-
-    "hi! default TODO guifg=orange guibg=NONE ctermfg=14 ctermbg=NONE
-    "hi! default DONE guifg=green guibg=NONE ctermfg=green ctermbg=NONE
 
     "user can define OrgCustomColors() in vimrc for above items, these will be executed
     "here and override the defaults above.

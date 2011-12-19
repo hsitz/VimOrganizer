@@ -71,7 +71,11 @@ function! org#GetGroupHighlight(group)
     " Redirect the output of the "hi" command into a variable
     " and find the highlighting
     redir => GroupDetails
-    exe "silent hi " . a:group
+    try
+	exe "silent hi " . a:group
+    catch
+	" skip error message if no such group exists
+    endtry
     redir END
 
     " Resolve linked groups to find the root highlighting scheme
@@ -83,9 +87,14 @@ function! org#GetGroupHighlight(group)
         redir END
     endwhile
 
-    " Extract the highlighting details (the bit after "xxx")
-    let MatchGroups = matchlist(GroupDetails, '\<xxx\>\s\+\(.*\)')
-    let ExistingHighlight = MatchGroups[1]
+    if GroupDetails ># ''
+	" Extract the highlighting details (the bit after "xxx")
+	let MatchGroups = matchlist(GroupDetails, '\<xxx\>\s\+\(.*\)')
+	let ExistingHighlight = MatchGroups[1] !~? 'cleared' ? MatchGroups[1] : ''	
+    else
+	" Group does not exist
+	let ExistingHighlight = ''
+    endif
 
     return ExistingHighlight
 
