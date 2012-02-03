@@ -6,7 +6,7 @@ The vim73 patch in this directory does two things:
    heading is folded.
 
 Two versions of the Vim73 patch are included.  The _46 version
-is for source code downloaded from Vim.org.  The _310 version
+is for source code downloaded from Vim.org.  The _390 version
 works for the Mercurial repo version as of Dec. 31, 2011.
 
 The vim72 patch is old and only does (1) above.
