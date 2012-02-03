@@ -61,7 +61,7 @@ if !exists('g:org_agenda_default_search_spec')
     let g:org_agenda_default_search_spec = 'ANY_TODO'
 endif
 if exists('g:global_column_defaults') 
-    let b:v.buffer_columns = g:global_column_defaults' 
+    let b:v.buffer_columns = g:global_column_defaults
 else
     let b:v.buffer_columns = '%40ITEM %30TAGS'
 endif
