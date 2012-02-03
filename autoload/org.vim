@@ -164,14 +164,23 @@ function! org#RestoreLocation()
 endfunction
     
     
+function! org#OpenCaptureFile()
+    call org#LocateFile(g:org_capture_file)
+endfunction
+
 function! org#CaptureBuffer()
     if !exists('g:org_capture_file') || empty(g:org_capture_file)
         echo 'Capture is not set up.  Please read docs at :h vimorg-capture.'
         return
     endif
+    if bufnr('_Org_Capture_') > 0
+	exec 'bwipeout! ' . bufnr('_Org_Capture_')
+    endif
     sp _Org_Capture_
     autocmd BufWriteCmd <buffer> :call <SID>ProcessCapture() 
-    autocmd BufLeave <buffer> :bwipeout
+    "autocmd BufLeave <buffer> :bwipeout
+    autocmd BufUnload <buffer> :set nomodified
+    set nobuflisted
     set ft=org
     setlocal buftype=acwrite
     setlocal noswapfile

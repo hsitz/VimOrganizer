@@ -61,7 +61,7 @@ if !exists('g:org_agenda_default_search_spec')
     let g:org_agenda_default_search_spec = 'ANY_TODO'
 endif
 if exists('g:global_column_defaults') 
-    let b:v.buffer_columns = g:global_column_defaults' 
+    let b:v.buffer_columns = g:global_column_defaults 
 else
     let b:v.buffer_columns = '%40ITEM %30TAGS'
 endif
@@ -313,7 +313,7 @@ function! s:RunCustom(search)
         endif
         let mydict = item
         if mydict.type ==? 'agenda'
-            let mydate = DateCueResult( mydict.agenda_date, s:Today())
+            let mydate = DateCueResult( get(mydict,agenda_date,''), s:Today())
             let mydur = get(mydict, 'agenda_duration','w')
             let mydur = (mydur == 'w') ? '7' : (mydur == 'd' ? '1' : mydur)
             
@@ -5479,6 +5479,9 @@ function! s:CurrentToAgendaFiles(top_or_bottom)
         let cur_file = substitute(cur_file1[1:],'\','\\\\','g')
         let cur_file = substitute(cur_file,'\\ ','\ ','g')
 
+        if !exists('g:agenda_files')
+            let g:agenda_files = []
+        endif
         let file_count = len(g:agenda_files) 
         
         let ndx = -1
@@ -5561,7 +5564,7 @@ function! s:OrgGotoChosenFile(...)
 
 endfunction
 function! s:CycleAgendaFiles(direction)
-    if !empty('g:agenda_files')
+    if exists('g:agenda_files') && !empty('g:agenda_files')
         let cur_file = fnamemodify(expand("%:p"), ":~")[1:]
         let cur_file = substitute(cur_file,'\','\\\\','g')
         let cur_file = substitute(cur_file,'\\ ','\ ','g')
@@ -8279,6 +8282,7 @@ amenu &Org.&Refile.&Jump\ to\ Persistent\ Point<tab>,rx :call OrgJumpToRefilePoi
 amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
 amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
 amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
+amenu &Org.Open\ Capture\ File :call org#OpenCaptureFile()<cr>
 amenu &Org.&Mark/Gather/Sort.&Mark/Unmark\ Heading<tab>,<space> :call <SID>ToggleHeadingMark(line('.'))<cr>
 amenu &Org.&Mark/Gather/Sort.&Unmark\ all<tab>,<c-space> :call <SID>DeleteHeadingMarks()<cr>
 amenu &Org.&Mark/Gather/Sort.&Gather\ to\ current\ heading<tab>,gh :call <SID>GatherMarks()<cr>
