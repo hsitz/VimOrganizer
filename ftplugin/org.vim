@@ -313,7 +313,7 @@ function! s:RunCustom(search)
         endif
         let mydict = item
         if mydict.type ==? 'agenda'
-            let mydate = DateCueResult( get(mydict,agenda_date,''), s:Today())
+            let mydate = DateCueResult( get(mydict,'agenda_date',''), s:Today())
             let mydur = get(mydict, 'agenda_duration','w')
             let mydur = (mydur == 'w') ? '7' : (mydur == 'd' ? '1' : mydur)
             
@@ -6864,6 +6864,9 @@ function! OrgAgendaDashboard()
             endif
         finally
             if bufname('%') == '__Agenda__'
+                if !exists("b:v")
+                    let b:v = {}
+                endif
                 let b:v.agenda_files = copy(g:agenda_files)
                 let @/=''
             endif
