@@ -44,7 +44,7 @@ CONTENTS                                           *VimOrganizer*  *vimorg*
     Colorschemes and highlighting                  |vimorg-colors|
     Code and spreadsheet evaluation in Emacs.....: |vimorg-code-eval|  
                                                    |vimorg-spreadsheet-eval|  
-          
+
     Searches and the Agenda .....................: |vimorg-agenda|  
        agenda
        Setting the agenda files
@@ -139,7 +139,7 @@ presses of <TAB>.  While <TAB> operates on the structure of a single heading,
 
 Because all of the folds in VimOrganizer are ordinary Vim folds, users can
 also manipulate folds with the usual array of Vim fold commands: zc, zv, zo,
-etc.
+etc. (see |fold.txt|)
 
 ===============================================================================
 VIMORGANIZER FILE COMPATIBILITY WITH ORG-MODE      *vimorg-org-compatiblity*
@@ -314,10 +314,9 @@ code to add to your .emacs file is below:
 
 ==============================================================================
 METADATA                                      *vimorg-metadata*
-                                        
 
-Org-mode has three different kinds of metadata: tags, todos, and properties.
-Here is how to set up and edit them.
+Org-mode has different kinds of metadata: tags, todos, properties, dates, and
+categories.  Here is how to set up and edit them.
 ------------------------------------------------------------------------
 TODOS                                         *vimorg-todo-metadata*
 
@@ -437,8 +436,8 @@ of the 'metadata block' that immediately follows a heading.
 CATEGORIES                                             *vimorg-categories*
 
 Categories are yet another form of metadata in Org files.  Categories
-are useful because a headings 'Category' is displayed as the first column
-of dsta in a heading line in Agenda results.  (Remember that there
+are useful because a heading's 'Category' is displayed as the first column
+of data in a heading line in Agenda results.  (Remember that there
 is limited space for display, try to keep category names less than 
 10 characters.)  By default a heading's Category will be its file name. 
 However you can change this in several ways.
@@ -451,7 +450,7 @@ e.g.,:
 >
  #+CATEGORY: MyCategory
 
-All headings in the document would no display that as the first column
+All headings in the document would now display that as the first column
 when they are part of an agenda result.
 
 Second, you can override a document's default category by giving a 
@@ -469,7 +468,7 @@ heading a category property, like this:
 In the snippet above, Heading One's category would be 'NewCategory'. 
 Categories are inherited by subheadings, so Subheading One and Sub-
 heading Two would also be 'NewCategory'.  Heading Two, on the other
-hand, would inherit the category from a config line, if any, or it's
+hand, would inherit the category from a config line, if any, or its
 category would be the file name (excluding the . and extension).
 
 You can read more about how categories work here:
@@ -477,7 +476,7 @@ http://orgmode.org/manual/Categories.html#Categories
 NOTE:  Although Org-mode still supports multiple category config
 lines in a document, each affecting text occurring after it (and 
 before another category config line), VimOrganizer does not 
-suppor this.  You can put one CATEGORY config line in a document and
+support this.  You can put one CATEGORY config line in a document and
 it will be inherited by any heading that does not have a CATEGORY
 property (or inherit a CATEGORY property from an ancestor heading).
 
@@ -502,17 +501,17 @@ where N is for level 1-9
 ---------------------------------------------------------------------
 ADDING NEW HEADINGS                          *vimorg-new-headings*
 
-New headings can of course be added by normal Vim text editing, create
+New headings can of course be added by normal Vim text editing.  Create
 a new line and put one or more asterisks starting flush with the left
 column.  Normal mode commands below are shortcuts to do the same thing.
 
 
-new heading same level           Insert a new heading of current level
-<CR> in normal mode              after current heading's subtree.
+new heading same level            Insert a new heading of current level
+<CR> in normal mode               after current heading's subtree.
 <S-CR> in insert mode 
 
 new subhead                       Insert a new heading that is a 
-<C-CR>                            subhead of current heading
+<C-CR>                            sub-heading of the current heading
 
 new parent head                   Insert a new heading that is at 
 <S-C-CR>                          the level of current subhead's parent
@@ -537,19 +536,19 @@ First child                       Move cursor to first child heading
 <a-right-arrow>                   of current heading.
 
 Last child                        Move cursor to last child heading
-                              of current heading.
+                                  of current heading.
 
 Next heading                      . . . to next heading of any kind
 
 Previous heading                  . . . to previous heading of any kind
 
 Next heading same level           . . . to next heading of same level
-                              regardless of whether it is in 
-                              current subtree
+                                  regardless of whether it is in
+                                  current subtree
 
 Previous heading same level       . . . to next heading of same level
-                              regardless of whether it is in 
-                              current subtree
+                                  regardless of whether it is in
+                                  current subtree
 ----------------------------------------------------------------------
 EDITING DOCUMENT STRUCTURE                *vimorg-structure-editing*
 
@@ -562,9 +561,9 @@ Move subtree up            Move current subtree to position
 Move subtree down          Move current subtree to position
 <c-a-downarrow>            after next subtree.
 
-Promote subtree            Move entire subtree to be parent
+Promote subtree            Move entire subtree to be at parent
 <c-a-leftarrow>            heading's level and position after
-                       parent subtree.
+                           parent subtree.
 
 Demote subtree             Move entire subtree to be child
 <c-a-rightarrow>           of previous heading of same level.
@@ -577,7 +576,7 @@ prior to issuing command to wrap text in markup or just issue
 the command then add text between the markup delimiters.
 
 NOTE: these delimiters do NOT format phrases that span 
-over a line break, they are for same line only.  If you
+over a line break, they are for the same line only.  If you
 want to format over two or more lines you need to apply 
 to each word in the lines (for safety when reformatting)
 or to the begin and end of each line (which will pose
@@ -668,8 +667,8 @@ When in the capture buffer the write command (:w) will
 (1) save the contents of the capture buffer to the capture file, 
 then (2) close the capture buffer.
 
-When in a capture buffer the quit command (:q) will 
-
+When in a capture buffer the quit command (:q) will abandon any changes
+and close the buffer without confirmation.
 
 A "capture buffer" can be opened by choosing "Open
 Capture Buffer" from the menu in gvim or with with the command
@@ -692,8 +691,13 @@ another document.  (The user interface for
 this is currently barebones and not optimal, like many other 
 things it will be revised. . . .)
 
+  Open refile dashboard
+  ,r                     Open the refiling dashboard.  Type an action's
+                         character to perform it, or <Esc> to cancel and
+                         close the menu.
+
   Refile to point
-  ,rh                        Move current subtree to be subchild
+  ,rr                    Move current subtree to be subchild
                          of heading at a different location.
                          Invoking this command first presents
                          you with a 'Target file:' prompt, at
@@ -710,7 +714,7 @@ things it will be revised. . . .)
                          or <Esc> to cancel the refile.
   
   Refile, jump to point
-  ,rj                        Uses same prompt as 'Refile to point' command,
+  ,rj                    Uses same prompt as 'Refile to point' command,
                          but instead of moving subtree there simply
                          moves cursor to that point (which may involve
                          moving to a different buffer if chosen point
@@ -718,7 +722,7 @@ things it will be revised. . . .)
   
   Refile, set persistent
   refile point
-  ,rs                        Same prompt as for 'Refile to point' command,
+  ,rs                    Same prompt as for 'Refile to point' command,
                          but instead of refiling it saves the
                          chosen file and heading to be used as 
                          target of subsequent 'Refile to Persistent
@@ -726,12 +730,12 @@ things it will be revised. . . .)
   
   Refile to persistent
   refile point
-  ,rp                        Move current subtree to location defined
+  ,rp                    Move current subtree to location defined
                          by the persistent refile point.
   
-  
-  Refile, jump to persistent point
-  ,rx                        Move cursor to file/heading that is persistent
+  Refile, jump to
+  persistent point
+  ,rx                    Move cursor to file/heading that is persistent
                          refile point.
 
 ------------------------------------------------------------------------
@@ -838,8 +842,8 @@ gh    Node navigate left           (same as <alt-left>...      )
 gl    Node navigate right          (same as <alt-right>...     )
 <<    Promote heading tree         (same as <ctrl-alt-left>... )
 >>    Demote headng tree           (same as <ctrl-alt-right>...)
-<,     Move heading tree up         (same as <ctrl-alt-up>...   )
->.     Move headng tree down        (same as <ctrl-alt-down>... )
+<,     Move heading tree up        (same as <ctrl-alt-up>...   )
+>.     Move headng tree down       (same as <ctrl-alt-down>... )
 <localleader>np    Add new heading node below at parent's level (<c-s-enter>)
 <localleader>ns    Add new heading node below at subhead level (<c-enter>)
 
@@ -852,8 +856,8 @@ support as many types of links.  You can read about the Org-mode link
 format here:  http://orgmode.org/manual/Hyperlinks.html#Hyperlinks .
 
 While you can add and edit links with VimOrganizer without it, to follow
-external links you must have the UTL Vim plugin installed.  You can find it
-here:
+external links you must have the "Universal Text Linking" Vim plugin (UTL)
+installed.  You can find it here:
 http://www.vim.org/scripts/script.php?script_id=293 .
 UTL itself does not use Org-mode compatible links, but it is used by
 VimOrganizer behind the scenes to follow links.
@@ -879,12 +883,12 @@ just the brackets will be hidden in conceal mode.)
 
 Add/edit link                 Allows you to edit a link in the command line.
 ,le                           You are first prompted for the link
-                              specification, then press <enter> and you 
+                              specification, then press <Enter> and you
                               will be prompted for a link name.
 
-Follow link                   Will "follow" a link.  With web url's this
+Follow link                   Will "follow" a link.  With web URLs this
 ,lf                           will open a browser, with files it will
-(or just press <enter>        open the file in an appropriate app if a
+(or just press <Enter>        open the file in an appropriate app if a
 cursor on the link)           handler app has been defined.  (UTL setup
                               has default set of handlers and can be 
                               changed.)  Internal links will move to 
@@ -892,7 +896,7 @@ cursor on the link)           handler app has been defined.  (UTL setup
 
                               NOTE:  The Org-mode format requires that
                               the 'http://' prefix be included when specifying
-                              web urls.  Link will fail if you don't 
+                              web urls.  Links will fail if you don't
                               include 'http://'.
 
 Next link                     Moves to next link in the document.
@@ -940,7 +944,7 @@ Narrow code block           If not in a code block, then the current
 When editing a narrowed region in a separate window, the main buffer will
 be uneditable and the region that was narrowed will be highlighted within it.
 The narrowed region in the separate window is in a buffer that is different
-fron the buffer from the main document, so changes made in it are not
+from the buffer from the main document, so changes made in it are not
 immediately reflected in the original buffer.  To save changes use the *write*
 command, *wq* to write and quit, or just *q* to abandon unsaved changes and
 return to original buffer.  See help for |NarrowRegion| for more information.
@@ -1002,30 +1006,31 @@ on the table dashboard are as follows:
      Dashboard operations:     All of these operations depend on the 
                                position of the cusor within the table.
 
-     'COLUMN' operatons:  l -- move column left
-                          r -- move column right
-                          e -- delete column
-                          o -- insert column
+     'COLUMN' operatons:       l -- move column left
+                               r -- move column right
+                               e -- delete column
+                               o -- insert column
 
-     'ROW' operations     d -- move row down
-                          u -- move row up
-                          x -- delete row
-                          i -- insert row
+     'ROW' operations          d -- move row down
+                               u -- move row up
+                               x -- delete row
+                               i -- insert row
 
-     Insert horiontal line  -- h will insert a line below cursor
+     Insert horiontal line     h -- insert a line below cursor
 
-     'RowSort' operations:  all of the row sort operations operate
-                            on the current 'row-region' of the table.
-                            A row region is the range of rows including
-                            the cursor row up to (1) beginning-of-table
-                            or a horizontal line above, and down to (2) the
-                            end-of-table or a horizontal line below.
+     'RowSort' operations:     All of the row sort operations operate
+                               on the current 'row-region' of the table.
+                               A row region is the range of rows
+                               including the cursor row up to (1)
+                               beginning-of-table or a horizontal line
+                               above, and down to (2) the end-of-table
+                               or a horizontal line below.
 
-                            Available sorts are
-                              a  -- alphabetical, a to z
-                              A  -- reverse alphabetical, z-a
-                              n  -- numeric, low to high
-                              N  -- numeric, high to low
+                               Available sorts are
+                                 a  -- alphabetical, a to z
+                                 A  -- reverse alphabetical, z-a
+                                 n  -- numeric, low to high
+                                 N  -- numeric, high to low
 
 ------------------------------------------------------------------------
 TABLE EVALUATION                           *vimorg-table-evaluation*
@@ -1047,7 +1052,7 @@ http://orgmode.org/manual/The-spreadsheet.html#The-spreadsheet
 
 NOTE:  Be sure to note that the default evaluation does _NOT_
        follow the rule of equal precedence of multiplication
-       and decision.  Instead, division has lower precedence
+       and division.  Instead, division has lower precedence
        than multiplication:
 
              2/3*4 == 2 / (3 * 4)
@@ -1083,44 +1088,44 @@ your own highlight statements (see  |highlight| ) to override the
 default settings.
 >
  function! OrgCustomColors()
-    " various Org syntax item highlighting statements are below
-    " these are the current defaults.  Uncomment and edit a line if you
-    " want different highlighting fof the element
+    " various Org syntax item highlighting statements below
+    " are the current defaults.  Uncomment and edit a line if you
+    " want different highlighting for the element.
 
-    " below are defaults for any TODOS you define.  TODOS that
+    " Below are defaults for any TODOS you define.  TODOS that
     " come before the | in a definition will use  'NOTDONETODO'
     " and those that come after are DONETODO
     "hi! DONETODO guifg=green ctermfg=green
     "hi! NOTDONETODO guifg=red ctermfg=lightred
 
-    " heading level highlighting is done in pairs, one for the
-    " heading when unfoled and one for folded.  Default is to make
+    " Heading level highlighting is done in pairs, one for the
+    " heading when unfolded and one for folded.  Default is to make
     " them the same except for the folded version being bold:
     " assign OL1 pair for level 1, OL2 pair for level 2, etc.
     "hi! OL1 guifg=somecolor guibg=somecolor 
     "hi! OL1Folded guifg=somecolor guibg=somecolor gui=bold
 
 
-    " tags are lines below headings that have :colon:separated:tags:
+    " Tags are lines below headings that have :colon:separated:tags:
     "hi! Org_Tag guifg=lightgreen ctermfg=blue
 
-    "  lines that begin with '#+' in column 0 are config lines
+    "  Lines that begin with '#+' in column 0 are config lines
     "hi! Org_Config_Line guifg=darkgray ctermfg=magenta
 
-    "drawers are :PROPERTIES: and :LOGBOOK: lines and their associated
+    " Drawers are :PROPERTIES: and :LOGBOOK: lines and their associated
     " :END: lines
     "hi! Org_Drawer guifg=pink ctermfg=magenta
     "hi! Org_Drawer_Folded guifg=pink ctermfg=magenta gui=bold cterm=bold
 
-    " this applies to value names in :PROPERTIES: blocks 
+    " This applies to value names in :PROPERTIES: blocks
     "hi! Org_Property_Value guifg=pink ctermfg=magenta
 
-    " three lines below apply to different kinds of blocks
+    " Three lines below apply to different kinds of blocks
     "hi! Org_Block guifg=#555555 ctermfg=magenta
     "hi! Org_Src_Block guifg=#555555 ctermfg=magenta
     "hi! Org_Table guifg=#888888 guibg=#333333 ctermfg=magenta
 
-    " dates are date specs between angle brackets (<>) or square brackets ([])
+    " Dates are date specs between angle brackets (<>) or square brackets ([])
     "hi! Org_Date guifg=magenta ctermfg=magenta gui=underline cterm=underline
 
     " Org_Star is used to "hide" initial asterisks in a heading
@@ -1128,7 +1133,7 @@ default settings.
 
     "hi! Props guifg=#ffa0a0 ctermfg=gray
 
-    " bold, itals, underline, and code are highlights applied
+    " Bold, italics, underline, and code are highlights applied
     " to character formatting
     "hi! Org_Code guifg=darkgray gui=bold ctermfg=14
     "hi! Org_Itals gui=italic guifg=#aaaaaa ctermfg=lightgray
@@ -1136,14 +1141,14 @@ default settings.
     "hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
     "hi! Org_Lnumber guifg=#999999 ctermfg=gray
 
-    " these lines apply to links: [[link]], and [[link][link desc]]
+    " These lines apply to links: [[link]], and [[link][link desc]]
     "if has("conceal")
     "    hi! default linkends guifg=blue ctermfg=blue
     "endif
     "hi! Org_Full_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
     "hi! Org_Half_Link guifg=cyan gui=underline ctermfg=lightblue cterm=underline
 
-    "  applies to the Heading line that can be displayed in column view
+    "  Applies to the Heading line that can be displayed in column view
     "highlight OrgColumnHeadings guibg=#444444 guifg=#aaaaaa gui=underline
 
  endfunction
@@ -1170,7 +1175,7 @@ Below is an illustration:
                \              'ctermfg':'gray', 'ctermbg':'darkgray'}
                \      'WAITING': { 'guifg':'red', 
                \                 'ctermfg':'red' } }
-<                       
+
    NOTE:  (1) Vim has specific punctuation in its dictionary assignments.
           Each of the keys in the statement above is a string,
           and keys are separated from their values by a colon.
@@ -1182,7 +1187,7 @@ SEARCHES AND THE AGENDA                    *vimorg-agenda* *vimorg-searches*
 
 The agenda is a buffer where VimOrganizer gathers heading lines from 
 one or more buffers in response to various kinds of searches.  The content
-of the agenda doesn't just show you the resuts of your search, it also
+of the agenda doesn't just show you the results of your search, it also
 gives you the means to quickly view or jump to any of the "found" headings,
 as well as providing a means to remotely edit them, i.e., effect changes in 
 the original buffer by making changes in the agenda.
@@ -1191,7 +1196,7 @@ Here is how the Org-mode manual introduces the agenda:
 -----------------------------------------
 "Due to the way Org works, TODO items, time-stamped items, 
 and tagged headlines can be scattered throughout a file or
- even a number of files. To get an overview of open action 
+even a number of files. To get an overview of open action
 items, or of events that are important for a particular 
 date, this information must be collected, sorted and 
 displayed in an organized way."
@@ -1229,22 +1234,22 @@ The variable, g:agenda_files holds the list of agenda files.
 You can enter values for g:agenda_files in your vimrc, e.g.,
 >
     :let g:agenda_files = ['c:/path/myfile1.org','c:/path/myfile2.org']
-   
+
 There is a bare-bones agenda-editing mechanism that works like this:
 
    (1) Put your .org working directories in list g:agenda_dirs.  Mine is in my
-vimrc and includes a single directory:
+       vimrc and includes a single directory:
 >
-    :let g:agenda_dirs=["c:/users/herbert/documents/org-files"]
-<   
+       :let g:agenda_dirs=["c:/users/herbert/documents/org-files"]
+
    (2) Then to edit your agenda files issue this command  
 >
-        :EditAgendaFiles
+       :EditAgendaFiles
 <
    This will open a new tab and show your current agenda files along with a list
    of all org files in your agenda dirs.  Simply copy or move files from the 
    agenda dirs list to the top and when done press :W (that's a capital 'W'). 
-   
+
 You can also use Vimscript to add files to g:agenda_files.  For
 example, putting something like the following lines in your vimrc would
 always fill g:agenda_files upon startup:
@@ -1332,7 +1337,7 @@ KEYMAPPINGS IN THE AGENDA                             *vimorg-agenda-keys*
 
 Some keys have special operation in the Agenda:
 
-      <enter>    -- pressing <enter> on a heading in agenda
+      <enter>     - pressing <enter> on a heading in agenda
                     will (1) switch (if necessary) to show
                     the chosen heading's buffer in window
                     above the agenda, (2) fully fold the 
@@ -1379,7 +1384,7 @@ TAGS-TODO-PROPERTY SEARCH                  *vimorg-tags-search*
            illustrate the syntax:
 >
                 Enter search string: +work
-,                    selects headlines tagged ':work:'
+                     selects headlines tagged ':work:'
 >
                 Enter search string: +work-boss
 <                    selects headlines tagged ':work:', but 
@@ -1406,7 +1411,7 @@ TAGS-TODO-PROPERTY SEARCH                  *vimorg-tags-search*
                      are marked with 'DONE' status.
                      (e.g., * DONE My work item
                               :work:                  )
- 
+
            Instead of a tag, you may also specify a regular expression enclosed
            in curly braces. For example:
 >
@@ -1446,7 +1451,7 @@ TAGS-TODO-PROPERTY SEARCH                  *vimorg-tags-search*
           - If the comparison value is enclosed in curly braces, a regexp match
             is performed, with ‘=’ meaning that the regexp matches the property
             value, and ‘!=’ meaning that it does not match. 
-         
+
 ---------------------------------------------------------------
 CUSTOM SEARCHES                       *vimorg-agenda-custom-searches*
 
@@ -1461,18 +1466,19 @@ by adding them to that list.  Here is an example an assigment
 that could be put in your vimrc to define a number of custom
 searches, which I will explain below:  
  >
-    let g:org_custom_searches = [
-                \    { 'name':"Next week's agenda", 'type':'agenda', 
-                \                'agenda_date':'+1w','agenda_duration':'w'}
-                \    ,{ 'name':"Next week's TODOS", 'type':'agenda', 
-                \                'agenda_date':'+1w','agenda_duration':'w','spec':'+UNFINISHED_TODOS'}
-                \    , { 'name':'Home tags', 'type':'tags', 'spec':'+HOME'}
-                \    , { 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME'}
-                \    , [ { 'name':"Next week's agenda", 'type':'agenda', 
-                \                'agenda_date':'+1w','agenda_duration':'w'}
-                \        ,{ 'name':'Home tags', 'type':'tags', 'spec':'+HOME'}
-                \      ]   
-                \           ]
+     let g:org_custom_searches = [
+             \  { 'name':"Next week's agenda", 'type':'agenda',
+             \    'agenda_date':'+1w', 'agenda_duration':'w' }
+             \ ,{ 'name':"Next week's TODOS", 'type':'agenda',
+             \    'agenda_date':'+1w', 'agenda_duration':'w',
+             \    'spec':'+UNFINISHED_TODOS' }
+             \ ,{ 'name':'Home tags', 'type':'tags', 'spec':'+HOME' }
+             \ ,{ 'name':'Home tags', 'type':'sparse_tree', 'spec':'+HOME' }
+             \ ,[ { 'name':"Next week's agenda", 'type':'agenda',
+             \      'agenda_date':'+1w', 'agenda_duration':'w' }
+             \   ,{ 'name':'Home tags', 'type':'tags', 'spec':'+HOME' }
+             \  ]
+             \ ]
 <
 The assignment above creates five different custom searches.  
 Basic searches are dictionaries containing key/value items that
@@ -1512,26 +1518,24 @@ specify a name, the 'type' of 'tags', and then the 'spec' for the
 search.  'Spec' works just as described here:
 |vimorg-tags-search|.
 
-SPARSETREE TYPE CUSTOM SEARCHES      *vimorg-custom-sparse_tree*   
+SPARSETREE TYPE CUSTOM SEARCHES      *vimorg-custom-sparse_tree*
 --------------------------------
-The fourt search in the above assignment to g:org_custom_searches
-is named 'third search has the 'name' of 'Home tags' and is a 
-search of 'type' 'sparse_tree'.  This search is a pre-defined
-version of a search that can be run as a 'Freeform . . . sparse
-tree search' from the agenda dashboard.  'Spec' works the same
-as it does for other searches.
+The fourth search in the above assignment to g:org_custom_searches is
+has the 'name' of 'Home tags' and is a search of 'type' 'sparse_tree'.
+This search is a pre-defined version of a search that can be run as a
+'Freeform . . . sparse tree search' from the agenda dashboard.  'Spec'
+works the same as it does for other searches.
 
 BLOCK SEARCHES                       *vimorg-agenda-block-search*
 --------------
-The first four searches assigned to g:org_custom_searches, above,
-are "simple" searches, in that they pre-define searches that 
-correspond to one of the agenda views accessible from the 
-agenda dashboard.  Pre-defined block searches allow you to include
-the results of two or more "simple" in a single agenda view.
-These searches are defined by adding a list item to 
-g:org_custom_searches, which contains two or more
-dictionaries specifying agenda-type or tags-type simple 
-searches.  
+The first four searches assigned to g:org_custom_searches, above, are
+"simple" searches, in that they pre-define searches that correspond to
+one of the agenda views accessible from the agenda dashboard.
+Pre-defined block searches allow you to include the results of two or
+more "simple" searches in a single agenda view.  These searches are
+defined by adding a list item in square brackes '[]' to
+g:org_custom_searches, which contains two or more dictionaries
+specifying agenda-type or tags-type simple searches.
 
 ==============================================================================
 NAVIGATING AMONG ORG FILES                      *vimorg-files-navigating*
@@ -1569,7 +1573,7 @@ must be recalculated whenever a buffer is loaded into a window.  For large
 files these recalculations can take several seconds, thus making quick
 navigation between buffers in the same window impossible.  This problem
 is avoided if you keep org files open on different tabs, where switching
-between them is instantanenous.  Many Vim plugins are available to 
+between them is instantaneous.  Many Vim plugins are available to
 make file/buffer navigation faster and easier (e.g., Fuzzy Finder, 
 BufExplorer, etc.).  If you use a plugin you will probably want to configure it
 so that the default method of switching to a buffer is to move to a tab
@@ -1619,37 +1623,37 @@ You can access the column dashboard by pressing ,m or by entering the command
 :OrgColumns.  The dashboard shows you the current relevant settings and
 allows you to change them:
 
-    buffer default columns -- these defaults are taken either
-                              from the global defaults, or from the
-                              settings in a columns configuration
-                              line in a document.
-    current default columns -- the current settings, which may reflect
+    buffer default columns  -- These defaults are taken either
+                               from the global defaults, or from the
+                               settings in a columns configuration
+                               line in a document.
+    current default columns -- The current settings, which may reflect
                                custom default settings
-    column view on          -- will be ON/OFF
-    Show column headers     -- will be ON/OFF
-    heading line count      -- will be ON/OFF, refers to whether the
+    column view on          -- Will be ON/OFF
+    Show column headers     -- Will be ON/OFF
+    heading line count      -- Will be ON/OFF, refers to whether the
                                count of heading lines shows at right
                                margin for a folded heading.  Can be
                                ON even if column view is OFF.
 >
     Operations on Columns dashboard
     -----------------------
-           f    --- force all of buffer to use settings.  If
+           f     -- Force all of buffer to use settings.  If
                     not chosen then (1) only the current subtree will be
                     placed into column, or (2) entire buffer
                     will be in column view if cursor is in 
                     front of the first heading in the document.
-           r    --- revert to buffer defaults, if defaults have
+           r     -- Revert to buffer defaults, if defaults have
                     been changed
-           t    --- toggle column view ON/OFF
-           h    --- toggle column headings ON/OFF
-           l    --- toggle line count ON/OFF
+           t     -- Toggle column view ON/OFF
+           h     -- Toggle column headings ON/OFF
+           l     -- Toggle line count ON/OFF
 <
                                           *org_columns_custom_list*
      Custom column options will then be listed.  If no custom options have
      been assigned in the vimrc, then built-in behavior is to have two 
      options as if the user had the line below in their vimrc.  This line
-     defines a list have two custom column strings, one having a 
+     defines a list of two custom column strings, one having a
      DEADLINE and a TAGS column, the second having just a DEADLINE column:
 >
           let *g:org_custom_column_options* = ['%ITEM %14DEADLINE %30TAGS',
@@ -1745,7 +1749,7 @@ http://orgmode.org/manual/Publishing.html#Publishing
                                               *vimorg-literate-programming*
 Another option on the Export Dashboard is 'tangle'.  This operation
 extracts source code blocks from an org document and saves them so
-they're in format that can be (1) executed by an interpreter or 
+they're in a format that can be (1) executed by an interpreter or
 (2) compiled, depending on the source block language.  This provides
 a way to use VimOrganizer as an editor for 'literate programming'.
 See: http://en.wikipedia.org/wiki/Literate_programming
