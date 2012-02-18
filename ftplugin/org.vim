@@ -5854,8 +5854,8 @@ function! s:GetFoldColumns(line)
         let fldtext = get(props,toupper(field),'')
         let fmt = (fmt ==# '') ? g:org_columns_default_width :  fmt 
         " truncate text if too long
-        let fldtext = (len(fldtext)<=fmt) ? fldtext : (fldtext[:fmt-3] . '..')
-        "let fmt = '%-' . g:org_columns_default_width . 's' : ('%-' . fmt . 's')
+        "let fldtext = (len(fldtext)<=fmt) ? fldtext : (fldtext[:fmt-3] . '..')
+        let fldtext = (strchars(fldtext)<=fmt) ? fldtext : (fldtext[:fmt-3] . '..')
         let result .= printf( '|%-'.fmt.'s', fldtext,'') 
     endfor
 
@@ -5996,7 +5996,7 @@ function! OrgFoldText(...)
     if l:line =~ b:v.drawerMatch
         "let level_highlight = hlID('Title')
         let level_highlight = hlID('Org_Drawer_Folded')
-        let l:line = repeat(' ', len(matchstr(l:line,'^ *'))-1)
+        let l:line = repeat(' ', strchars(matchstr(l:line,'^ *'))-1)
                     \ . matchstr(l:line,'\S.*$') 
         let line_count = line_count - 1
     elseif l:line[0] ==? '#'
@@ -6013,7 +6013,7 @@ function! OrgFoldText(...)
         if match(b:v.signstring,'line='.v:foldstart.'\s\sid=\d\+\s\sname=fbegin') >=0
         "if index(b:v.sparse_list,v:foldstart) > -1            "v:foldstart == 10
             let l:line = '* * * * * * * * * * * ' . (v:foldend - v:foldstart) . ' lines skipped here * * * * * * *'
-            let l:line .= repeat(' ', winwidth(0)-len(l:line)-28) . 'SPARSETREE SKIP >>'
+            let l:line .= repeat(' ', winwidth(0)-strchars(l:line)-28) . 'SPARSETREE SKIP >>'
             let level_highlight = hlID('TabLineFill')
         endif
     endif
@@ -6023,7 +6023,7 @@ function! OrgFoldText(...)
     let offset = &fdc + 5*(&number) + (w:v.columnview ? 7 : 1)
     if w:v.columnview && (origline =~ b:v.headMatch) 
         if (w:v.org_columns_master_heading == 0) || s:HasAncestorHeadOf(foldstart,w:v.org_columns_master_heading)
-            let l:line .= s:PrePad(s:GetFoldColumns(foldstart), winwidth(0)-len(l:line) - offset)
+            let l:line .= s:PrePad(s:GetFoldColumns(foldstart), winwidth(0)-strchars(l:line) - offset)
         else
             let offset -= 6
         endif
@@ -6031,11 +6031,11 @@ function! OrgFoldText(...)
     if a:0 && (foldclosed(line('.')) > 0)
         let l:line .= s:PrePad("(" 
             \  . s:PrePad( (foldclosedend(line('.'))-foldclosed(line('.'))) . ")",5),
-            \ winwidth(0)-len(l:line) - offset) 
+            \ winwidth(0)-strchars(l:line) - offset) 
     elseif (g:org_show_fold_lines ) || (l:line =~ b:v.drawerMatch) 
         let offset = (w:v.columnview && l:line =~ b:v.drawerMatch) ? offset - 6 : offset 
         let l:line .= s:PrePad("|" . s:PrePad( line_count . "|",5),
-                    \ winwidth(0)-len(l:line) - offset) 
+                    \ winwidth(0)-strchars(l:line) - offset) 
     endif
     if exists('v:foldhighlight')
         if get(b:v.heading_marks_dict, v:foldstart) == 1
