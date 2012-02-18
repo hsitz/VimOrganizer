@@ -737,6 +737,29 @@ things it will be revised. . . .)
   persistent point
   ,rx                    Move cursor to file/heading that is persistent
                          refile point.
+  
+  Refile to last
+  refile point
+  ,rl                    Refile the current subtree to the previously
+                         used location
+  
+  Refile, jump to last
+  refile point
+  ,rz                    Move cursor to the previously used refile
+                         location
+
+Items may be refiled to an archive file.  The archive has the same path
+and name as the originating file with '_archive' appended.  Archived
+subtrees are appended to the end.  Additional properties are added like
+the archival date and time.
+
+  Refile to archive
+  ,ra                    Refile to the end of the archive file
+                         associated with the current org file
+  
+  Jump to archive
+  ,rv                    Open the archive file in a new tab.
+
 
 ------------------------------------------------------------------------
 MARK                                     *vimorg-mark*
