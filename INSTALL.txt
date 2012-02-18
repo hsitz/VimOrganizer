@@ -6,7 +6,7 @@ files going in their respective directories under your .vim (Linux/Mac)
 or vimfiles (Windows) directory.  
 
 2.  Run helptags on the help file in the /doc directory, vimorg.txt,
-so hep items can be accessed using the Vim help system. 
+so help items can be accessed using the Vim help system.
 
 3.  Make sure your vimrc has these lines:
 -------------------------------------

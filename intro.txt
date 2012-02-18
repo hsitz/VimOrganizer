@@ -7,7 +7,7 @@ patch for Vim73 is in contrib directory of the download.  If you're on
 Windows contact me and I should be able to provide you with an 
 executable.  If I hadn't been able to make Vim do this I would have 
 bitten the bullet and moved to Emacs, as much as I hate editing in Emacs.)
- 
+
 VimOrganizer is a Vim filetype plugin that attempts to clone Emacs' Org-mode.  
 It is currently (November 2011) in an alpha-stage, both in terms of (1) the 
 breadth and depth of Org-mode features it clones and (2) the stability of its
