@@ -4546,6 +4546,7 @@ function! OrgColumnsDashboard(...)
         
         if key ==? 'f'
             let force_all = 1
+            let key = ''
             redraw
             continue
         endif
