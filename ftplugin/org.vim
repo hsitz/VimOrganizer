@@ -3850,7 +3850,7 @@ function! OrgAgendaMove(direction,count)
     let date_jul = calutil#jul(g:agenda_startdate)
     let ymd_list = split(g:agenda_startdate,'-')
 
-    if g:org_agenda_days == 1
+    if g:org_agenda_days == 1 
         let g:agenda_startdate = calutil#cal(date_jul + (cnt * 1))
     elseif g:org_agenda_days == 7
         let g:agenda_startdate = calutil#cal(date_jul + (cnt * 7))
@@ -8411,7 +8411,11 @@ call s:DeleteSigns()
 " I think this should go in vimrc so i runs for each buffer load
 "  :autocmd CursorMoved,CursorMovedI * :if match(getline(line(".")), '^*\*\s') == 0 | :setlocal textwidth=99 | :else | :setlocal textwidth=79 | :endif 
 set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
-set fo=qtcwn
+if exists('g:org_formatoptions')
+    execute 'set fo=' . g:org_formatoptions
+else
+    set fo=qtcwn
+endif
 let b:v.current_syntax = "org"
 setlocal foldtext=OrgFoldText()
 
