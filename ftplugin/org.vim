@@ -8411,13 +8411,15 @@ call s:DeleteSigns()
 " I think this should go in vimrc so i runs for each buffer load
 "  :autocmd CursorMoved,CursorMovedI * :if match(getline(line(".")), '^*\*\s') == 0 | :setlocal textwidth=99 | :else | :setlocal textwidth=79 | :endif 
 set com=sO::\ -,mO::\ \ ,eO:::,::,sO:>\ -,mO:>\ \ ,eO:>>,:>
-if exists('g:org_formatoptions')
-    execute 'set fo=' . g:org_formatoptions
-else
-    set fo=qtcwn
-endif
+set fo=qtcwn
 let b:v.current_syntax = "org"
 setlocal foldtext=OrgFoldText()
 
+"user can define OrgCustomSettings() in vimrc to change default settings
+"in org buffers.  If syntax or highlight related, though, should 
+"make changes in OrgCustomColors()
+if exists('*OrgCustomSettings')
+    call OrgCustomSettings()
+endif
 
 " vim600: set tabstop=4 shiftwidth=4 smarttab expandtab fdm=expr foldexpr=getline(v\:lnum)=~'^"Section'?0\:getline(v\:lnum+1)=~'^func'?'<0'\:'1':
