@@ -1312,6 +1312,9 @@ function! s:OrgSubtreeLastLine_l(line)
     " lastline now has NextHead on abs basis so return end of subtree
     if l:lastline != 0 
         let l:lastline -= 1
+        while getline(l:lastline) =~ '^$'
+            let l:lastline -= 1
+        endwhile
     else
         let l:lastline = line("$")
     endif
@@ -5223,7 +5226,8 @@ function! s:UpdateBlock()
    ?^#+BEGIN:
     let block_type = matchstr(getline(line('.')),'\S\+\s\+\zs\S\+')
    if matchstr(getline(line('.')+1),'^#+END') ==# ''
-        normal jV/^#+END/-1dk
+        normal jV/^#+END/-1
+dk
     endif
     if block_type ==? 'clocktable'
         let block_type='ClockTable'
@@ -5736,7 +5740,8 @@ function! EditLink()
     if thislink.link !=# ''
         "delete existing hyperlink
         call search('\[\[','b',line('.'))
-        normal v/]]/exx
+        normal v/]]/e
+xx
     endif 
 
     silent exec 'normal i[[' . link . ']' . (desc ># '' ? '[' . desc . ']' : '') . ']'
@@ -6640,7 +6645,10 @@ function! s:SaveAgendaFiles(save)
     " yank files into @a
    set nomodified
    if a:save == 1
-       normal gg/^--jV/^--?^\S"ay 
+       normal gg/^--
+jV/^--
+?^\S
+"ay 
        let @a = substitute(@a,' ','\\ ','g')
        if @a[0] != '-'
             let g:agenda_files = split(@a,"\n")
