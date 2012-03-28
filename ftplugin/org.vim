@@ -5765,13 +5765,15 @@ function! OrgMouseDate()
     endif
     call setpos(".",save_cursor)
     if found ==? 'date'
-        call OrgRunAgenda(date,1,'',date)
+        silent call s:RunCustom({'type':'agenda','agenda_date':date, 'agenda_duration':'d'})
+        "call OrgRunAgenda(date,1,'',date)
         " go to 8th line in agenda buf
         execute 8
     elseif found ==? 'link'
         call FollowLink(linkdict)
     elseif found ==? 'tag'
-        call OrgRunSearch('+'.@x)
+        "call OrgRunSearch('+'.@x)
+        silent call s:RunCustom({'type':'tags','spec':@x})
     else
         echo 'Nothing found to search for.'
     endif
@@ -8072,7 +8074,7 @@ function! s:AssembleFileHeadingsDict()
     let signlist = split(org#redir('sign place'),"\n")
     for line in signlist
         let ftest = matchstr(line, '^Signs for \zs.*\ze:$')
-        if (ftest > '')        "&& (getbufvar(ftest,'&filetype') == 'org')
+        if (ftest ># '')        "&& (getbufvar(ftest,'&filetype') == 'org')
             let file = ftest
             continue
         endif
