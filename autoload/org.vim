@@ -23,7 +23,7 @@ let g:org_autoload_funcs=1
 
 function! org#SetOrgFileType()
         "if expand("%:e") == 'org'
-                if &filetype != 'org'
+               "if &filetype != 'org'
                         execute "set filetype=org"
 			
 "			if !exists('g:org_todo_setup')
@@ -37,7 +37,7 @@ function! org#SetOrgFileType()
 "			exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 "			exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 		
-                endif
+                "endif
         "endif
 endfunction     
 
