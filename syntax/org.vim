@@ -71,7 +71,9 @@ syn match Org_Lnumber '^\t*\(\d\.\)*\s\s' contained
 
 if has("conceal")
 	syn region Org_Half_Link concealends matchgroup=linkends start='\[\[' end=']]' contains=FullLink
+	\ containedin=OL1,OL2,OL3,OL4,OL5,OL6,OL7,OL8,OL9
 	syn region Org_Full_Link concealends matchgroup=linkends start='\[\[\(.\{-1,}\)]\[' end=']]'
+	\ containedin=OL1,OL2,OL3,OL4,OL5,OL6,OL7,OL8,OL9
 endif	
 "exec "syntax match DONETODO '" . b:v.todoDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 "exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
