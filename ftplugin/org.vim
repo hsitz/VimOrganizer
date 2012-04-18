@@ -7576,28 +7576,28 @@ function! OrgSetColors()
     hi! Org_Star guifg=#444444 ctermfg=darkgray
     hi! Props guifg=#ffa0a0 ctermfg=gray
     hi! Org_Code guifg=darkgray gui=bold ctermfg=14
-    hi! Org_Itals gui=italic guifg=#aaaaaa ctermfg=lightgray
-    hi! Org_Bold gui=bold guifg=#aaaaaa ctermfg=lightgray
-    hi! Org_Underline gui=underline guifg=#aaaaaa ctermfg=lightgray
-    hi! Org_Marked gui=bold guibg=#bbaacc ctermbg=lightgray
+    hi! Org_Itals gui=italic guifg=#aaaaaa cterm=italic ctermfg=lightgray
+    hi! Org_Bold gui=bold guifg=#aaaaaa cterm=bold ctermfg=lightgray
+    hi! Org_Underline gui=underline guifg=#aaaaaa cterm=underline ctermfg=lightgray
+    hi! Org_Marked gui=bold guibg=#bbaacc cterm=bold ctermbg=lightgray
     hi! Org_Lnumber guifg=#999999 ctermfg=gray
 
     " agenda highlight groups below 
-    hi Overdue guifg=red
-    hi Upcoming guifg=yellow
-    hi DateType guifg=#dd66bb
-    hi Locator guifg=#333333
+    hi Overdue guifg=red ctermfg=red
+    hi Upcoming guifg=yellow ctermfg=yellow
+    hi DateType guifg=#dd66bb ctermfg=lightgray
+    hi Locator guifg=#333333 ctermfg=darkgray
 
     "hi agenda_dayline guifg=#44aa44 gui=underline
     "hi agenda_weekendline guifg=#55ee55 gui=underline
-    hi agenda_omitted_days guifg=#555555
-    hi agenda_todo guifg=lightred gui=bold
-    hi agenda_done guifg=lightgreen
-    hi agenda_date guifg=lightblue 
-    hi agenda_weekenddate guifg=lightblue gui=bold 
-    hi agenda_scheduled guifg=lightyellow
-    hi agenda_scheduled_previous guifg=lightmagenta
-    hi agenda_timegrid guifg=#666666
+    hi agenda_omitted_days guifg=#555555 ctermfg=darkgrey
+    hi agenda_todo guifg=lightred gui=bold cterm=bold ctermfg=lightred
+    hi agenda_done guifg=lightgreen ctermfg=lightgreen
+    hi agenda_date guifg=lightblue ctermfg=lightblue
+    hi agenda_weekenddate guifg=lightblue gui=bold cterm=bold ctermfg=lightblue
+    hi agenda_scheduled guifg=lightyellow ctermfg=yellow
+    hi agenda_scheduled_previous guifg=lightmagenta ctermfg=lightmagenta
+    hi agenda_timegrid guifg=#666666 ctermfg=gray
     " end agenda highlights
   
     if has("conceal")
