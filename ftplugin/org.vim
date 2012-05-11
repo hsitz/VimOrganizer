@@ -3311,7 +3311,7 @@ function! s:PlaceTimeGrid(lines)
         let grid = s:TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
         let lines = grid + lines
         let i = len(grid) - 1
-        while (matchstr(lines[i],'\%24c\d\d:\d\d') && i < len(lines))
+        while (matchstr(get(lines, i, "NONE"),'\%24c\d\d:\d\d') && i < len(lines))
             let i += 1
         endwhile
         let lines = sort(lines[0:i-1], 's:TimeGridSort') + lines[i :]
