@@ -44,6 +44,13 @@ let g:org_tags_alist='{@home(h) @work(w) @tennisclub(t)} {easy(e) hard(d)} {comp
 let g:org_agenda_select_dirs=["~/desktop/org_files"]
 let g:org_agenda_files = split(glob("~/desktop/org_files/org-mod*.org"),"\n")
 
+" MobileOrg specific variables needed to Push/Pull to the mobile application
+" for synchornization
+
+let g:org_mobile_directory=["~/desktop/org_files/mobile"]
+let g:org_mobile_files=["~/desktop/org_files/projects.org","~/desktop/org_files/personal.org"]
+let g:org_mobile_inbox_for_pull=["~/desktop/org_files/mobile/from-mobileorg.org"]
+
 " ----------------------
 " Emacs setup
 " ----------------------
