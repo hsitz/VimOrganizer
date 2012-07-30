@@ -165,6 +165,9 @@ endif
 if !exists('g:org_agenda_window_position')
     let g:org_agenda_window_position = 'bottom'
 endif
+if !exists('g:org_enable_menu')
+    let g:org_enable_menu = 1
+endif
 if has('win32') || has('win64')
     let s:cmd_line_quote_fix = '^'
 else
@@ -8238,105 +8241,107 @@ function! NarrowCodeBlock(line)
     endif
 endfunction
 " Org Menu Entries
-amenu &Org.&View.Entire\ &Document.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
-amenu &Org.&View.Entire\ &Document.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
-amenu &Org.&View.Entire\ &Document.Expand\ Level\ &All :set foldlevel=99999<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &1<tab>,,1 :silent call OrgShowSubs(1,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &2<tab>,,2 :silent call OrgShowSubs(2,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &3<tab>,,3 :silent call OrgShowSubs(3,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &4<tab>,,4 :silent call OrgShowSubs(4,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &5<tab>,,5 :silent call OrgShowSubs(5,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &6<tab>,,6 :silent call OrgShowSubs(6,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &7<tab>,,7 :silent call OrgShowSubs(7,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &8<tab>,,8 :silent call OrgShowSubs(8,0)<cr>
-amenu &Org.&View.&Subtree.To\ Level\ &9\ \ \ \ \ \ <tab>,,9 :silent call OrgShowSubs(9,0)cr>
-amenu &Org.-Sep1- :
-amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or\ <s-cr>) :call OrgNewHead('same')<cr>
-amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
-amenu &Org.&New\ Heading.New\ Head\ Parent\ Level<tab><s-c-cr> :call OrgNewHead('levelup')<cr>
-amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading<tab><a-left> :exec <SID>OrgParentHead()<cr>
-amenu &Org.&Navigate\ Headings.&First\ Child\ Heading<tab><a-right> :exec <SID>OrgFirstChildHead()<cr>
-amenu &Org.&Navigate\ Headings.&Last\ Child\ Heading :exec <SID>OrgLastChildHead()<cr>
-amenu &Org.&Navigate\ Headings.&Next\ Heading :exec <SID>OrgNextHead()<cr>
-amenu &Org.&Navigate\ Headings.&Previous\ Heading :exec <SID>OrgPrevHead()<cr>
-amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLevel()<cr>
-amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
-amenu &Org.&Navigate\ Headings.Next\ &Sibling<tab><a-down> :exec <SID>OrgNextSiblingHead()<cr>
-amenu &Org.&Navigate\ Headings.Previous\ Sibling<tab><a-up> :exec <SID>OrgPrevSiblingHead()<cr>
-amenu &Org.Edit\ &Structure.Move\ Subtree\ &Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
-amenu &Org.Edit\ &Structure.Move\ Subtree\ &Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
-amenu &Org.Edit\ &Structure.&Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
-amenu &Org.Edit\ &Structure.&Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
-vmenu &Org.&Editing.&Bold\ (*)<tab>,cb              "zdi*<C-R>z*<ESC>l
-vmenu &Org.&Editing.&Italic\ (/)<tab>,ci            "zdi/<C-R>z/<ESC>l
-vmenu &Org.&Editing.&Underline\ (_)<tab>,cu         "zdi_<C-R>z_<ESC>l
-vmenu &Org.&Editing.&Code\ (=)<tab>,cc              "zdi=<C-R>z=<ESC>l
-amenu &Org.&Editing.-Sep22- :
-amenu &Org.&Editing.&Narrow<tab>,na :silent call NarrowCodeBlock(line('.'))<cr>
-"amenu &Org.&Editing.Narrow\ &Codeblock<tab>,nc :silent call NarrowCodeBlock(line('.'))<cr>
-"amenu &Org.&Editing.Narrow\ Outline\ &Subtree<tab>,ns :silent call NarrowOutline(line('.'))<cr>
-amenu &Org.&Refile.&Refile\ to\ Point<tab>,rh :call OrgRefile(line('.'))<cr>
-amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
-amenu &Org.&Refile.&Jump\ to\ Persistent\ Point<tab>,rx :call OrgJumpToRefilePointPersistent()<cr>
-amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
-amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
-amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
-amenu &Org.Open\ Capture\ File :call org#OpenCaptureFile()<cr>
-amenu &Org.&Mark/Gather/Sort.&Mark/Unmark\ Heading<tab>,<space> :call <SID>ToggleHeadingMark(line('.'))<cr>
-amenu &Org.&Mark/Gather/Sort.&Unmark\ all<tab>,<c-space> :call <SID>DeleteHeadingMarks()<cr>
-amenu &Org.&Mark/Gather/Sort.&Gather\ to\ current\ heading<tab>,gh :call <SID>GatherMarks()<cr>
-amenu &Org.&Mark/Gather/Sort.&Sort\ subheads<tab>,gs :call <SID>OrgSortSubheads()<cr>
-amenu &Org.-Sep2- :
-amenu &Org.&Columns\ Menu :call OrgColumnsDashboard()<cr>
-amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
-amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(OrgGetLink())<cr>
-amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
-amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
-amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
-amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
-amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
-amenu &Org.&Table.$Table\ Dashboard<tab>,b :call OrgTableDashboard()<cr>
-amenu &Org.&Table.E$valuate\ Table<tab>,v :call OrgTableDashboard()<cr>
-amenu &Org.-Sep3- :
-amenu <silent> &Org.TODO\ &Dashboard<tab>,t :call OrgTodoDashboard()<CR>
-amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo()<CR>
-"amenu <silent> &Org.TODO\ Cycle\ &Backward<tab><c-s-cr> :call <SID>ReplaceTodo('todo-bkwd')<CR>
-amenu &Org.Edit\ TA&GS<tab>,et  :call OrgTagsEdit()<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Deadline<tab>,dd :call OrgDateEdit('DEADLINE')<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Scheduled<tab>,ds :call OrgDateEdit('SCHEDULED')<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Closed<tab>,dc :call OrgDateEdit('CLOSED')<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Timestamp<tab>,dt :call OrgDateEdit('TIMESTAMP')<cr>
-amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgDateEdit('ATCURSOR')<cr>
-amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
-amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
-amenu &Org.-Sep4- :
-amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
-amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
-amenu &Org.Agenda\ &files<tab>,af.&Edit\ Agenda\ Files :EditAgendaFiles<cr>
-amenu &Org.Agenda\ &files<tab>,af.Current\ file\ to\ &top :call {sid}CurrentToAgendaFiles('top')<cr>
-amenu &Org.Agenda\ &files<tab>,af.Current\ file\ to\ &bottom :call {sid}CurrentToAgendaFiles('bottom')<cr>
-amenu &Org.Agenda\ &files<tab>,af.Current\ file\ &remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
-amenu &Org.Agenda\ &files<tab>,af.Cycle\ to\ &next :call {sid}CycleAgendaFiles('forward')<cr>
-amenu &Org.Agenda\ &files<tab>,af.Cycle\ to\ &previous :call {sid}CycleAgendaFiles('backward')<cr>
-amenu &Org.Agenda\ &files<tab>,af.&Choose\ file\ to\ goto :call {sid}OrgGotoChosenFile()<cr>
-amenu &Org.-Sep45- :
-amenu <silent> &Org.&Do\ Emacs\ Eval<tab>,v :call OrgEval()<cr>
-amenu &Org.-Sep5- :
-amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowCodeBlock(line('.'))<cr>
-amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
-amenu &Org.-Sep6- :
-amenu &Org.Open\ Capture\ Buffer :call org#CaptureBuffer()<cr>
-amenu &Org.-Sep7- :
-amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
-amenu &Org.-Sep8- :
-amenu <silent> &Org.R&e-read\ Config\ Lines :call OrgProcessConfigLines()<cr>
+if g:org_enable_menu
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &1<tab>,1 :set foldlevel=1<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &2<tab>,2 :set foldlevel=2<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &3<tab>,3 :set foldlevel=3<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &4<tab>,4 :set foldlevel=4<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &5<tab>,5 :set foldlevel=5<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &6<tab>,6 :set foldlevel=6<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &7<tab>,7 :set foldlevel=7<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &8<tab>,8 :set foldlevel=8<cr>
+    amenu &Org.&View.Entire\ &Document.To\ Level\ &9<tab>,9 :set foldlevel=9<cr>
+    amenu &Org.&View.Entire\ &Document.Expand\ Level\ &All :set foldlevel=99999<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &1<tab>,,1 :silent call OrgShowSubs(1,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &2<tab>,,2 :silent call OrgShowSubs(2,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &3<tab>,,3 :silent call OrgShowSubs(3,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &4<tab>,,4 :silent call OrgShowSubs(4,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &5<tab>,,5 :silent call OrgShowSubs(5,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &6<tab>,,6 :silent call OrgShowSubs(6,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &7<tab>,,7 :silent call OrgShowSubs(7,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &8<tab>,,8 :silent call OrgShowSubs(8,0)<cr>
+    amenu &Org.&View.&Subtree.To\ Level\ &9\ \ \ \ \ \ <tab>,,9 :silent call OrgShowSubs(9,0)cr>
+    amenu &Org.-Sep1- :
+    amenu &Org.&New\ Heading.New\ Head\ Same\ Level<tab><cr>(or\ <s-cr>) :call OrgNewHead('same')<cr>
+    amenu &Org.&New\ Heading.New\ Subhead<tab><c-cr> :call OrgNewHead('leveldown')<cr>
+    amenu &Org.&New\ Heading.New\ Head\ Parent\ Level<tab><s-c-cr> :call OrgNewHead('levelup')<cr>
+    amenu &Org.&Navigate\ Headings.&Up\ to\ Parent\ Heading<tab><a-left> :exec <SID>OrgParentHead()<cr>
+    amenu &Org.&Navigate\ Headings.&First\ Child\ Heading<tab><a-right> :exec <SID>OrgFirstChildHead()<cr>
+    amenu &Org.&Navigate\ Headings.&Last\ Child\ Heading :exec <SID>OrgLastChildHead()<cr>
+    amenu &Org.&Navigate\ Headings.&Next\ Heading :exec <SID>OrgNextHead()<cr>
+    amenu &Org.&Navigate\ Headings.&Previous\ Heading :exec <SID>OrgPrevHead()<cr>
+    amenu &Org.&Navigate\ Headings.Next\ &Same\ Level :exec <SID>OrgNextHeadSameLevel()<cr>
+    amenu &Org.&Navigate\ Headings.Previous\ Same\ Level :exec <SID>OrgPrevHeadSameLevel()<cr>
+    amenu &Org.&Navigate\ Headings.Next\ &Sibling<tab><a-down> :exec <SID>OrgNextSiblingHead()<cr>
+    amenu &Org.&Navigate\ Headings.Previous\ Sibling<tab><a-up> :exec <SID>OrgPrevSiblingHead()<cr>
+    amenu &Org.Edit\ &Structure.Move\ Subtree\ &Up<tab><c-a-up> :call OrgMoveLevel(line('.'),'up')<cr>
+    amenu &Org.Edit\ &Structure.Move\ Subtree\ &Down<tab><c-a-down> :call OrgMoveLevel(line('.'),'down')<cr>
+    amenu &Org.Edit\ &Structure.&Promote\ Subtree<tab><c-a-left> :call OrgMoveLevel(line('.'),'left')<cr>
+    amenu &Org.Edit\ &Structure.&Demote\ Subtree<tab><c-a-right> :call OrgMoveLevel(line('.'),'right')<cr>
+    vmenu &Org.&Editing.&Bold\ (*)<tab>,cb              "zdi*<C-R>z*<ESC>l
+    vmenu &Org.&Editing.&Italic\ (/)<tab>,ci            "zdi/<C-R>z/<ESC>l
+    vmenu &Org.&Editing.&Underline\ (_)<tab>,cu         "zdi_<C-R>z_<ESC>l
+    vmenu &Org.&Editing.&Code\ (=)<tab>,cc              "zdi=<C-R>z=<ESC>l
+    amenu &Org.&Editing.-Sep22- :
+    amenu &Org.&Editing.&Narrow<tab>,na :silent call NarrowCodeBlock(line('.'))<cr>
+    "amenu &Org.&Editing.Narrow\ &Codeblock<tab>,nc :silent call NarrowCodeBlock(line('.'))<cr>
+    "amenu &Org.&Editing.Narrow\ Outline\ &Subtree<tab>,ns :silent call NarrowOutline(line('.'))<cr>
+    amenu &Org.&Refile.&Refile\ to\ Point<tab>,rh :call OrgRefile(line('.'))<cr>
+    amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
+    amenu &Org.&Refile.&Jump\ to\ Persistent\ Point<tab>,rx :call OrgJumpToRefilePointPersistent()<cr>
+    amenu &Org.&Refile.&Jump\ to\ Point<tab>,rj :call OrgJumpToRefilePoint()<cr>
+    amenu &Org.&Refile.&Set\ Persistent\ Refile\ Point<tab>,rs :call OrgSetRefilePoint()<cr>
+    amenu &Org.&Refile.Refile\ to\ Persistent\ Point<tab>,rp :call OrgRefileToPermPoint(line('.'))<cr>
+    amenu &Org.Open\ Capture\ File :call org#OpenCaptureFile()<cr>
+    amenu &Org.&Mark/Gather/Sort.&Mark/Unmark\ Heading<tab>,<space> :call <SID>ToggleHeadingMark(line('.'))<cr>
+    amenu &Org.&Mark/Gather/Sort.&Unmark\ all<tab>,<c-space> :call <SID>DeleteHeadingMarks()<cr>
+    amenu &Org.&Mark/Gather/Sort.&Gather\ to\ current\ heading<tab>,gh :call <SID>GatherMarks()<cr>
+    amenu &Org.&Mark/Gather/Sort.&Sort\ subheads<tab>,gs :call <SID>OrgSortSubheads()<cr>
+    amenu &Org.-Sep2- :
+    amenu &Org.&Columns\ Menu :call OrgColumnsDashboard()<cr>
+    amenu &Org.&Hyperlinks.Add/&edit\ link<tab>,le :call EditLink()<cr>
+    amenu &Org.&Hyperlinks.&Follow\ link<tab>,lf :call FollowLink(OrgGetLink())<cr>
+    amenu &Org.&Hyperlinks.&Next\ link<tab>,ln :/]]<cr>
+    amenu &Org.&Hyperlinks.&Previous\ link<tab>,lp :?]]<cr>
+    amenu &Org.&Hyperlinks.Perma-compre&ss\ links<tab>,lc :set conceallevel=3\|set concealcursor=nc<cr>
+    amenu &Org.&Hyperlinks.&Autocompress\ links<tab>,la :set conceallevel=3\|set concealcursor=c<cr>
+    amenu &Org.&Hyperlinks.No\ auto&compress\ links<tab>,lx :set conceallevel=0<cr>
+    amenu &Org.&Table.$Table\ Dashboard<tab>,b :call OrgTableDashboard()<cr>
+    amenu &Org.&Table.E$valuate\ Table<tab>,v :call OrgTableDashboard()<cr>
+    amenu &Org.-Sep3- :
+    amenu <silent> &Org.TODO\ &Dashboard<tab>,t :call OrgTodoDashboard()<CR>
+    amenu <silent> &Org.TODO\ &Cycle<tab><s-cr> :call <SID>ReplaceTodo()<CR>
+    "amenu <silent> &Org.TODO\ Cycle\ &Backward<tab><c-s-cr> :call <SID>ReplaceTodo('todo-bkwd')<CR>
+    amenu &Org.Edit\ TA&GS<tab>,et  :call OrgTagsEdit()<cr>
+    amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Deadline<tab>,dd :call OrgDateEdit('DEADLINE')<cr>
+    amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Scheduled<tab>,ds :call OrgDateEdit('SCHEDULED')<cr>
+    amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Closed<tab>,dc :call OrgDateEdit('CLOSED')<cr>
+    amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &Timestamp<tab>,dt :call OrgDateEdit('TIMESTAMP')<cr>
+    amenu &Org.&Dates\ and\ Scheduling.Add/Edit\ &GenericDate<tab>,dg :call OrgDateEdit('ATCURSOR')<cr>
+    amenu &Org.&Logging\ work.Clock\ in<tab>,ci :call OrgClockIn(line('.'))<cr>
+    amenu &Org.&Logging\ work.Clock\ out<tab>,co :call OrgClockOut()<cr>
+    amenu &Org.-Sep4- :
+    amenu &Org.Agenda\ command<tab>,ag :call OrgAgendaDashboard()<cr>
+    amenu &Org.Special\ &views\ current\ file :call OrgCustomSearchMenu()<cr>
+    amenu &Org.Agenda\ &files<tab>,af.&Edit\ Agenda\ Files :EditAgendaFiles<cr>
+    amenu &Org.Agenda\ &files<tab>,af.Current\ file\ to\ &top :call {sid}CurrentToAgendaFiles('top')<cr>
+    amenu &Org.Agenda\ &files<tab>,af.Current\ file\ to\ &bottom :call {sid}CurrentToAgendaFiles('bottom')<cr>
+    amenu &Org.Agenda\ &files<tab>,af.Current\ file\ &remove :call {sid}CurrentRemoveFromAgendaFiles()<cr>
+    amenu &Org.Agenda\ &files<tab>,af.Cycle\ to\ &next :call {sid}CycleAgendaFiles('forward')<cr>
+    amenu &Org.Agenda\ &files<tab>,af.Cycle\ to\ &previous :call {sid}CycleAgendaFiles('backward')<cr>
+    amenu &Org.Agenda\ &files<tab>,af.&Choose\ file\ to\ goto :call {sid}OrgGotoChosenFile()<cr>
+    amenu &Org.-Sep45- :
+    amenu <silent> &Org.&Do\ Emacs\ Eval<tab>,v :call OrgEval()<cr>
+    amenu &Org.-Sep5- :
+    amenu &Org.Narro&w.Outline\ &Subtree<tab>,ns :call NarrowCodeBlock(line('.'))<cr>
+    amenu &Org.Narro&w.&Code\ Block<tab>,nc :call NarrowCodeBlock(line('.'))<cr>
+    amenu &Org.-Sep6- :
+    amenu &Org.Open\ Capture\ Buffer :call org#CaptureBuffer()<cr>
+    amenu &Org.-Sep7- :
+    amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
+    amenu &Org.-Sep8- :
+    amenu <silent> &Org.R&e-read\ Config\ Lines :call OrgProcessConfigLines()<cr>
+endif
 
 "*********************************************************************
 "*********************************************************************
