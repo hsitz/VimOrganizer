@@ -122,6 +122,9 @@ let b:v.suppress_list_indent=0
 " everything in between is executed only the first time an
 " org file is opened
 if !exists('g:org_loaded')
+" Load the checkbox plugin
+execute "runtime ftplugins/vo_checkbox.vim"
+
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
@@ -3311,7 +3314,7 @@ function! s:PlaceTimeGrid(lines)
         let grid = s:TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
         let lines = grid + lines
         let i = len(grid) - 1
-        while (matchstr(lines[i],'\%24c\d\d:\d\d') && i < len(lines))
+        while ((i < len(lines)) && matchstr(lines[i],'\%24c\d\d:\d\d') )
             let i += 1
         endwhile
         let lines = sort(lines[0:i-1], 's:TimeGridSort') + lines[i :]
@@ -3655,7 +3658,8 @@ function! s:RepeatMatch(rptdate, date1, date2)
             let first_of_month_jul = calutil#jul(baseclone[:7]. '01')
         else
             let first_of_month_jul = calutil#jul(date1[:4] .
-                        \ s:Pre0( date1[5:6] - 1) . '-01')
+                        \ s:Pre0( date1[5:6] ) . '-01')
+                        "\ s:Pre0( date1[5:6] - 1) . '-01')
         endif
 
         if g:special ==? '*'
@@ -3682,7 +3686,7 @@ function! s:RepeatMatch(rptdate, date1, date2)
             if (testjul < date2jul) && (testjul >= first_of_month_jul)
                 call add(g:rptlist, calutil#cal(testjul))
             else
-                "put in this one to check for deadlien warnings
+                "put in this one to check for deadline warnings
                 "if len(g:rptlist)>0
                 call add(g:rptlist, calutil#cal(testjul))
                 "endif
@@ -7220,11 +7224,11 @@ function! OrgEvalTable(...) range
 
         let g:orgcmd = orgcmd
 
-        if exists('*xolox#shell#execute')
-            silent let myx = xolox#shell#execute(orgcmd . '| cat', 1)
-        else
+        "if exists('*xolox#shell#execute')
+        "    silent let myx = xolox#shell#execute(orgcmd . '| cat', 1)
+        "else
             silent exe '!' . orgcmd
-        endif
+        "endif
         exe start .',' . end . 'read ~/org-tbl-block.org'
         exe start . ',' . end . 'd'
         redraw

@@ -23,6 +23,8 @@ let g:org_autoload_funcs=1
 
 function! org#SetOrgFileType()
         "if expand("%:e") == 'org'
+       "if exists("g:syntax_on") | syntax off | else | syntax enable | endif
+	"syntax enable
                 if &filetype != 'org'
                         execute "set filetype=org"
 			
@@ -38,7 +40,11 @@ function! org#SetOrgFileType()
 "			exec "syntax match NOTDONETODO '" . b:v.todoNotDoneMatch . "' containedin=OL1,OL2,OL3,OL4,OL5,OL6" 
 		
                 endif
+	
         "endif
+	runtime syntax/org.vim
+	"syntax enable
+        "call OrgSetColors()
 endfunction     
 
 function! org#Pad(s,amt)
