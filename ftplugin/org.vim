@@ -2045,13 +2045,14 @@ function! s:OrgCycle(headline)
     elseif ((end == -1) && (s:Ind(s:OrgNextHead_l(a:headline)) > s:Ind(a:headline))          
                 \ && (foldclosed(s:OrgNextHead_l(a:headline)) > 0))
         let nextsamelevel = s:OrgNextHeadSameLevel_l(a:headline)
-        let nextuplevel = s:OrgNextHeadSameLevel_l(s:OrgParentHead_l(a:headline)) 
+        "let nextuplevel = s:OrgNextHeadSameLevel_l(s:OrgParentHead_l(a:headline)) 
+        let nextuplevel = s:OrgNextHeadSameLevel_l(a:headline) 
         if (nextsamelevel > 0) && (nextsamelevel > nextuplevel)
             let endline = nextsamelevel
         elseif nextuplevel > a:headline
-            let endline = nextuplevel
+            let endline = nextuplevel - 1
         else 
-            let endline = line('$')
+            let endline = line('$') 
         endif
         if b:v.cycle_with_text
             call OrgBodyTextOperation(a:headline+1,endline,'expand')

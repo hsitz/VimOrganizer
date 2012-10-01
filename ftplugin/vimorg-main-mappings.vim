@@ -185,11 +185,11 @@ endfunction
 function! OrgNaviMap(keys)
     let keys = a:keys
     let dir_dict = {'gj':'down', 'gk':'up', 'gh':'left','gl':'right'}
-    if getline(line('.')) =~ b:v.headMatch
+    "if getline(line('.')) =~ b:v.headMatch
 	call OrgNavigateLevels(dir_dict[keys])
-    else
-	exe 'normal! ' . keys
-    endif
+    "else
+	" exe 'normal! ' . keys
+    "endif
     
 endfunction
 " below are alternate mappings for terminals, which
