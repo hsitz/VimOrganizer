@@ -2039,9 +2039,14 @@ function! s:DoFullFold(headline)
 endfunction
 function! s:OrgCycle(headline)
     let save_cursor = getpos(".")
+    normal! H
+    let topline = line(".")
+    call setpos(".",save_cursor)
+
     let end = foldclosedend(a:headline)
     if (end>0) && (s:Ind(end+1) <= s:Ind(a:headline))
         call s:OrgExpandHead(a:headline)
+        let endline = end
     elseif ((end == -1) && (s:Ind(s:OrgNextHead_l(a:headline)) > s:Ind(a:headline))          
                 \ && (foldclosed(s:OrgNextHead_l(a:headline)) > 0))
         let nextsamelevel = s:OrgNextHeadSameLevel_l(a:headline)
@@ -2062,7 +2067,13 @@ function! s:OrgCycle(headline)
     else
         call s:DoFullFold(a:headline)
     endif
+
+    exe "normal! " . topline . "G"
+    normal zt
     call setpos(".",save_cursor)
+    if exists('endline') && line('w$') < endline
+        normal ztkj
+    endif
 endfunction
 function! OrgCycle()
     if getline(line(".")) =~ b:v.headMatch
@@ -2076,7 +2087,7 @@ function! OrgCycle()
     endif
     " position to top of screen with cursor in col 0
     "normal! z.
-    normal! ztkj
+    "normal! ztkj
 endfunction
 let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
