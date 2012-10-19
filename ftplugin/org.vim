@@ -2039,9 +2039,7 @@ function! s:DoFullFold(headline)
 endfunction
 function! s:OrgCycle(headline)
     let save_cursor = getpos(".")
-    normal! H
-    let topline = line(".")
-    call setpos(".",save_cursor)
+    let topline = line("w0")
 
     let end = foldclosedend(a:headline)
     if (end>0) && (s:Ind(end+1) <= s:Ind(a:headline))
