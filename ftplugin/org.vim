@@ -1959,6 +1959,7 @@ function! OrgNavigateLevels(direction)
     let visible = s:IsVisibleHeading(dest) 
     if (dest > 0) && visible && (dest >= lowerlimit) && (dest <= upperlimit) 
         execute dest
+        execute 'normal ' . (strlen(substitute(getline("."), '^\(\**\).*$', '\1', '')) - 1) . 'l'
     else 
         echo msg
     endif   
