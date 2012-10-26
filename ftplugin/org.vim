@@ -7538,7 +7538,7 @@ function! s:OrgCustomTodoHighlights()
                 endif
             endfor
             "now put new match in
-            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' + containedin=DONETODO,NOTDONETODO,OL1,OL2,OL3,OL4,OL5,OL6' 
+            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' +he=e-1 containedin=DONETODO,NOTDONETODO,OL1,OL2,OL3,OL4,OL5,OL6' 
         endif
         
     endfor
