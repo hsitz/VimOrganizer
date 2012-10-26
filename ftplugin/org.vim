@@ -7511,15 +7511,14 @@ function! s:OrgCustomTodoHighlights()
     endif
     for item in keys(g:org_todo_custom_highlights)
         let d = g:org_todo_custom_highlights
-        if has('gui_running')
-            let fg = get(d[item], 'guifg')
-            let bg = get(d[item], 'guibg')
-            exec 'hi! ' . item . ((fg>#'')  ? ' guifg=' . fg : '') . ((bg>#'') ? ' guibg=' . bg : '')
-        else
-            let fg = get(d[item], 'ctermfg')
-            let bg = get(d[item], 'ctermfg')
-            exec 'hi! ' . item . ((fg>#'')  ? ' ctermfg=' . fg : '') . ((bg>#'') ? ' ctermbg=' . bg : '')
-        endif
+        let attrs = has('gui_running') ?
+                    \ ['gui', 'font', 'guifg', 'guibg', 'guisp',] :
+                    \ ['term', 'cterm', 'ctermfg', 'ctermbg',]
+        let attr_str = ''
+        for attr in attrs
+            let attr_str .= get(d[item], attr, '') != '' ? ' ' . attr . '=' . get(d[item], attr) : ""
+        endfor
+        exec 'hi! ' . item . attr_str
 
         " xxxx todo put back in containedins, do synclears? check order?
         if bufname('%')=='__Agenda__'
