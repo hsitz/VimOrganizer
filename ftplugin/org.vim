@@ -4223,7 +4223,7 @@ function! OrgSingleHeadingText(operation)
     call OrgBodyTextOperation(l:startline,l:endline,a:operation)
 endfunction
 
-function! s:StarLevelFromTo(from, to)
+function! StarLevelFromTo(from, to)
     let save_cursor = getpos(".")
     set fdm=manual
     let b:v.levelstars = a:to
