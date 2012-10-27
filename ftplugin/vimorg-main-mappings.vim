@@ -199,6 +199,10 @@ nnoremap <silent> <buffer> gk    :call OrgNaviMap("gk")<CR>
 nnoremap <silent> <buffer> gj    :call OrgNaviMap("gj")<CR>
 nnoremap <silent> <buffer> gh    :call OrgNaviMap("gh")<CR>
 nnoremap <silent> <buffer> gl    :call OrgNaviMap("gl")<CR>
+nnoremap <silent> <buffer> g<Up>     :call OrgNaviMap("gk")<CR>
+nnoremap <silent> <buffer> g<Down>   :call OrgNaviMap("gj")<CR>
+nnoremap <silent> <buffer> g<Left>   :call OrgNaviMap("gh")<CR>
+nnoremap <silent> <buffer> g<Right>  :call OrgNaviMap("gl")<CR>
 nnoremap <silent> <buffer> <localleader>zu    :call OrgNavigateLevels("up")<CR>
 nnoremap <silent> <buffer> <localleader>zd    :call OrgNavigateLevels("down")<CR>
 nnoremap <silent> <buffer> <localleader>zl    :call OrgNavigateLevels("left")<CR>
