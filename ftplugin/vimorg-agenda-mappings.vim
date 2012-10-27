@@ -28,6 +28,9 @@
     nnoremap <silent> <buffer> q  :call OrgQuitAgenda()<cr>
 
     nmap <buffer> <silent> <s-CR>       :call {mysid}AgendaReplaceTodo()<CR>
+    if !has('gui_running')
+        nmap <silent> <buffer> <localleader>nt   :call {mysid}AgendaReplaceTodo()<CR>
+    endif
     nmap <silent> <buffer> <c-CR>       :MyAgendaToBuf<CR>
     nmap <silent> <buffer> <CR>         :AgendaMoveToBuf<CR>
     nmap <silent> <buffer> ,r           :call OrgRunCustom({'redo_num': line('.'), 'type':'tags-todo', 'spec': g:org_search_spec})<CR>
