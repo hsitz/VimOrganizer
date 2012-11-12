@@ -69,6 +69,7 @@ noremap <buffer> <localleader>g :call {mysid}OrgGatherDashboard()<cr>
 "noremap <silent> <buffer> <localleader>rx :call OrgJumpToRefilePointPersistent()<cr>
 "noremap <silent> <buffer> <localleader>rs :call OrgSetRefilePoint()<cr>
 "noremap <silent> <buffer> <localleader>rp :call OrgRefileToPermPoint(line('.'))<cr>
+noremap <silent> <buffer> <localleader><localleader>cx :silent call orgcheck#ToggleCheck()<cr>
 noremap <silent> <buffer> <localleader>v :silent call OrgEval()<cr>
 
 noremap <buffer>   <C-K>         <C-]>
