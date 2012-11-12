@@ -539,6 +539,13 @@ function! OrgTodoSetup(todolist_str)
     syntax clear NOTDONETODO
     exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
 
+    if exists('g:org_todo_custom_highlights')
+        for item in keys(g:org_todo_custom_highlights)
+            exec 'syntax clear ' . item
+            exec 'syntax match ' . item  . ' /^\*\+\s*\zs\(' . item . '\)/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+        endfor
+    endif
+            
     for item in keys( b:v.tododict )
         let item_char = tolower( b:v.tododict[item].todochar)
         if item_char ==# ''
@@ -7595,14 +7602,14 @@ function! OrgSetColors()
 
     "hi agenda_dayline guifg=#44aa44 gui=underline
     "hi agenda_weekendline guifg=#55ee55 gui=underline
-    hi agenda_omitted_days guifg=#555555
-    hi agenda_todo guifg=lightred gui=bold
-    hi agenda_done guifg=lightgreen
-    hi agenda_date guifg=lightblue 
-    hi agenda_weekenddate guifg=lightblue gui=bold 
-    hi agenda_scheduled guifg=lightyellow
-    hi agenda_scheduled_previous guifg=lightmagenta
-    hi agenda_timegrid guifg=#666666
+    hi agenda_omitted_days guifg=#555555 ctermfg=gray
+    hi agenda_todo guifg=lightred gui=bold ctermfg=lightred cterm=bold
+    hi agenda_done guifg=lightgreen ctermfg=lightgreen
+    hi agenda_date guifg=lightblue ctermfg=lightblue
+    hi agenda_weekenddate guifg=lightblue gui=bold ctermfg=lightblue cterm=bold
+    hi agenda_scheduled guifg=lightyellow ctermfg=lightyellow
+    hi agenda_scheduled_previous guifg=lightmagenta ctermfg=lightmagenta
+    hi agenda_timegrid guifg=#666666 ctermfg=gray
     " end agenda highlights
   
     if has("conceal")
