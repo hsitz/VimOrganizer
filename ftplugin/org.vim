@@ -539,13 +539,6 @@ function! OrgTodoSetup(todolist_str)
     syntax clear NOTDONETODO
     exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
 
-    if exists('g:org_todo_custom_highlights')
-        for item in keys(g:org_todo_custom_highlights)
-            exec 'syntax clear ' . item
-            exec 'syntax match ' . item  . ' /^\*\+\s*\zs\(' . item . '\)/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
-        endfor
-    endif
-            
     for item in keys( b:v.tododict )
         let item_char = tolower( b:v.tododict[item].todochar)
         if item_char ==# ''
