@@ -535,10 +535,11 @@ function! OrgTodoSetup(todolist_str)
     let b:v.fulltodos = todolist
 
     syntax clear DONETODO
-    exec 'syntax match DONETODO /' . b:v.todoDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+    exec 'syntax match DONETODO /' . b:v.todoDoneMatch[1:] . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
     syntax clear NOTDONETODO
-    exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+    exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch[1:] . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
 
+    call s:OrgCustomTodoHighlights()
     for item in keys( b:v.tododict )
         let item_char = tolower( b:v.tododict[item].todochar)
         if item_char ==# ''
@@ -7529,7 +7530,7 @@ function! s:OrgCustomTodoHighlights()
                 endif
             endfor
             "now put new match in
-            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' + containedin=DONETODO,NOTDONETODO,OL1,OL2,OL3,OL4,OL5,OL6' 
+            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
         endif
         
     endfor
