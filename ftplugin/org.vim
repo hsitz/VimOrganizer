@@ -6199,11 +6199,13 @@ function! s:OrgAgendaToBufTest()
         "let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
     endif
     let cur_buf = bufnr("%")
-    let g:org_folds=0
+    "let g:org_folds=0
     let newbuf = bufnr(g:tofile)
     execute "b"newbuf
+    set ft=org
     execute g:showndx
-    let g:org_folds=1
+    normal zv
+    "let g:org_folds=1
 endfunction
 function! s:OrgAgendaToBuf()
     let win = bufwinnr('Calendar')
