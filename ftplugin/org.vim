@@ -122,6 +122,9 @@ let b:v.suppress_list_indent=0
 " everything in between is executed only the first time an
 " org file is opened
 if !exists('g:org_loaded')
+" Load the checkbox plugin
+execute "runtime ftplugins/vo_checkbox.vim"
+
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
@@ -532,10 +535,11 @@ function! OrgTodoSetup(todolist_str)
     let b:v.fulltodos = todolist
 
     syntax clear DONETODO
-    exec 'syntax match DONETODO /' . b:v.todoDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+    exec 'syntax match DONETODO /' . b:v.todoDoneMatch[1:] . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
     syntax clear NOTDONETODO
-    exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
+    exec 'syntax match NOTDONETODO /' . b:v.todoNotDoneMatch[1:] . '/ containedin=OL1,OL2,OL3,OL4,OL5,OL6'
 
+    call s:OrgCustomTodoHighlights()
     for item in keys( b:v.tododict )
         let item_char = tolower( b:v.tododict[item].todochar)
         if item_char ==# ''
@@ -2036,19 +2040,23 @@ function! s:DoFullFold(headline)
 endfunction
 function! s:OrgCycle(headline)
     let save_cursor = getpos(".")
+    let topline = line("w0")
+
     let end = foldclosedend(a:headline)
     if (end>0) && (s:Ind(end+1) <= s:Ind(a:headline))
         call s:OrgExpandHead(a:headline)
+        let endline = end
     elseif ((end == -1) && (s:Ind(s:OrgNextHead_l(a:headline)) > s:Ind(a:headline))          
                 \ && (foldclosed(s:OrgNextHead_l(a:headline)) > 0))
         let nextsamelevel = s:OrgNextHeadSameLevel_l(a:headline)
-        let nextuplevel = s:OrgNextHeadSameLevel_l(s:OrgParentHead_l(a:headline)) 
+        "let nextuplevel = s:OrgNextHeadSameLevel_l(s:OrgParentHead_l(a:headline)) 
+        let nextuplevel = s:OrgNextHeadSameLevel_l(a:headline) 
         if (nextsamelevel > 0) && (nextsamelevel > nextuplevel)
             let endline = nextsamelevel
         elseif nextuplevel > a:headline
-            let endline = nextuplevel
+            let endline = nextuplevel - 1
         else 
-            let endline = line('$')
+            let endline = line('$') 
         endif
         if b:v.cycle_with_text
             call OrgBodyTextOperation(a:headline+1,endline,'expand')
@@ -2058,7 +2066,13 @@ function! s:OrgCycle(headline)
     else
         call s:DoFullFold(a:headline)
     endif
+
+    exe "normal! " . topline . "G"
+    normal zt
     call setpos(".",save_cursor)
+    if exists('endline') && line('w$') < endline
+        normal ztkj
+    endif
 endfunction
 function! OrgCycle()
     if getline(line(".")) =~ b:v.headMatch
@@ -2070,9 +2084,6 @@ function! OrgCycle()
         exec "normal i\tl"
         return
     endif
-    " position to top of screen with cursor in col 0
-    "normal! z.
-    normal! ztkj
 endfunction
 let s:orgskipthirdcycle = 0
 function! OrgGlobalCycle()
@@ -3311,7 +3322,7 @@ function! s:PlaceTimeGrid(lines)
         let grid = s:TimeGrid(g:org_timegrid[0],g:org_timegrid[1],g:org_timegrid[2])
         let lines = grid + lines
         let i = len(grid) - 1
-        while (matchstr(lines[i],'\%24c\d\d:\d\d') && i < len(lines))
+        while ((i < len(lines)) && matchstr(lines[i],'\%24c\d\d:\d\d') )
             let i += 1
         endwhile
         let lines = sort(lines[0:i-1], 's:TimeGridSort') + lines[i :]
@@ -3655,7 +3666,8 @@ function! s:RepeatMatch(rptdate, date1, date2)
             let first_of_month_jul = calutil#jul(baseclone[:7]. '01')
         else
             let first_of_month_jul = calutil#jul(date1[:4] .
-                        \ s:Pre0( date1[5:6] - 1) . '-01')
+                        \ s:Pre0( date1[5:6] ) . '-01')
+                        "\ s:Pre0( date1[5:6] - 1) . '-01')
         endif
 
         if g:special ==? '*'
@@ -3682,7 +3694,7 @@ function! s:RepeatMatch(rptdate, date1, date2)
             if (testjul < date2jul) && (testjul >= first_of_month_jul)
                 call add(g:rptlist, calutil#cal(testjul))
             else
-                "put in this one to check for deadlien warnings
+                "put in this one to check for deadline warnings
                 "if len(g:rptlist)>0
                 call add(g:rptlist, calutil#cal(testjul))
                 "endif
@@ -6187,11 +6199,13 @@ function! s:OrgAgendaToBufTest()
         "let g:tofile = matchlist(getline(line(".")),'^\d\+\s*\(\S\+\)')[1]
     endif
     let cur_buf = bufnr("%")
-    let g:org_folds=0
+    "let g:org_folds=0
     let newbuf = bufnr(g:tofile)
     execute "b"newbuf
+    set ft=org
     execute g:showndx
-    let g:org_folds=1
+    normal zv
+    "let g:org_folds=1
 endfunction
 function! s:OrgAgendaToBuf()
     let win = bufwinnr('Calendar')
@@ -7220,11 +7234,11 @@ function! OrgEvalTable(...) range
 
         let g:orgcmd = orgcmd
 
-        if exists('*xolox#shell#execute')
-            silent let myx = xolox#shell#execute(orgcmd . '| cat', 1)
-        else
+        "if exists('*xolox#shell#execute')
+        "    silent let myx = xolox#shell#execute(orgcmd . '| cat', 1)
+        "else
             silent exe '!' . orgcmd
-        endif
+        "endif
         exe start .',' . end . 'read ~/org-tbl-block.org'
         exe start . ',' . end . 'd'
         redraw
@@ -7625,7 +7639,7 @@ function! s:OrgCustomTodoHighlights()
                 endif
             endfor
             "now put new match in
-            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' + containedin=DONETODO,NOTDONETODO,OL1,OL2,OL3,OL4,OL5,OL6' 
+            exec 'syntax match ' . item . ' ' .  '+\*\+ \zs' . item . ' + containedin=OL1,OL2,OL3,OL4,OL5,OL6' 
         endif
         
     endfor
@@ -7691,14 +7705,14 @@ function! OrgSetColors()
 
     "hi agenda_dayline guifg=#44aa44 gui=underline
     "hi agenda_weekendline guifg=#55ee55 gui=underline
-    hi agenda_omitted_days guifg=#555555
-    hi agenda_todo guifg=lightred gui=bold
-    hi agenda_done guifg=lightgreen
-    hi agenda_date guifg=lightblue 
-    hi agenda_weekenddate guifg=lightblue gui=bold 
-    hi agenda_scheduled guifg=lightyellow
-    hi agenda_scheduled_previous guifg=lightmagenta
-    hi agenda_timegrid guifg=#666666
+    hi agenda_omitted_days guifg=#555555 ctermfg=gray
+    hi agenda_todo guifg=lightred gui=bold ctermfg=lightred cterm=bold
+    hi agenda_done guifg=lightgreen ctermfg=lightgreen
+    hi agenda_date guifg=lightblue ctermfg=lightblue
+    hi agenda_weekenddate guifg=lightblue gui=bold ctermfg=lightblue cterm=bold
+    hi agenda_scheduled guifg=lightyellow ctermfg=lightyellow
+    hi agenda_scheduled_previous guifg=lightmagenta ctermfg=lightmagenta
+    hi agenda_timegrid guifg=#666666 ctermfg=gray
     " end agenda highlights
   
     if has("conceal")
@@ -8452,6 +8466,7 @@ amenu <silent> &Org.R&e-read\ Config\ Lines :call OrgProcessConfigLines()<cr>
 "*********************************************************************
 "*********************************************************************
 endif
+
 let g:org_loaded=1
 let b:v.org_loaded=1
 "*********************************************************************

@@ -73,6 +73,7 @@ noremap <buffer> <localleader>g :call {mysid}OrgGatherDashboard()<cr>
 "noremap <silent> <buffer> <localleader>rx :call OrgJumpToRefilePointPersistent()<cr>
 "noremap <silent> <buffer> <localleader>rs :call OrgSetRefilePoint()<cr>
 "noremap <silent> <buffer> <localleader>rp :call OrgRefileToPermPoint(line('.'))<cr>
+noremap <silent> <buffer> <localleader><localleader>cx :silent call orgcheck#ToggleCheck()<cr>
 noremap <silent> <buffer> <localleader>v :silent call OrgEval()<cr>
 
 noremap <buffer>   <C-K>         <C-]>
@@ -189,11 +190,11 @@ endfunction
 function! OrgNaviMap(keys)
     let keys = a:keys
     let dir_dict = {'gj':'down', 'gk':'up', 'gh':'left','gl':'right'}
-    if getline(line('.')) =~ b:v.headMatch
+    "if getline(line('.')) =~ b:v.headMatch
 	call OrgNavigateLevels(dir_dict[keys])
-    else
-	exe 'normal! ' . keys
-    endif
+    "else
+	" exe 'normal! ' . keys
+    "endif
     
 endfunction
 " below are alternate mappings for terminals, which
