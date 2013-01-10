@@ -179,6 +179,8 @@ function! org#CaptureBuffer()
         echo 'Capture is not set up.  Please read docs at :h vimorg-capture.'
         return
     endif
+    let l:savedbufn = bufname('%')
+    call org#SaveLocation()
     if bufnr('_Org_Capture_') > 0
 	exec 'bwipeout! ' . bufnr('_Org_Capture_')
     endif
@@ -196,6 +198,8 @@ function! org#CaptureBuffer()
     normal ggVGd
     normal i* 
     silent exec "normal o:<".org#Timestamp().">"
+    let pos = g:location[1]
+    silent exec "normal o[[file:".g:location[0]."#line=".pos[1]."]"."[".l:savedbufn."]]"
     normal gg
     set nomodified
     startinsert!
