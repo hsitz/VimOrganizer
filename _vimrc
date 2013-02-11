@@ -14,6 +14,7 @@ au BufEnter *.org            call org#SetOrgFileType()
 " let g:org_capture_file = '~/org_files/mycaptures.org'
 command! OrgCapture :call org#CaptureBuffer()
 command! OrgCaptureFile :call org#OpenCaptureFile()
+syntax on
 
 "==============================================================
 " THE UNNECESSARY STUFF
