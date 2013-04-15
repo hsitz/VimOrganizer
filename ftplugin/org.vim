@@ -125,6 +125,18 @@ if !exists('g:org_loaded')
 " Load the checkbox plugin
 execute "runtime ftplugins/vo_checkbox.vim"
 
+" set calfunc depending on which calendar version installed
+if exists(':Calendar')==2 
+    if exists('*Calendar')>0 
+        let s:Calfunc=function('Calendar')
+    else " we have to assume it's more recent version
+        let s:Calfunc=function('calendar#show')
+    endif
+    if !exists('g:calendar_navi') 
+        let g:calendar_navi=''
+    endif    
+endif    
+
 function! s:SID()
     return matchstr(expand('<sfile>'), '<SNR>\zs\d\+\ze_SID$')
 endfun
@@ -4415,7 +4427,7 @@ function! CalEdit( sdate, stime )
 
         hi Cursor guibg=black
         let s:org_cal_date = newdate[1:10]
-        call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
+        call s:Calfunc(1,newdate[1:4],str2nr(newdate[6:7]))
         " highlight chosen dates in calendar
         hi Ag_Date guifg=red
         call matchadd('Ag_Date','+\s\{0,1}\d\+')
@@ -4487,7 +4499,7 @@ function! CalEdit( sdate, stime )
             endtry
             if g:org_use_calendar && (match(newdate,'\d\d\d\d-\d\d')>=0)
                 let s:org_cal_date = newdate[1:10]
-                call Calendar(1,newdate[1:4],str2nr(newdate[6:7]))
+                call s:Calfunc(1,newdate[1:4],str2nr(newdate[6:7]))
             endif
             echon repeat(' ',72)
             redraw
