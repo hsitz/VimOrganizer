@@ -2,7 +2,7 @@
 " -------------------------------------------------------------
 " Version: 0.30
 " Maintainer: Herbert Sitz <hesitz@gmail.com>
-" Last Change: 2011 Nov 02
+" Last Change:	Qua, 24 Abr 2013 12:52:48 -0300
 "
 " Script: http://www.vim.org/scripts/script.php?script_id=3342
 " Github page: http://github.com/hsitz/VimOrganizer 
@@ -7408,6 +7408,10 @@ function! OrgExportDashboard()
                 let command_part2 = ' org-publish-' . mydict[key]
             elseif item == 'g'
                 let command_part2 = ' org-babel-tangle'
+            elseif item == 'l'
+                let command_part2 = ' org-latex-export-to-latex'
+            elseif item == 'p'
+                let command_part2 = ' org-latex-export-to-pdf'
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
