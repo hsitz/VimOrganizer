@@ -2,7 +2,7 @@
 " -------------------------------------------------------------
 " Version: 0.30
 " Maintainer: Herbert Sitz <hesitz@gmail.com>
-" Last Change: 2011 Nov 02
+" Last Change:	Qui, 25 Abr 2013 19:38:28 -0300
 "
 " Script: http://www.vim.org/scripts/script.php?script_id=3342
 " Github page: http://github.com/hsitz/VimOrganizer 
@@ -32,6 +32,7 @@ setlocal nolisp
 setlocal nosmartindent
 setlocal autoindent
 "setlocal indentkeys+=},=\\item,=\\bibitem
+setlocal indentkeys+==+ 
 
 
 " Only define the function once
@@ -63,6 +64,10 @@ function! GetOrgIndent(...)
 	  let prevline = getline(prevnonblank(v:lnum-1))
   endif
 
+  let g:org_indent_debug_cur=curline
+  let g:org_indent_debug_prev=prevline
+  let g:org_indent_debug_my_rule='no'
+
   if (curline =~ '^\s*$') && (b:v.suppress_list_indent == 1)
 	  let b:v.suppress_list_indent = 0
 	  let b:v.org_list_offset=0
@@ -85,6 +90,9 @@ function! GetOrgIndent(...)
 "			  \ && (len(synstack(v:lnum-1,1))>0) 
 "			  \ && (synIDattr(synstack(v:lnum-1,1)[0],'name') == 'orgList')
 "	  let b:v.suppress_list_indent = 0
+  "elseif curline =~ '^\s\+'
+    "(curline =~ '^\s\+'\([+\*#] \|[\d\+[.:)-] \)')
+  "  let g:org_indent_debug_my_rule='yes'
   elseif b:v.suppress_indent == 1
 	  return indent(curline)
   elseif b:v.suppress_list_indent == 1
@@ -103,9 +111,16 @@ function! GetOrgIndent(...)
   elseif prevline =~ '^\s*\d\+[).\]:]\s\+\S'
     let ind = ind + len(matchstr(prevline,'^\s*\zs\d\+[).\]:]\s\+\ze\S'))
   elseif prevline =~ '^\s*[-+\*]\s\+\S'
+    let g:org_debug_i_am_here='yes'
     let ind = ind + len(matchstr(prevline,'^\s*\zs[-+\*]\s\+\ze\S'))
+    if curline =~ '^\s*[-+\*]\s\+\S'
+      let lenmatch=len(matchstr(curline,'^\s*[-+\*]\s\+\S')
+      let ind=ind-lenmatch
+          let g:org_indent_debug_my_rule='yes'
+    endif
   elseif (len(synstack(v:lnum,1))>0) && (synIDattr(synstack(v:lnum,1)[0],'name') == 'orgList')
     let ind = len(matchstr(getline(v:lnum-1),'^\s*'))
+  else
   endif
 
   return ind
