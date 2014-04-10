@@ -40,6 +40,7 @@ CONTENTS                                           *VimOrganizer*  *vimorg*
     Hyperlinks                                     |vimorg-hyperlinks|
     Narrowing Regions                              |vimorg-narrowing|
     Tables in VimOrganizer                         |vimorg-tables-editing|
+    Clocking                                       |vimorg-clocking|
 
     Colorschemes and highlighting                  |vimorg-colors|
     Code and spreadsheet evaluation in Emacs.....: |vimorg-code-eval|  
@@ -1081,6 +1082,32 @@ NOTE:  Be sure to note that the default evaluation does _NOT_
              2/3*4 == 2 / (3 * 4)
 
        See:  http://orgmode.org/manual/Formula-syntax-for-Calc.html#Formula-syntax-for-Calc 
+
+------------------------------------------------------------------------
+CLOCKING                                       *vimorg-clocking*
+
+Clocking means to record the amount time you spend on tasks.
+
+,ci    Clock in                                *vimorg-clock-in*
+
+When you start work on an item, position the cursor on its headline and
+press ,ci. A property :CLOCK: with the current timestamp is added, to
+record the start time and to mark it as "open".
+
+,co    Clock out                               *vimorg-clock-out*
+
+When you stop working on the current task, press ,co. You don't have to
+be positioned on the item. The currently open task will be searched in
+the current file or in all Agenda files (see |vimorg-agenda-files|). The
+end time will be recorded. The start time, end time and duration will be
+recorded in a :LOGBOOK: drawer like this:
+
+    :LOGBOOK:
+    :CLOCK: [2010-07-11 Sun 20:30]--[2010-07-11 Sun 22:26] -> 1:56
+    :END:
+
+You can clock the same task multiple times and multiple :CLOCK: lines
+will accumulate in the logbook.
 
 
 ========================================================================
