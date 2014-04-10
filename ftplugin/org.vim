@@ -5102,7 +5102,7 @@ function! s:GetOpenClock()
     let file = ''
     if !exists('g:agenda_files') || (g:agenda_files == [])
         unsilent call confirm("No agenda files defined, will search only this buffer for open clocks.")
-        let found = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
+        let found_line = search('CLOCK: \[\d\d\d\d-\d\d-\d\d \S\S\S \d\d:\d\d\]\($\|\s\)','w')
     else
         let g:in_agenda_search = 1
         for file in g:agenda_files
