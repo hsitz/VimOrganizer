@@ -2,7 +2,7 @@
 " -------------------------------------------------------------
 " Version: 0.30
 " Maintainer: Herbert Sitz <hesitz@gmail.com>
-" Last Change: 2011 Nov 02
+" Last Change:	Qua, 24 Abr 2013 12:52:48 -0300
 "
 " Script: http://www.vim.org/scripts/script.php?script_id=3342
 " Github page: http://github.com/hsitz/VimOrganizer 
@@ -7364,6 +7364,10 @@ function! OrgExportDashboard()
                 let command_part2 = ' org-publish-' . mydict[key]
             elseif item == 'g'
                 let command_part2 = ' org-babel-tangle'
+            elseif item == 'l'
+                let command_part2 = ' org-latex-export-to-latex'
+            elseif item == 'p'
+                let command_part2 = ' org-latex-export-to-pdf'
             else
                 let command_part2 = ' org-export-as-' . mydict[key]
             endif
@@ -7412,6 +7416,107 @@ function! OrgExportDashboard()
     let &more = save_more
     let &showcmd = save_showcmd
 
+endfunction
+
+
+function! s:OrgHasMobileOrgVar()
+    let result = 1
+
+    if s:OrgHasEmacsVar() == 0
+        let result = 0
+        return result
+    endif
+
+    if !exists("g:org_mobile_files") || (g:org_mobile_files == []) ||  !exists("g:org_mobile_directory") || (g:org_mobile_directory == '') || !exists("g:org_mobile_inbox_for_pull") || (g:org_mobile_inbox_for_pull == '') 
+        let msg = "=============================================== \n"
+                \ . "You're trying to call out to Emacs MobileOrg  Push or Pull \n"
+                \ . "you haven't set the necessary variables. \n"
+                \ . "You should set this in your vimrc by including \n"
+               \ . "a line like: \n\n"
+               \ . "    let g:org_mobile_directory=[directory where MobileOrg file will be pushed] \n\n"
+               \ . "    let g:org_mobile_files=[agenda files that you would like to be pushed] \n\n"
+               \ . "    let g:org_mobile_inbox_for_pull=[file in which will appear your pulls from MobileOrg] \n\n"
+               \ . "See :h vimorg-mobileorg-setup for more info. \n\n"
+               \ . "The call you attempted to Emacs will now be aborted.  \n"
+               \ . "Revise your vimrc and restart Vim to use this feature.\n"
+               \ . "==============================================\n"
+               \ . "Press <enter> to continue."
+        call input(msg)
+        let result = 0
+    endif
+
+    return result
+endfunction
+
+function! s:OrgSetMobileOrgVar()
+    let org_mob_files = map(copy(g:org_mobile_files),  '"\\" . "\"" . v:val . "\\" . "\""')
+    let orgpath = g:org_command_for_emacsclient . ' -n --eval '
+    let g:mypart1 = '(custom-set-variables ' .  "\'" .  '(org-mobile-files (list ' . join(org_mob_files) . '))'
+    let g:mypart1 .= ' '  . "\'" .  '(org-mobile-directory \' .  '"' . g:org_mobile_directory . '\' . '")'
+    let g:mypart1 .= ' ' . "\'" .  '(org-mobile-inbox-for-pull \' .  '"' . (g:org_mobile_inbox_for_pull) . '\' . '"))'
+
+    let orgcmd = orgpath . '"' . g:mypart1  . '"'
+    let g:orgcmd = orgcmd
+    echo "Setting mobile org variables... "
+    silent! execute '!' . orgcmd
+    echo "Setting mobile org variables... Done "
+endfunction
+
+function! OrgExportToMobileOrg()
+
+    if  s:OrgHasMobileOrgVar() == 0
+        return
+    endif
+
+    call s:OrgSetMobileOrgVar()
+
+    let orgpath = g:org_command_for_emacsclient . ' -n --eval '
+    "need to close all opened buffers that belong to the mobile org list
+    let g:mypart1 = '(dolist (x org-mobile-files) (let((org-export-babel-evaluate t)(org-confirm-babel-evaluate nil)(buf (find-file x))) (progn (set-buffer buf)(revert-buffer t t t) (not-modified) (kill-this-buffer))))'
+    let orgcmd1 = orgpath . '"' . g:mypart1 . '"'
+    echo "Closing exporting files  to mobile org...  "
+    silent! execute '!' . orgcmd1
+    redraw
+
+    let g:mypart2 = ' (progn (org-mobile-push))'
+
+    let orgcmd = orgpath . '"' . g:mypart2 . '"'
+    let g:orgcmd = orgcmd
+    echo "Exporting to mobile org...  " 
+    silent! execute '!' . orgcmd
+    redraw
+    echo "Exporting to mobile org... Done " 
+    redraw
+
+    "need to close all opened buffers
+    let g:mypart3 = '(dolist (x org-mobile-files) (let((org-export-babel-evaluate t)(org-confirm-babel-evaluate nil)(buf (find-file x))) (progn (set-buffer buf) (not-modified) (kill-this-buffer))))'
+    let orgcmd3 = orgpath . '"' . g:mypart3 . '"'
+    echo "Closing again exporting files to mobile org..."
+    silent! execute '!' . orgcmd3
+    redraw!
+    echo "Closing again exporting files to mobile org... Done  "
+endfunction
+
+function! OrgImportFromMobileOrg()
+    if s:OrgHasMobileOrgVar() == 0
+        return
+    endif
+
+    call s:OrgSetMobileOrgVar()
+
+    let orgpath = g:org_command_for_emacsclient . ' -n --eval '
+    let g:myfilename = substitute(expand("%:p"),'\','/','g')
+    let g:myfilename = substitute(g:myfilename, '/ ','\ ','g')
+    let g:mypart1 = '(let ((org-export-babel-evaluate t)(org-confirm-babel-evaluate nil)'
+    let g:mypart1 .= '(buf (find-file \' . '"' . g:myfilename . '\' . '")) ) (progn ' 
+    let g:mypart2 = ' (set-buffer buf) (org-mobile-pull) (save-buffer) (kill-this-buffer)) )'
+    let orgcmd = orgpath . '"' . g:mypart1 . g:mypart2 . '"'
+    let g:orgcmd = orgcmd
+    redraw
+    echo "Import from mobile org... " 
+    silent! execute '!' . orgcmd 
+    redraw
+    echo "Import from mobile org...Done"
 endfunction
 
 function! s:MailLookup()
@@ -8317,6 +8422,9 @@ amenu &Org.-Sep6- :
 amenu &Org.Open\ Capture\ Buffer :call org#CaptureBuffer()<cr>
 amenu &Org.-Sep7- :
 amenu &Org.Export/Publish\ w/Emacs :call OrgExportDashboard()<cr>
+amenu &Org.-Sep75- :
+amenu &Org.Push\ (export)\ Mobile\ Org\ w/Emacs :call  OrgExportToMobileOrg()<cr>
+amenu &Org.Pull\ (import)\ Mobile\ Org\ w/Emacs :call  OrgImportFromMobileOrg()<cr>
 amenu &Org.-Sep8- :
 amenu <silent> &Org.R&e-read\ Config\ Lines :call OrgProcessConfigLines()<cr>
 

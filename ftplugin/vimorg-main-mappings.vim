@@ -59,6 +59,10 @@ nnoremap <localleader>pl :call s:MyPopup()<cr>
 
 nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
 
+" MobileOrg push (export) / pull (import)
+noremap <silent> <buffer> <localleader>me :call OrgExportToMobileOrg()<cr>
+noremap <silent> <buffer> <localleader>mi :call OrgImportFromMobileOrg()<cr>
+
 " clear search matching
 nnoremap <silent> <buffer> <localleader>cs :let @/=''<cr>
 
