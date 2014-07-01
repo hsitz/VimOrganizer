@@ -285,6 +285,45 @@ issuing the command manually within Emacs (alt-x server-start).
 
 ----------------------------------------------------------------------------
 
+INTERACTING WITH MOBILEORG AND VIMORGANIZER   *vimorg-mobileorg-interaction*
+                                              *vimorg-mobileorg-setup*
+
+Vim/VimOrganizer allows users to synchronize with the MobileOrg applications. For
+this it uses Emacs client, so Emacs client need to be properly configure to
+use this feature. (see |vimorg-emacs-setup|)
+
+MobileOrg applications for iOS (http://mobileorg.ncogni.to/) or Android
+(https://github.com/matburt/mobileorg-android/wiki/) allow users to change,
+remove or capture on the mobile devices. But for that the user need to push their
+local agendas files and after pull to get the capture notes from the devices.
+
+For the VimOrganizer functions OrgExportToMobileOrg() and
+OrgImportFromMobileOrg() to work you need first to setup some variables in
+your vimrc file, e.g.:
+>
+     let g:org_mobile_directory = ["~/documents/org_files/mobile"]
+
+This will be the directory where the push command will create the index.org,
+checksum and other files to be fetch by the MobileOrg application.
+>
+     let g:org_mobile_files = ["~/documents/org_files/projects.org", "~/documents/org_files/personal.org"]
+
+This are the list of files that you want to synchronize with the MobileOrg,
+since you may not want all your .org files to be push. 
+>
+     let g:org_mobile_inbox_for_pull =
+     ["~/documents/org_files/mobile/from-mobile.org"]
+
+This is the file where the MobileOrg will write the notes capture by you when
+on the move. Afterwards you will need to refile the notes where you desire.
+
+You can issue the push/pull using the Org menu entries for this or using the
+following shotcuts:
+,me Push/Export to MobileOrg
+,mi Pull/Import From MobileOrg
+
+----------------------------------------------------------------------------
+
 CONVERSION BETWEEN ORG-MODE AND VIMORGANIZER   *vimorg-orgmode-conversion*
 
 In practice nothing may go drastically wrong if you don't have perfect
