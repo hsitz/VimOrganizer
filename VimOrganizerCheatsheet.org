@@ -38,12 +38,14 @@
    this editing mechanism is currently restricted to dealing with only these
    "primary" dates.
 
+```
  enter DEADLINE date for headline      ,dd
  enter SCHEDULED date for headline     ,ds
  enter CLOSED date for headline        ,dc
  enter regular date TIMESTAMP (i.e., no indicator) for headline
                                        ,dt
  enter timestamp into text             ,dg
+```
 
     The command-line prompt and calendar that appear when you enter a ,d<x>  
     command operate nearly the same as the date-time prompt in Emacs' 
