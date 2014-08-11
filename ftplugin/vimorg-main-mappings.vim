@@ -54,7 +54,7 @@ noremap <silent> <buffer> <localleader>ac :call OrgCustomSearchMenu()<cr>
 nnoremap <silent> <buffer> <s-up> :call OrgDateInc(1)<CR>
 nnoremap <silent> <buffer> <s-down> :call OrgDateInc(-1)<CR>
 nnoremap <silent> <buffer> <2-LeftMouse> :call OrgMouseDate()<CR>
-nnoremap <localleader>pl :call s:MyPopup()<cr>
+" nnoremap <localleader>pl :call s:MyPopup()<cr>
 "map <silent> <localleader>b  :call ShowBottomCal()<cr> 
 
 nnoremap <silent> <buffer> <localleader>et :call OrgTagsEdit()<cr>
