@@ -1304,12 +1304,12 @@ You can also use Vimscript to add files to g:agenda_files.  For
 example, putting something like the following lines in your vimrc would
 always fill g:agenda_files upon startup:
 >
-   let g:org_agenda_files = split(glob("~/documents/org_files/*.org"),"\n")
+   let g:agenda_files = split(glob("~/documents/org_files/*.org"),"\n")
 
 HINT: use the '+=' operator if you want to append these entries to those
-already in g:org_agenda_files. E.g.,
+already in g:agenda_files. E.g.,
 >
-   let g:org_agenda_files += split(glob("~/documents/org_files/*.org"),"\n")
+   let g:agenda_files += split(glob("~/documents/org_files/*.org"),"\n")
 
 The 'agenda files dashboard' includes more commands that let you add, 
 remove, or rearrange files in the list of agenda files.  You can bring
@@ -1467,7 +1467,7 @@ TAGS-TODO-PROPERTY SEARCH                  *vimorg-tags-search*
 >
                 Enter search string: +work+{boss.*}
 <                   selects headlines that contain the tag ':work:'
-                    and any tag starting with ‘:boss’. (Note: unlike
+                    and any tag starting with :boss. (Note: unlike
                     the similar search in Org-mode, there should be
                     _no_ initial '^'.) 
 
@@ -1490,17 +1490,17 @@ TAGS-TODO-PROPERTY SEARCH                  *vimorg-tags-search*
           The type of comparison done depends on how the comparison value is written:
 
           - If the comparison value is a plain number, a numerical comparison is
-            done, and the allowed operators are ‘<’, ‘=’, ‘>’, ‘<=’, ‘>=’, and
-            ‘!=’. 
+            done, and the allowed operators are <, =, >, <=, >=, and
+            !=. 
           - If the comparison value is enclosed in double-quotes, a string
             comparison is done, and the same operators are allowed.  
           - If the comparison value is enclosed in double-quotes and angular
-            brackets (like ‘DEADLINE<="<2008-12-24 18:30>"’), both values are
+            brackets (like DEADLINE<="<2008-12-24 18:30>"), both values are
             assumed to be date/time specifications in the standard way, 
             and the comparison will be done accordingly. 
           - If the comparison value is enclosed in curly braces, a regexp match
-            is performed, with ‘=’ meaning that the regexp matches the property
-            value, and ‘!=’ meaning that it does not match. 
+            is performed, with = meaning that the regexp matches the property
+            value, and != meaning that it does not match. 
 
 ---------------------------------------------------------------
 CUSTOM SEARCHES                       *vimorg-agenda-custom-searches*
