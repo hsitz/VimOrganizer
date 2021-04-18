@@ -493,11 +493,11 @@ in the commands below):
 MODIFYING VIEW OF THE OUTLINE STRUCTURE        *vimorg-view-commands*
 
 View Document Structure           Show entire document with headings
-,,N                               expanded to outline level N.
+,N                                expanded to outline level N.
 where N is for level 1-9
 
 View Subtree Structure            Show current subtree with headings 
-,N                                expanded to outline level N.
+,,N                               expanded to outline level N.
 where N is for level 1-9
 ---------------------------------------------------------------------
 ADDING NEW HEADINGS                          *vimorg-new-headings*
